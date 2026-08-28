@@ -44,7 +44,6 @@ export default function NewWorkflowPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Load all connected services and their contracts
   useEffect(() => {
     async function loadData() {
       try {
@@ -67,7 +66,6 @@ export default function NewWorkflowPage() {
         }
         setContractsByService(contractsMap);
 
-        // Pre-select first contract if available
         const firstService = loadedServices[0];
         if (firstService && contractsMap[firstService.id]?.length > 0) {
           const firstContract = contractsMap[firstService.id][0];
@@ -127,7 +125,6 @@ export default function NewWorkflowPage() {
     if (steps.length <= 1) return;
     const toRemoveKey = steps[idx].stepKey;
     const filtered = steps.filter((_, i) => i !== idx);
-    // Remove dependency references to deleted step
     const updated = filtered.map((s) => ({
       ...s,
       dependencies: s.dependencies.filter((d) => d !== toRemoveKey),
@@ -135,7 +132,6 @@ export default function NewWorkflowPage() {
     setSteps(updated);
   };
 
-  // Cycle detection
   const hasCycle = (): boolean => {
     const adj = new Map<string, string[]>();
     for (const s of steps) {

@@ -29,14 +29,12 @@ export async function POST(
     try {
       await client.query("BEGIN");
 
-      // 1. Create transaction row linked to workflow
       await client.query(
         `INSERT INTO transactions (id, state, scenario, workflow_id, next_event_sequence, created_at, updated_at)
          VALUES ($1, 'PLANNING', $2, $3, 1, $4, $4)`,
         [transactionId, scenario || workflow.name, workflow.id, now]
       );
 
-      // 2. Compile and insert each workflow node into transaction_nodes
       const compiledNodes = [];
       for (const node of workflow.nodes) {
         const contract = await getContract(node.contractId);
@@ -51,7 +49,6 @@ export async function POST(
         const operationKey = `tx:${transactionId}:${node.stepKey}`;
         const inputArgs: Record<string, unknown> = {};
 
-        // Resolve input bindings
         if (node.inputConfig) {
           for (const [key, binding] of Object.entries(node.inputConfig)) {
             if (binding.type === "static") {
@@ -60,12 +57,10 @@ export async function POST(
           }
         }
 
-        // Apply any run-time overrides
         if (runInputs && typeof runInputs[node.stepKey] === "object") {
           Object.assign(inputArgs, runInputs[node.stepKey]);
         }
 
-        // Always inject operationKey
         inputArgs[contract.operationKeyField || "operationKey"] = operationKey;
 
         await client.query(

@@ -19,14 +19,12 @@ export default function NewContractPage({
   const [service, setService] = useState<ConnectedServiceRecord | null>(null);
   const [loadingService, setLoadingService] = useState(true);
 
-  // Form State
   const [name, setName] = useState("");
   const [executeToolName, setExecuteToolName] = useState("");
   const [inspectToolName, setInspectToolName] = useState("");
   const [compensateToolName, setCompensateToolName] = useState("");
   const [operationKeyField, setOperationKeyField] = useState("operationKey");
 
-  // Developer Assertions
   const [executeIdempotent, setExecuteIdempotent] = useState(false);
   const [inspectAuthoritative, setInspectAuthoritative] = useState(false);
   const [compensateRetrySafe, setCompensateRetrySafe] = useState(false);
@@ -43,7 +41,6 @@ export default function NewContractPage({
         const data = await res.json();
         setService(data.service);
 
-        // Pre-select first tool if available
         const tools = data.service?.lastDiscoveredTools || [];
         if (tools.length > 0) {
           setExecuteToolName(tools[0].name);
@@ -65,26 +62,22 @@ export default function NewContractPage({
   const inspTool = tools.find((t) => t.name === inspectToolName);
   const compTool = compensateToolName ? tools.find((t) => t.name === compensateToolName) : null;
 
-  // Schema validation checks
   const opKey = operationKeyField.trim();
   const execProps = (execTool?.inputSchema?.properties as Record<string, unknown>) || {};
   const inspProps = (inspTool?.inputSchema?.properties as Record<string, unknown>) || {};
   const compProps = (compTool?.inputSchema?.properties as Record<string, unknown>) || {};
 
-  // Check schema compatibility
   const execAcceptsKey = execTool ? (Object.keys(execProps).length === 0 || opKey in execProps) : false;
   const inspAcceptsKey = inspTool ? (Object.keys(inspProps).length === 0 || opKey in inspProps) : false;
   const compAcceptsKey = compTool ? (Object.keys(compProps).length === 0 || opKey in compProps) : true;
 
   const hasCompensate = Boolean(compensateToolName);
 
-  // Assertion check
   const assertionsValid =
     executeIdempotent &&
     inspectAuthoritative &&
     (!hasCompensate || compensateRetrySafe);
 
-  // Contract readiness determination
   const isReady =
     Boolean(name.trim()) &&
     Boolean(executeToolName) &&

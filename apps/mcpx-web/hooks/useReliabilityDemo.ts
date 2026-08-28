@@ -59,7 +59,6 @@ export function useReliabilityDemo(registeredToolsRef: RefObject<RegisteredTool[
     setEventLog([]);
     setAuthoritativeState({ inspected: false });
 
-    // Generate fresh operation key per demo run
     const currentOpKey = `tx:demo-${Date.now()}:routing:create`;
     setReliabilityOpKey(currentOpKey);
 
@@ -76,7 +75,6 @@ export function useReliabilityDemo(registeredToolsRef: RefObject<RegisteredTool[
       },
     });
 
-    // 1. PENDING -> EXECUTING
     setTransactionNode({ ...node, state: "EXECUTING" });
     appendEvent("ROUTE_EXECUTE_STARTED", {
       operationKey: currentOpKey,
@@ -85,7 +83,6 @@ export function useReliabilityDemo(registeredToolsRef: RefObject<RegisteredTool[
       failureMode: "drop-ack-after-commit",
     });
 
-    // 2. Generic Node Execution through WebMCP
     const execResult = await executeNode(node, registeredToolsRef.current);
     setTransactionNode(execResult.updatedNode);
 
@@ -96,7 +93,6 @@ export function useReliabilityDemo(registeredToolsRef: RefObject<RegisteredTool[
     }
 
     if (execResult.outcome === "IN_DOUBT") {
-      // 3. Acknowledgement lost -> EXECUTING -> IN_DOUBT
       appendEvent("ROUTE_EXECUTE_UNCERTAIN", {
         error: execResult.error,
         reason:
@@ -105,14 +101,12 @@ export function useReliabilityDemo(registeredToolsRef: RefObject<RegisteredTool[
       appendEvent("ROUTE_MARKED_IN_DOUBT", { operationKey: currentOpKey });
     }
 
-    // 4. Authoritative Reconciliation: IN_DOUBT -> RECONCILING
     setTransactionNode((prev) => ({ ...prev, state: "RECONCILING" }));
     appendEvent("ROUTE_RECONCILIATION_STARTED", {
       operationKey: currentOpKey,
       method: "WebMCP get_route inspection",
     });
 
-    // 5. Generic Node Reconciliation through WebMCP with exact operationKey
     const reconcileResult = await reconcileNode(
       execResult.updatedNode,
       registeredToolsRef.current

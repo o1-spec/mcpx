@@ -30,7 +30,6 @@ export async function initCoordinatorDb(): Promise<void> {
 
   const client = await pool.connect();
   try {
-    // 1. Transactions table with next_event_sequence and workflow_id columns
     await client.query(`
       CREATE TABLE IF NOT EXISTS transactions (
         id VARCHAR(255) PRIMARY KEY,
@@ -46,7 +45,6 @@ export async function initCoordinatorDb(): Promise<void> {
       ALTER TABLE transactions ADD COLUMN IF NOT EXISTS workflow_id VARCHAR(255);
     `);
 
-    // 2. Transaction Nodes table
     await client.query(`
       CREATE TABLE IF NOT EXISTS transaction_nodes (
         id VARCHAR(255) NOT NULL,
@@ -69,7 +67,6 @@ export async function initCoordinatorDb(): Promise<void> {
       );
     `);
 
-    // 3. Transaction Events table with UNIQUE (transaction_id, sequence)
     await client.query(`
       CREATE TABLE IF NOT EXISTS transaction_events (
         id VARCHAR(255) PRIMARY KEY,
@@ -93,7 +90,6 @@ export async function initCoordinatorDb(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_tx_events_seq ON transaction_events (transaction_id, sequence ASC);
     `);
 
-    // 4. Connected Services Table (Milestone 2 - Service Registry)
     await client.query(`
       CREATE TABLE IF NOT EXISTS connected_services (
         id VARCHAR(255) PRIMARY KEY,
@@ -106,7 +102,6 @@ export async function initCoordinatorDb(): Promise<void> {
       );
     `);
 
-    // 5. Reliability Contracts Table (Milestone 3 - Contract Mapping)
     await client.query(`
       CREATE TABLE IF NOT EXISTS reliability_contracts (
         id VARCHAR(255) PRIMARY KEY,
@@ -127,7 +122,6 @@ export async function initCoordinatorDb(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_contracts_service_id ON reliability_contracts(service_id);
     `);
 
-    // 6. Workflows and Workflow Nodes Tables (Milestone 4 - Custom Workflows)
     await client.query(`
       CREATE TABLE IF NOT EXISTS workflows (
         id VARCHAR(255) PRIMARY KEY,
@@ -555,13 +549,6 @@ export async function deleteReliabilityContract(contractId: string): Promise<boo
   }
 }
 
-// -----------------------------------------------------------------------------
-// WORKFLOWS & WORKFLOW NODES (Milestone 4 - Custom Workflows)
-// -----------------------------------------------------------------------------
-
-/**
- * Lists all custom workflows with their nodes
- */
 export async function listWorkflows(): Promise<WorkflowRecord[]> {
   await initCoordinatorDb();
   const client = await pool.connect();

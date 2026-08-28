@@ -94,7 +94,6 @@ export default function WorkflowDetailPage({
     }
   };
 
-  // Run Custom Workflow Engine
   const handleRunWorkflow = async () => {
     if (!workflow) return;
 
@@ -103,7 +102,6 @@ export default function WorkflowDetailPage({
       setEvents([]);
       setAwaitingApproval(false);
 
-      // 1. Compile workflow into standard transaction nodes
       const compileRes = await fetch(`/api/workflows/${encodeURIComponent(id)}/compile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -126,7 +124,6 @@ export default function WorkflowDetailPage({
       }));
       setRuntimeNodes(initialRuntimeNodes);
 
-      // Log initial event
       logEvent({
         id: crypto.randomUUID(),
         sequence: 1,
@@ -136,7 +133,6 @@ export default function WorkflowDetailPage({
         timestamp: new Date().toISOString(),
       });
 
-      // Execute DAG topologically in browser
       await executeWorkflowDAG(transactionId, initialRuntimeNodes);
     } catch (err: unknown) {
       console.error("[mcpx-wf-runner] execution error:", err);
@@ -157,7 +153,6 @@ export default function WorkflowDetailPage({
     setEvents((prev) => [...prev, event]);
   };
 
-  // Generic DAG execution loop using browser WebMCP document.modelContext
   const executeWorkflowDAG = async (txId: string, currentNodes: RuntimeNodeState[]) => {
     const nodeStateMap = new Map<string, RuntimeNodeState>(currentNodes.map((n) => [n.id, { ...n }]));
     const completedNodeIds = new Set<string>();
@@ -175,7 +170,6 @@ export default function WorkflowDetailPage({
       nodeStateMap.set(nodeId, { ...node });
       setRuntimeNodes(Array.from(nodeStateMap.values()));
 
-      // Sync with Postgres atomic transition API
       await fetch(`/api/transactions/${encodeURIComponent(txId)}/transition`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -200,13 +194,11 @@ export default function WorkflowDetailPage({
     };
 
     while (completedNodeIds.size < currentNodes.length) {
-      // Find runnable nodes whose dependencies are completed
       const runnable = Array.from(nodeStateMap.values()).filter(
         (n) => n.state === "PENDING" && n.dependencies.every((dep) => completedNodeIds.has(dep))
       );
 
       if (runnable.length === 0) {
-        // If no nodes are runnable and some are failed, break
         const anyFailed = Array.from(nodeStateMap.values()).some((n) => n.state === "FAILED");
         if (anyFailed) {
           setActiveTxState("AWAITING_COMPENSATION_APPROVAL");
@@ -217,11 +209,9 @@ export default function WorkflowDetailPage({
         break;
       }
 
-      // Execute runnable nodes
       for (const node of runnable) {
         await updateNodeState(node.id, "EXECUTING");
 
-        // Small execution delay for visual clarity
         await new Promise((r) => setTimeout(r, 600));
 
         try {
@@ -268,7 +258,6 @@ export default function WorkflowDetailPage({
     loadWorkflow();
   };
 
-  // Reverse Compensation execution
   const handleApproveRollback = async () => {
     if (!activeTxId) return;
 
@@ -276,7 +265,6 @@ export default function WorkflowDetailPage({
     setIsRunning(true);
     setActiveTxState("COMPENSATING");
 
-    // Compensate succeeded nodes in reverse order
     const completedNodes = runtimeNodes
       .filter((n) => n.state === "SUCCEEDED" || n.state === "RECOVERED")
       .reverse();
@@ -284,7 +272,6 @@ export default function WorkflowDetailPage({
     for (const node of completedNodes) {
       if (!node.compensateTool) continue;
 
-      // Update state to COMPENSATING
       const updatedNodes = runtimeNodes.map((n) => (n.id === node.id ? { ...n, state: "COMPENSATING" as const } : n));
       setRuntimeNodes(updatedNodes);
 

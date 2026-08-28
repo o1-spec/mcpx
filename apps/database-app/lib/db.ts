@@ -110,7 +110,6 @@ export async function createRealDatabase(
   try {
     await client.query("BEGIN");
 
-    // 1. Check existing metadata with row lock
     const existing = await client.query(
       `SELECT id, operation_key, schema_name, name, created_at, deleted_at 
        FROM database_resources 
@@ -137,14 +136,11 @@ export async function createRealDatabase(
       }
     }
 
-    // 2. Generate resource identity & safe schema name
     const resourceId = crypto.randomUUID();
     const schemaName = generateSafeSchemaName(resourceId);
 
-    // 3. Create the real Postgres schema INSIDE TRANSACTION
     await client.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
 
-    // 4. Insert or update metadata INSIDE SAME TRANSACTION
     const now = new Date();
     await client.query(
       `INSERT INTO database_resources (id, operation_key, schema_name, name, created_at, deleted_at)
@@ -157,7 +153,6 @@ export async function createRealDatabase(
       [resourceId, operationKey, schemaName, name, now]
     );
 
-    // 5. Commit both schema creation and metadata registration together
     await client.query("COMMIT");
 
     return {

@@ -47,7 +47,6 @@ export default function WebMCPProof() {
     discoverTools,
   } = useWebMCPDiscovery();
 
-  // Milestone: Durable Coordinator & Real Postgres Resource Plane
   const {
     transaction: deployTx,
     isRunning: isRunningDeploy,
@@ -65,7 +64,6 @@ export default function WebMCPProof() {
     clearEventLog: clearDeployLog,
   } = useDeploymentDemo(registeredToolsRef);
 
-  // Milestone 2: 2-Node Saga Compensation Demo Hook
   const {
     transaction: sagaTx,
     isRunning: isRunningSaga,
@@ -78,7 +76,6 @@ export default function WebMCPProof() {
     clearEventLog: clearSagaLog,
   } = useCompensationDemo(registeredToolsRef);
 
-  // Milestone 1: Reliability Demo Hook (drop-ack-after-commit -> IN_DOUBT -> RECOVERED)
   const {
     reliabilityOpKey,
     setReliabilityOpKey,
@@ -205,7 +202,6 @@ export default function WebMCPProof() {
               disabled={executingTool !== null || isRunningDeploy || isRunningSaga || isRunningReliability}
             />
 
-            {/* Milestone 2 Saga Compensation Demo */}
             <CompensationDemo
               transaction={sagaTx}
               isRunning={isRunningSaga}
@@ -219,7 +215,6 @@ export default function WebMCPProof() {
               onClearLog={clearSagaLog}
             />
 
-            {/* Milestone 1 Reliability Demo */}
             <ReliabilityDemo
               reliabilityOpKey={reliabilityOpKey}
               onOpKeyChange={setReliabilityOpKey}
@@ -233,7 +228,6 @@ export default function WebMCPProof() {
               onClearLog={clearReliabilityLog}
             />
 
-            {/* Manual Direct Tool Invocation */}
             <ManualWebMCPControls
               operationKey={operationKey}
               projectName={projectName}

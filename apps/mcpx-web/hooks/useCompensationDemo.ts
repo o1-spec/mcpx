@@ -83,7 +83,6 @@ export function useCompensationDemo(registeredToolsRef: RefObject<RegisteredTool
     const dbOpKey = `${txId}:database:create`;
     const routeOpKey = `${txId}:routing:create`;
 
-    // Declaratively define DAG
     const dbNode = createTransactionNode({
       service: "database",
       id: "database:create",
@@ -119,13 +118,11 @@ export function useCompensationDemo(registeredToolsRef: RefObject<RegisteredTool
     setTransaction(currentTx);
     appendEvent("TX_CREATED", { transactionId: txId, dbOpKey, routeOpKey });
 
-    // Execute runnable nodes using dependency scheduler
     while (true) {
       const runnable = getRunnableNodes(currentTx);
       if (runnable.length === 0) break;
 
       for (const node of runnable) {
-        // Transition node to EXECUTING
         currentTx = {
           ...currentTx,
           nodes: currentTx.nodes.map((n) =>
@@ -174,7 +171,6 @@ export function useCompensationDemo(registeredToolsRef: RefObject<RegisteredTool
             note: "Confirmed failure before commit",
           });
 
-          // Abort transaction and compute compensable nodes in reverse dependency order
           currentTx = { ...currentTx, state: "ABORTING" };
           setTransaction(currentTx);
           appendEvent("TX_ABORT_STARTED", {
@@ -209,7 +205,6 @@ export function useCompensationDemo(registeredToolsRef: RefObject<RegisteredTool
 
     setIsRunning(true);
 
-    // Compute completed nodes in REVERSE dependency / topological order
     const compensableNodes = getCompensableNodes(transaction);
 
     let currentTx: Transaction = {
