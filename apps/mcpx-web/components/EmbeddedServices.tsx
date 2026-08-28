@@ -70,9 +70,8 @@ export default function EmbeddedServices({
         <div className="flex items-center gap-1.5 p-1 bg-slate-950 rounded-lg border border-slate-800 text-xs font-medium">
           <button
             onClick={() => setActiveTab("all")}
-            className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-              activeTab === "all" ? "bg-slate-800 text-white font-bold" : "text-slate-400 hover:text-slate-200"
-            }`}
+            className={`px-3 py-1 rounded-md transition-all cursor-pointer ${activeTab === "all" ? "bg-slate-800 text-white font-bold" : "text-slate-400 hover:text-slate-200"
+              }`}
           >
             All 4
           </button>
@@ -80,9 +79,8 @@ export default function EmbeddedServices({
             <button
               key={s.id}
               onClick={() => setActiveTab(s.id as "database" | "compute" | "routing" | "frontend")}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                activeTab === s.id ? "bg-slate-800 text-white font-bold" : "text-slate-400 hover:text-slate-200"
-              }`}
+              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${activeTab === s.id ? "bg-slate-800 text-white font-bold" : "text-slate-400 hover:text-slate-200"
+                }`}
             >
               {s.name.split(" ")[0]}
             </button>
@@ -112,7 +110,7 @@ export default function EmbeddedServices({
                   src={svc.url}
                   allow="tools"
                   onLoad={onLoad}
-                  className="w-full h-[340px] border-0"
+                  className="w-full h-85 border-0"
                   title={svc.name}
                 />
               </div>

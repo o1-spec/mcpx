@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       exists: true,
       route: existingRoute,
+      routeUrl: `http://localhost:3001/r/${existingRoute.projectName}`,
     });
   }
 
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         status: "already_exists",
         route: existing,
+        routeUrl: `http://localhost:3001/r/${existing.projectName}`,
       });
     }
 
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest) {
       {
         status: "created",
         route: newRoute,
+        routeUrl: `http://localhost:3001/r/${newRoute.projectName}`,
       },
       { status: 201 }
     );
@@ -82,7 +85,7 @@ export async function DELETE(request: NextRequest) {
       const body = await request.json();
       operationKey = body.operationKey;
     } catch {
-      // Body may not be present or JSON, which is fine if query param was expected
+      // Body may not be present
     }
   }
 
@@ -97,10 +100,12 @@ export async function DELETE(request: NextRequest) {
     routeStore.delete(operationKey);
     return NextResponse.json({
       status: "deleted",
+      operationKey,
     });
   }
 
   return NextResponse.json({
     status: "already_absent",
+    operationKey,
   });
 }

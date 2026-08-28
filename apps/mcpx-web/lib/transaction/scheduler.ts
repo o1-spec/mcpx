@@ -49,7 +49,7 @@ export function resolveExecuteArgs(
     } else if (depNode.service === "compute" && !resolved.backendResourceId) {
       resolved.backendResourceId = depNode.resourceId;
       if (node.service === "routing" && (!resolved.targetUrl || resolved.targetUrl === "http://localhost:4000")) {
-        resolved.targetUrl = `http://localhost:3003/health/${resolved.projectName ?? "mcpx-demo"}`;
+        resolved.targetUrl = `http://localhost:3003/runtime/${depNode.resourceId}/health`;
       }
     }
   }

@@ -46,15 +46,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         status: "already_exists",
         backend: existing,
+        healthUrl: existing.healthUrl,
       });
     }
 
+    const id = crypto.randomUUID();
     const newBackend: BackendRecord = {
-      id: crypto.randomUUID(),
+      id,
       projectName,
       databaseResourceId: databaseResourceId || "none",
       operationKey,
-      healthUrl: `http://localhost:3003/health/${projectName}`,
+      healthUrl: `http://localhost:3003/runtime/${id}/health`,
       createdAt: new Date().toISOString(),
     };
 
@@ -64,6 +66,7 @@ export async function POST(request: NextRequest) {
       {
         status: "created",
         backend: newBackend,
+        healthUrl: newBackend.healthUrl,
       },
       { status: 201 }
     );

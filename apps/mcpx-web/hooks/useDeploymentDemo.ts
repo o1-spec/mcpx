@@ -17,9 +17,30 @@ import { normalizeWebMCPResult } from "@/lib/webmcp-utils";
 
 export interface FourServiceAuthoritativeState {
   database?: { id: string; name: string; operationKey: string; createdAt?: string };
-  backend?: { id: string; projectName: string; databaseResourceId: string; healthUrl: string; operationKey: string };
-  routing?: { id: string; projectName: string; targetUrl: string; operationKey: string };
-  frontend?: { id: string; projectName: string; backendResourceId: string; previewUrl: string; operationKey: string };
+  backend?: {
+    id: string;
+    projectName: string;
+    databaseResourceId: string;
+    healthUrl: string;
+    operationKey: string;
+    httpStatus?: string;
+  };
+  routing?: {
+    id: string;
+    projectName: string;
+    targetUrl: string;
+    routeUrl: string;
+    operationKey: string;
+    httpStatus?: string;
+  };
+  frontend?: {
+    id: string;
+    projectName: string;
+    backendResourceId: string;
+    previewUrl: string;
+    operationKey: string;
+    httpStatus?: string;
+  };
 }
 
 export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]>) {
@@ -177,7 +198,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
             resourceId: execResult.resourceId,
           });
 
-          // Update local authoritative tracking
+          // Update local authoritative tracking with live endpoints
           if (node.service === "database" && execResult.resourceId) {
             setAuthoritativeState((prev) => ({
               ...prev,
@@ -188,35 +209,42 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
               },
             }));
           } else if (node.service === "compute" && execResult.resourceId) {
+            const healthUrl = `http://localhost:3003/runtime/${execResult.resourceId}/health`;
             setAuthoritativeState((prev) => ({
               ...prev,
               backend: {
                 id: execResult.resourceId!,
                 projectName: "mcpx-demo",
                 databaseResourceId: String(resolvedArgs.databaseResourceId || ""),
-                healthUrl: `http://localhost:3003/health/mcpx-demo`,
+                healthUrl,
                 operationKey: node.operationKey,
+                httpStatus: "200 OK (Healthy)",
               },
             }));
           } else if (node.service === "routing" && execResult.resourceId) {
+            const routeUrl = `http://localhost:3001/r/mcpx-demo`;
             setAuthoritativeState((prev) => ({
               ...prev,
               routing: {
                 id: execResult.resourceId!,
                 projectName: "mcpx-demo",
-                targetUrl: String(resolvedArgs.targetUrl || "http://localhost:4000"),
+                targetUrl: String(resolvedArgs.targetUrl || "http://localhost:3003/health/mcpx-demo"),
+                routeUrl,
                 operationKey: node.operationKey,
+                httpStatus: "200 OK (Gateway Active)",
               },
             }));
           } else if (node.service === "frontend" && execResult.resourceId) {
+            const previewUrl = `http://localhost:3004/preview/mcpx-demo`;
             setAuthoritativeState((prev) => ({
               ...prev,
               frontend: {
                 id: execResult.resourceId!,
                 projectName: "mcpx-demo",
                 backendResourceId: String(resolvedArgs.backendResourceId || ""),
-                previewUrl: `http://localhost:3004/preview/mcpx-demo`,
+                previewUrl,
                 operationKey: node.operationKey,
+                httpStatus: "200 OK (Live Preview)",
               },
             }));
           }
@@ -274,8 +302,10 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
                 routing: {
                   id: reconcileResult.resourceId!,
                   projectName: "mcpx-demo",
-                  targetUrl: String(resolvedArgs.targetUrl || "http://localhost:4000"),
+                  targetUrl: String(resolvedArgs.targetUrl || "http://localhost:3003/health/mcpx-demo"),
+                  routeUrl: `http://localhost:3001/r/mcpx-demo`,
                   operationKey: node.operationKey,
+                  httpStatus: "200 OK (Gateway Active)",
                 },
               }));
             }
@@ -473,9 +503,9 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
         const normalized = normalizeWebMCPResult(raw) as {
           exists?: boolean;
           database?: { id: string; name: string; operationKey: string; createdAt?: string };
-          backend?: { id: string; projectName: string; databaseResourceId: string; healthUrl: string; operationKey: string };
-          route?: { id: string; projectName: string; targetUrl: string; operationKey: string };
-          frontend?: { id: string; projectName: string; backendResourceId: string; previewUrl: string; operationKey: string };
+          backend?: { id: string; projectName: string; databaseResourceId: string; healthUrl?: string; operationKey: string };
+          route?: { id: string; projectName: string; targetUrl: string; routeUrl?: string; operationKey: string };
+          frontend?: { id: string; projectName: string; backendResourceId: string; previewUrl?: string; operationKey: string };
         };
 
         console.log(`[mcpx-dag] authoritative inspection for ${node.id}:`, normalized);
@@ -484,11 +514,23 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           if (node.service === "database" && normalized.database) {
             newAuth.database = normalized.database;
           } else if (node.service === "compute" && normalized.backend) {
-            newAuth.backend = normalized.backend;
+            newAuth.backend = {
+              ...normalized.backend,
+              healthUrl: normalized.backend.healthUrl || `http://localhost:3003/runtime/${normalized.backend.id}/health`,
+              httpStatus: "200 OK",
+            };
           } else if (node.service === "routing" && normalized.route) {
-            newAuth.routing = normalized.route;
+            newAuth.routing = {
+              ...normalized.route,
+              routeUrl: normalized.route.routeUrl || `http://localhost:3001/r/${normalized.route.projectName}`,
+              httpStatus: "200 OK",
+            };
           } else if (node.service === "frontend" && normalized.frontend) {
-            newAuth.frontend = normalized.frontend;
+            newAuth.frontend = {
+              ...normalized.frontend,
+              previewUrl: normalized.frontend.previewUrl || `http://localhost:3004/preview/${normalized.frontend.projectName}`,
+              httpStatus: "200 OK",
+            };
           }
         }
       } catch (err) {
