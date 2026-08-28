@@ -46,8 +46,8 @@ export default function WorkflowDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [preflightError, setPreflightError] = useState<string | null>(null);
 
-  // Live Execution State
   const [isRunning, setIsRunning] = useState(false);
   const [activeTxId, setActiveTxId] = useState<string | null>(null);
   const [activeTxState, setActiveTxState] = useState<string | null>(null);
@@ -76,7 +76,6 @@ export default function WorkflowDetailPage({
     loadWorkflow();
   }, [id]);
 
-  // Unique participating origins for offscreen WebMCP frames
   const uniqueOrigins = Array.from(
     new Set(enrichedNodes.map((n) => n.service?.origin).filter(Boolean) as string[])
   );
@@ -96,6 +95,31 @@ export default function WorkflowDetailPage({
 
   const handleRunWorkflow = async () => {
     if (!workflow) return;
+
+    setPreflightError(null);
+
+    // Preflight Check: verify WebMCP availability and discovered tools
+    if (typeof document !== "undefined" && document.modelContext?.getTools) {
+      try {
+        for (const node of enrichedNodes) {
+          if (!node.service?.origin) continue;
+          const tools = await document.modelContext.getTools({ fromOrigins: [node.service.origin] });
+          const hasExec = tools.some((t) => t.name === node.contract?.executeToolName);
+          const hasInsp = tools.some((t) => t.name === node.contract?.inspectToolName);
+          if (!hasExec || !hasInsp) {
+            setPreflightError(
+              `Preflight check failed: Service '${node.service.name}' (${node.service.origin}) is not currently exposing '${node.contract?.executeToolName}' or '${node.contract?.inspectToolName}' over WebMCP.`
+            );
+            return;
+          }
+        }
+      } catch (err: unknown) {
+        setPreflightError(
+          `Preflight check failed: WebMCP error querying tools (${err instanceof Error ? err.message : String(err)})`
+        );
+        return;
+      }
+    }
 
     try {
       setIsRunning(true);
@@ -156,11 +180,12 @@ export default function WorkflowDetailPage({
   const executeWorkflowDAG = async (txId: string, currentNodes: RuntimeNodeState[]) => {
     const nodeStateMap = new Map<string, RuntimeNodeState>(currentNodes.map((n) => [n.id, { ...n }]));
     const completedNodeIds = new Set<string>();
+    const nodeOutputs = new Map<string, Record<string, unknown>>();
 
     const updateNodeState = async (
       nodeId: string,
       state: RuntimeNodeState["state"],
-      extra?: { resourceId?: string; error?: string }
+      extra?: { resourceId?: string; error?: string; reason?: string }
     ) => {
       const node = nodeStateMap.get(nodeId);
       if (!node) return;
@@ -226,21 +251,75 @@ export default function WorkflowDetailPage({
             throw new Error(`Tool '${node.executeTool}' not exposed by ${node.origin}`);
           }
 
-          const payload = {
+          // Build input payload resolving dependency references
+          const payload: Record<string, unknown> = {
             [node.operationKeyField]: node.operationKey,
           };
 
-          const result = await document.modelContext.executeTool(targetTool, JSON.stringify(payload));
-          let parsed: Record<string, unknown> = {};
-          try {
-            parsed = JSON.parse(result?.content?.[0]?.text || "{}");
-          } catch {
-            parsed = {};
+          for (const depId of node.dependencies) {
+            const out = nodeOutputs.get(depId);
+            if (out?.resourceId) {
+              payload.widgetId = out.resourceId;
+              payload.resourceId = out.resourceId;
+            }
           }
 
-          const resourceId = (parsed.resourceId || parsed.id || parsed.widgetId || node.operationKey) as string;
-          await updateNodeState(node.id, "SUCCEEDED", { resourceId });
-          completedNodeIds.add(node.id);
+          try {
+            const result = await document.modelContext.executeTool(targetTool, JSON.stringify(payload));
+            let parsed: Record<string, unknown> = {};
+            try {
+              parsed = JSON.parse(result?.content?.[0]?.text || "{}");
+            } catch {
+              parsed = {};
+            }
+
+            const resourceId = (parsed.resourceId || parsed.id || parsed.widgetId || node.operationKey) as string;
+            nodeOutputs.set(node.id, { resourceId, ...parsed });
+            await updateNodeState(node.id, "SUCCEEDED", { resourceId });
+            completedNodeIds.add(node.id);
+          } catch (execErr: unknown) {
+            // Execution encountered an error -> Transition to IN_DOUBT and attempt Authoritative Reconciliation
+            console.warn(`[mcpx-runner] node ${node.label} execute error:`, execErr);
+            await updateNodeState(node.id, "IN_DOUBT", {
+              reason: "Response not received or transport failure after dispatch",
+            });
+
+            await new Promise((r) => setTimeout(r, 500));
+            await updateNodeState(node.id, "RECONCILING");
+
+            // Query authoritative inspect tool
+            const inspTool = tools.find((t) => t.name === node.inspectTool);
+            if (!inspTool) {
+              throw new Error(`Inspect tool '${node.inspectTool}' not found during reconciliation`);
+            }
+
+            const inspRes = await document.modelContext.executeTool(
+              inspTool,
+              JSON.stringify({ [node.operationKeyField]: node.operationKey })
+            );
+
+            let inspParsed: Record<string, unknown> = {};
+            try {
+              inspParsed = JSON.parse(inspRes?.content?.[0]?.text || "{}");
+            } catch {
+              inspParsed = {};
+            }
+
+            if (inspParsed.exists) {
+              const resId = (inspParsed.resourceId || inspParsed.id || node.operationKey) as string;
+              nodeOutputs.set(node.id, { resourceId: resId, ...inspParsed });
+              await updateNodeState(node.id, "RECOVERED", { resourceId: resId });
+              completedNodeIds.add(node.id);
+            } else {
+              await updateNodeState(node.id, "FAILED", {
+                error: execErr instanceof Error ? execErr.message : String(execErr),
+              });
+              setActiveTxState("AWAITING_COMPENSATION_APPROVAL");
+              setAwaitingApproval(true);
+              setIsRunning(false);
+              return;
+            }
+          }
         } catch (err: unknown) {
           console.error(`[mcpx-runner] step '${node.label}' failed:`, err);
           const errorMsg = err instanceof Error ? err.message : String(err);
@@ -286,6 +365,22 @@ export default function WorkflowDetailPage({
               compTool,
               JSON.stringify({ [node.operationKeyField]: node.operationKey })
             );
+          }
+
+          // Authoritatively verify absence after compensation
+          const inspTool = tools.find((t) => t.name === node.inspectTool);
+          if (inspTool) {
+            const inspRes = await document.modelContext.executeTool(
+              inspTool,
+              JSON.stringify({ [node.operationKeyField]: node.operationKey })
+            );
+            let inspParsed: Record<string, unknown> = {};
+            try {
+              inspParsed = JSON.parse(inspRes?.content?.[0]?.text || "{}");
+            } catch {
+              inspParsed = {};
+            }
+            console.log(`[mcpx-compensate] verified ${node.label} absence:`, inspParsed);
           }
         }
       } catch (err) {
@@ -391,6 +486,22 @@ export default function WorkflowDetailPage({
           </div>
         </div>
 
+        {/* Preflight Error Notice */}
+        {preflightError && (
+          <div className="p-4 rounded-xl border border-rose-500/40 bg-rose-950/30 text-xs text-rose-300 flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <span className="font-semibold block">Workflow preflight check failed</span>
+              <p className="text-slate-300">{preflightError}</p>
+            </div>
+            <button
+              onClick={() => setPreflightError(null)}
+              className="text-slate-400 hover:text-slate-200 cursor-pointer font-mono"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Delete Modal */}
         {showDeleteConfirm && (
           <div className="p-5 rounded-2xl border border-rose-500/40 bg-rose-950/30 space-y-3">
@@ -414,7 +525,7 @@ export default function WorkflowDetailPage({
           </div>
         )}
 
-        {/* Live Transaction Runtime DAG (if run or active) */}
+        {/* Live Transaction Runtime DAG */}
         {activeTxId && (
           <section className="p-6 rounded-2xl border border-slate-800/80 bg-slate-900/30 space-y-6 animate-in fade-in duration-200">
             <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
@@ -449,8 +560,10 @@ export default function WorkflowDetailPage({
                       ? "border-slate-700 bg-slate-950/60"
                       : node.state === "FAILED"
                       ? "border-rose-500/40 bg-rose-950/20"
-                      : node.state === "EXECUTING"
+                      : node.state === "EXECUTING" || node.state === "RECONCILING"
                       ? "border-indigo-500/60 bg-indigo-950/30 animate-pulse"
+                      : node.state === "IN_DOUBT"
+                      ? "border-amber-500/60 bg-amber-950/30 animate-pulse"
                       : "border-slate-800 bg-slate-950/60"
                   }`}
                 >
@@ -464,6 +577,8 @@ export default function WorkflowDetailPage({
                           ? "bg-slate-800 text-slate-400"
                           : node.state === "FAILED"
                           ? "bg-rose-950 text-rose-300"
+                          : node.state === "IN_DOUBT" || node.state === "RECONCILING"
+                          ? "bg-amber-950 text-amber-300"
                           : "bg-slate-900 text-slate-400"
                       }`}
                     >
@@ -474,6 +589,9 @@ export default function WorkflowDetailPage({
                   <div className="text-[10px] text-slate-400 font-mono">
                     <div>{node.service}</div>
                     <div className="text-slate-500 truncate">{node.operationKey}</div>
+                    {node.resourceId && (
+                      <div className="text-emerald-400 text-[9px] pt-1">id: {node.resourceId}</div>
+                    )}
                   </div>
                 </div>
               ))}

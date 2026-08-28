@@ -54,15 +54,23 @@ export async function executeNode(
 
     const normalizedResult = normalizeWebMCPResult(rawResult);
 
-    // Extract resourceId if available
     let resourceId: string | undefined;
-    try {
-      const contract = getServiceContract(node.service);
-      if (contract.extractResourceId) {
-        resourceId = contract.extractResourceId(normalizedResult);
+    if (normalizedResult && typeof normalizedResult === "object") {
+      const obj = normalizedResult as Record<string, unknown>;
+      if (typeof obj.resourceId === "string") resourceId = obj.resourceId;
+      else if (typeof obj.id === "string") resourceId = obj.id;
+      else if (typeof obj.widgetId === "string") resourceId = obj.widgetId;
+    }
+
+    if (!resourceId) {
+      try {
+        const contract = getServiceContract(node.service);
+        if (contract.extractResourceId) {
+          resourceId = contract.extractResourceId(normalizedResult);
+        }
+      } catch {
+        // Contract lookup optional
       }
-    } catch {
-      // Contract lookup optional
     }
 
     console.log(`[transaction-engine] [execute] ${node.id} SUCCEEDED`, {

@@ -1,5 +1,15 @@
 import type { ToolDefinition } from "@/types/webmcp";
 
+const widgetStore = new Map<
+  string,
+  { id: string; name: string; operationKey: string; createdAt: string }
+>();
+
+const publicationStore = new Map<
+  string,
+  { id: string; widgetId: string; operationKey: string; createdAt: string }
+>();
+
 export const pingServiceTool: ToolDefinition = {
   name: "ping_service",
   description: "Ping the service to check responsiveness and availability",
@@ -46,6 +56,8 @@ export const getStatusTool: ToolDefinition = {
             version: "1.0.0",
             health: "healthy",
             uptimeSeconds: Math.floor(process.uptime ? process.uptime() : 120),
+            storedWidgets: widgetStore.size,
+            storedPublications: publicationStore.size,
           }),
         },
       ],
@@ -67,19 +79,53 @@ export const createWidgetTool: ToolDefinition = {
         type: "string",
         description: "Deterministic operation key",
       },
+      failureMode: {
+        type: "string",
+        enum: ["none", "reject-before-commit", "drop-ack-after-commit"],
+        description: "Test failure mode simulation",
+      },
     },
     required: ["name", "operationKey"],
   },
   execute: async (args: unknown) => {
-    const params = (args || {}) as { name?: string; operationKey?: string };
+    const params = (args || {}) as {
+      name?: string;
+      operationKey?: string;
+      failureMode?: string;
+    };
+
+    if (!params.operationKey) {
+      throw new Error("Missing required field 'operationKey'");
+    }
+
+    if (params.failureMode === "reject-before-commit") {
+      throw new Error("Operation rejected by validation before commit");
+    }
+
+    // Idempotent check
+    let record = widgetStore.get(params.operationKey);
+    if (!record) {
+      record = {
+        id: `wdg_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`,
+        name: params.name || "Widget",
+        operationKey: params.operationKey,
+        createdAt: new Date().toISOString(),
+      };
+      widgetStore.set(params.operationKey, record);
+    }
+
+    if (params.failureMode === "drop-ack-after-commit") {
+      throw new Error("Transport ACK lost after write committed (simulated network failure)");
+    }
+
     return {
       content: [
         {
           type: "text",
           text: JSON.stringify({
-            resourceId: "wdg_123",
-            name: params.name || "Widget",
-            operationKey: params.operationKey,
+            resourceId: record.id,
+            name: record.name,
+            operationKey: record.operationKey,
             created: true,
           }),
         },
@@ -103,14 +149,35 @@ export const getWidgetTool: ToolDefinition = {
   },
   execute: async (args: unknown) => {
     const params = (args || {}) as { operationKey?: string };
+    if (!params.operationKey) {
+      throw new Error("Missing required field 'operationKey'");
+    }
+
+    const record = widgetStore.get(params.operationKey);
+    if (!record) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              exists: false,
+              operationKey: params.operationKey,
+            }),
+          },
+        ],
+      };
+    }
+
     return {
       content: [
         {
           type: "text",
           text: JSON.stringify({
             exists: true,
-            operationKey: params.operationKey,
-            resourceId: "wdg_123",
+            operationKey: record.operationKey,
+            resourceId: record.id,
+            name: record.name,
+            createdAt: record.createdAt,
           }),
         },
       ],
@@ -133,6 +200,12 @@ export const deleteWidgetTool: ToolDefinition = {
   },
   execute: async (args: unknown) => {
     const params = (args || {}) as { operationKey?: string };
+    if (!params.operationKey) {
+      throw new Error("Missing required field 'operationKey'");
+    }
+
+    widgetStore.delete(params.operationKey);
+
     return {
       content: [
         {
@@ -161,20 +234,53 @@ export const publishWidgetTool: ToolDefinition = {
         type: "string",
         description: "Deterministic operation key",
       },
+      failureMode: {
+        type: "string",
+        enum: ["none", "reject-before-commit", "drop-ack-after-commit"],
+        description: "Test failure mode simulation",
+      },
     },
     required: ["operationKey"],
   },
   execute: async (args: unknown) => {
-    const params = (args || {}) as { widgetId?: string; operationKey?: string };
+    const params = (args || {}) as {
+      widgetId?: string;
+      operationKey?: string;
+      failureMode?: string;
+    };
+
+    if (!params.operationKey) {
+      throw new Error("Missing required field 'operationKey'");
+    }
+
+    if (params.failureMode === "reject-before-commit") {
+      throw new Error("Publishing rejected by upstream service error");
+    }
+
+    let record = publicationStore.get(params.operationKey);
+    if (!record) {
+      record = {
+        id: `pub_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`,
+        widgetId: params.widgetId || "unknown",
+        operationKey: params.operationKey,
+        createdAt: new Date().toISOString(),
+      };
+      publicationStore.set(params.operationKey, record);
+    }
+
+    if (params.failureMode === "drop-ack-after-commit") {
+      throw new Error("Transport ACK lost after publication committed");
+    }
+
     return {
       content: [
         {
           type: "text",
           text: JSON.stringify({
-            resourceId: "pub_456",
+            resourceId: record.id,
             published: true,
-            widgetId: params.widgetId,
-            operationKey: params.operationKey,
+            widgetId: record.widgetId,
+            operationKey: record.operationKey,
           }),
         },
       ],
@@ -197,14 +303,35 @@ export const getPublicationTool: ToolDefinition = {
   },
   execute: async (args: unknown) => {
     const params = (args || {}) as { operationKey?: string };
+    if (!params.operationKey) {
+      throw new Error("Missing required field 'operationKey'");
+    }
+
+    const record = publicationStore.get(params.operationKey);
+    if (!record) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              exists: false,
+              operationKey: params.operationKey,
+            }),
+          },
+        ],
+      };
+    }
+
     return {
       content: [
         {
           type: "text",
           text: JSON.stringify({
             exists: true,
-            operationKey: params.operationKey,
-            resourceId: "pub_456",
+            operationKey: record.operationKey,
+            resourceId: record.id,
+            widgetId: record.widgetId,
+            createdAt: record.createdAt,
           }),
         },
       ],
@@ -227,6 +354,12 @@ export const unpublishWidgetTool: ToolDefinition = {
   },
   execute: async (args: unknown) => {
     const params = (args || {}) as { operationKey?: string };
+    if (!params.operationKey) {
+      throw new Error("Missing required field 'operationKey'");
+    }
+
+    publicationStore.delete(params.operationKey);
+
     return {
       content: [
         {

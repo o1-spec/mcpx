@@ -11,7 +11,9 @@ node_modules
 
 # Next.js build outputs
 .next/
+**/.next/
 out/
+**/out/
 build/
 dist/
 
@@ -27,3 +29,4 @@ pnpm-debug.log*
 
 # Turbopack cache
 .turbo/
+**/.turbo/

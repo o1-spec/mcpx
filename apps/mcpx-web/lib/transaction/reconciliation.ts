@@ -53,7 +53,12 @@ export async function reconcileNode(
         : null;
 
     if (inspection?.exists === true) {
-      let resourceId = node.resourceId;
+      let resourceId =
+        (inspection.resourceId as string | undefined) ??
+        (inspection.id as string | undefined) ??
+        (inspection.widgetId as string | undefined) ??
+        node.resourceId;
+
       try {
         const contract = getServiceContract(node.service);
         if (contract.extractResourceId) {
