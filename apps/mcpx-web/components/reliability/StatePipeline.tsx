@@ -38,6 +38,16 @@ export const stateColors: Record<NodeState, { badge: string; pill: string; borde
     pill: "bg-rose-600 text-white shadow-lg shadow-rose-500/30",
     border: "border-rose-500/60",
   },
+  COMPENSATING: {
+    badge: "bg-indigo-950 text-indigo-300 border-indigo-500/60 animate-pulse",
+    pill: "bg-indigo-600 text-white shadow-lg shadow-indigo-500/40",
+    border: "border-indigo-500/60",
+  },
+  COMPENSATED: {
+    badge: "bg-emerald-950 text-emerald-300 border-emerald-500/60 font-bold",
+    pill: "bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/40",
+    border: "border-emerald-500/60",
+  },
 };
 
 interface StatePipelineProps {

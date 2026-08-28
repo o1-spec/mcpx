@@ -22,7 +22,7 @@ export const createRouteTool: ToolDefinition = {
       failureMode: {
         type: "string",
         description: "Simulated chaos failure mode",
-        enum: ["none", "drop-ack-after-commit"],
+        enum: ["none", "drop-ack-after-commit", "reject-before-commit"],
       },
     },
     required: ["projectName", "targetUrl", "operationKey"],
@@ -31,7 +31,15 @@ export const createRouteTool: ToolDefinition = {
     const args =
       typeof input === "string" ? JSON.parse(input) : (input as Record<string, unknown>);
 
-    const opKey = String(args?.projectName ? args?.operationKey : "");
+    // Clean confirmed failure BEFORE commit:
+    if (args?.failureMode === "reject-before-commit") {
+      console.warn(
+        `[routing-app] [chaos:reject-before-commit] Explicitly rejecting before commit (operationKey: ${args?.operationKey}). Route will NOT be created.`
+      );
+      throw new Error(
+        `REJECTED_BEFORE_COMMIT: Simulated business validation rejection before commit (operationKey: ${args?.operationKey})`
+      );
+    }
 
     // 1. Commit route to own API
     const res = await fetch("/api/routes", {

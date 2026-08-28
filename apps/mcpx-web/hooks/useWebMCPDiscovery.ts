@@ -6,30 +6,30 @@ import type { DiscoveredToolInfo } from "@/types/reliability";
 
 export function useWebMCPDiscovery() {
   const [discoveredTools, setDiscoveredTools] = useState<DiscoveredToolInfo[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
   const [isSupported, setIsSupported] = useState<boolean | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
   // Store browser-owned RegisteredTool objects safely in ref (non-serialized)
   const registeredToolsRef = useRef<RegisteredTool[]>([]);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const routingIframeRef = useRef<HTMLIFrameElement>(null);
+  const databaseIframeRef = useRef<HTMLIFrameElement>(null);
 
   const discoverTools = useCallback(async () => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
     if (!document.modelContext || typeof document.modelContext.getTools !== "function") {
       setIsSupported(false);
-      setIsConnected(false);
       return;
     }
 
     setIsSupported(true);
     setDiscoveryError(null);
-    console.log("[mcpx-web] requesting tools from http://localhost:3001");
+    console.log("[mcpx-web] requesting tools from localhost:3001 and localhost:3002");
 
     try {
+      // Query tools from both routing-app and database-app origins
       const tools = await document.modelContext.getTools({
-        fromOrigins: ["http://localhost:3001"],
+        fromOrigins: ["http://localhost:3001", "http://localhost:3002"],
       });
 
       console.log("[mcpx-web] tools returned", tools);
@@ -43,13 +43,11 @@ export function useWebMCPDiscovery() {
       }));
 
       setDiscoveredTools(toolInfos);
-      setIsConnected(toolInfos.length > 0);
     } catch (err: unknown) {
       console.error("[mcpx-web] getTools error:", err);
-      const errName = (err && typeof err === "object" && "name" in err) ? String(err.name) : "Error";
-      const errMsg = (err && typeof err === "object" && "message" in err) ? String(err.message) : String(err);
+      const errName = err && typeof err === "object" && "name" in err ? String(err.name) : "Error";
+      const errMsg = err && typeof err === "object" && "message" in err ? String(err.message) : String(err);
       setDiscoveryError(`${errName}: ${errMsg}`);
-      setIsConnected(false);
     }
   }, []);
 
@@ -84,13 +82,40 @@ export function useWebMCPDiscovery() {
     };
   }, [discoverTools]);
 
+  const routingTools = discoveredTools.filter(
+    (t) =>
+      t.origin?.includes(":3001") ||
+      ["create_route", "get_route", "delete_route"].includes(t.name)
+  );
+
+  const databaseTools = discoveredTools.filter(
+    (t) =>
+      t.origin?.includes(":3002") ||
+      ["create_database", "get_database", "delete_database"].includes(t.name)
+  );
+
+  const isRoutingConnected = ["create_route", "get_route", "delete_route"].every((name) =>
+    discoveredTools.some((t) => t.name === name)
+  );
+
+  const isDatabaseConnected = ["create_database", "get_database", "delete_database"].every((name) =>
+    discoveredTools.some((t) => t.name === name)
+  );
+
+  const isConnected = isRoutingConnected && isDatabaseConnected;
+
   return {
     discoveredTools,
+    routingTools,
+    databaseTools,
     isConnected,
+    isRoutingConnected,
+    isDatabaseConnected,
     isSupported,
     discoveryError,
     registeredToolsRef,
-    iframeRef,
+    routingIframeRef,
+    databaseIframeRef,
     discoverTools,
   };
 }

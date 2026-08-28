@@ -5,13 +5,33 @@ export type NodeState =
   | "IN_DOUBT"
   | "RECONCILING"
   | "RECOVERED"
+  | "FAILED"
+  | "COMPENSATING"
+  | "COMPENSATED";
+
+export type TransactionState =
+  | "CREATED"
+  | "EXECUTING"
+  | "COMMITTED"
+  | "ABORTING"
+  | "AWAITING_COMPENSATION_APPROVAL"
+  | "COMPENSATING"
+  | "COMPENSATED"
   | "FAILED";
 
 export interface TransactionNode {
-  id: "routing:create";
+  id: string; // e.g. "routing:create" | "database:create"
+  label?: string;
   state: NodeState;
   operationKey: string;
   resourceId?: string;
+  lastError?: string;
+}
+
+export interface TransactionModel {
+  id: string;
+  state: TransactionState;
+  nodes: TransactionNode[];
   lastError?: string;
 }
 
@@ -35,6 +55,12 @@ export interface AuthoritativeState {
     id: string;
     projectName: string;
     targetUrl: string;
+    operationKey: string;
+    createdAt: string;
+  };
+  database?: {
+    id: string;
+    name: string;
     operationKey: string;
     createdAt: string;
   };
