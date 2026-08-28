@@ -7,8 +7,11 @@ import {
   Transaction,
   createTransactionNode,
   getRunnableNodes,
+  getCompensableNodes,
   resolveExecuteArgs,
   executeNode,
+  reconcileNode,
+  compensateNode,
 } from "@/lib/transaction";
 import { normalizeWebMCPResult } from "@/lib/webmcp-utils";
 
@@ -22,7 +25,7 @@ export interface FourServiceAuthoritativeState {
 export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]>) {
   const [isRunning, setIsRunning] = useState(false);
 
-  const createInitialDAG = (txId = "tx:demo-init"): Transaction => {
+  const createInitialDAG = (txId = "tx:demo-init", failureScenario = false): Transaction => {
     return {
       id: txId,
       state: "CREATED",
@@ -58,7 +61,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           executeArgs: {
             projectName: "mcpx-demo",
             operationKey: `${txId}:routing:create`,
-            failureMode: "none",
+            failureMode: failureScenario ? "drop-ack-after-commit" : "none",
           },
         }),
         createTransactionNode({
@@ -70,6 +73,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           executeArgs: {
             projectName: "mcpx-demo",
             operationKey: `${txId}:frontend:deploy`,
+            failureMode: failureScenario ? "reject-before-commit" : "none",
           },
         }),
       ],
@@ -94,7 +98,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
     []
   );
 
-  const runDeployment = async () => {
+  const runDeployment = async (failureScenario = false) => {
     if (typeof document === "undefined" || !document.modelContext) {
       alert("document.modelContext is not available in this browser.");
       return;
@@ -105,21 +109,23 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
     setAuthoritativeState({});
 
     const txId = `tx:demo-${Date.now()}`;
-    let currentTx = createInitialDAG(txId);
+    let currentTx = createInitialDAG(txId, failureScenario);
     currentTx.state = "EXECUTING";
 
     setTransaction(currentTx);
     appendEvent("TX_CREATED", {
       transactionId: txId,
-      topology: "DATABASE -> BACKEND -> (ROUTING, FRONTEND)",
+      scenario: failureScenario
+        ? "COMBINED_CHALLENGE (Routing drop-ack -> Recover, Frontend reject -> Reverse Compensate 3 services)"
+        : "HAPPY_PATH_ALL_4_SERVICES",
       totalNodes: 4,
     });
 
-    // Generic scheduler loop: processes DAG dynamically
+    // Generic scheduler loop: executes runnable DAG nodes dynamically
     while (true) {
       const runnableNodes = getRunnableNodes(currentTx);
       if (runnableNodes.length === 0) {
-        // Check if all nodes succeeded
+        // Check if all nodes completed successfully
         const allCompleted = currentTx.nodes.every(
           (n) => n.state === "SUCCEEDED" || n.state === "RECOVERED"
         );
@@ -151,6 +157,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
 
         appendEvent(`${node.service.toUpperCase()}_EXECUTE_STARTED`, {
           operationKey: node.operationKey,
+          ...(nodeToExecute.executeArgs.failureMode ? { failureMode: nodeToExecute.executeArgs.failureMode } : {}),
           resolvedArgs,
         });
 
@@ -213,17 +220,105 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
               },
             }));
           }
+        } else if (execResult.outcome === "IN_DOUBT") {
+          // Transport loss -> IN_DOUBT -> Authoritative Reconciliation
+          appendEvent(`${node.service.toUpperCase()}_EXECUTE_UNCERTAIN`, {
+            error: execResult.error,
+            reason: "Transport ACK lost after mutation dispatch. Transitioning to IN_DOUBT.",
+          });
+          appendEvent(`${node.service.toUpperCase()}_MARKED_IN_DOUBT`, {
+            operationKey: node.operationKey,
+          });
+
+          // Transition to RECONCILING
+          currentTx = {
+            ...currentTx,
+            nodes: currentTx.nodes.map((n) =>
+              n.id === node.id ? { ...n, state: "RECONCILING" } : n
+            ),
+          };
+          setTransaction(currentTx);
+          appendEvent(`${node.service.toUpperCase()}_RECONCILIATION_STARTED`, {
+            operationKey: node.operationKey,
+            inspectTool: node.inspectTool,
+          });
+
+          // Execute generic authoritative inspection
+          const reconcileResult = await reconcileNode(
+            execResult.updatedNode,
+            registeredToolsRef.current
+          );
+
+          currentTx = {
+            ...currentTx,
+            nodes: currentTx.nodes.map((n) =>
+              n.id === node.id ? reconcileResult.updatedNode : n
+            ),
+          };
+          setTransaction(currentTx);
+
+          if (reconcileResult.outcome === "RECOVERED") {
+            appendEvent(`${node.service.toUpperCase()}_REMOTE_STATE_FOUND`, {
+              operationKey: node.operationKey,
+              resourceId: reconcileResult.resourceId,
+            });
+            appendEvent(`${node.service.toUpperCase()}_RECOVERED`, {
+              operationKey: node.operationKey,
+              resourceId: reconcileResult.resourceId,
+              outcome: "Resource verified in store prior to ACK drop; state recovered.",
+            });
+
+            if (node.service === "routing" && reconcileResult.resourceId) {
+              setAuthoritativeState((prev) => ({
+                ...prev,
+                routing: {
+                  id: reconcileResult.resourceId!,
+                  projectName: "mcpx-demo",
+                  targetUrl: String(resolvedArgs.targetUrl || "http://localhost:4000"),
+                  operationKey: node.operationKey,
+                },
+              }));
+            }
+          } else {
+            appendEvent(`${node.service.toUpperCase()}_RECONCILIATION_FAILED`, {
+              operationKey: node.operationKey,
+              error: reconcileResult.error,
+            });
+            currentTx = { ...currentTx, state: "FAILED" };
+            setTransaction(currentTx);
+            setIsRunning(false);
+            return;
+          }
         } else {
+          // Confirmed clean failure (e.g. reject-before-commit)
           appendEvent(`${node.service.toUpperCase()}_EXECUTE_FAILED`, {
             operationKey: node.operationKey,
             error: execResult.error,
+            note: "Confirmed clean failure before commit",
           });
-          currentTx = {
-            ...currentTx,
-            state: "FAILED",
-            lastError: `Node ${node.id} failed: ${execResult.error}`,
-          };
+
+          // Transaction Aborts
+          currentTx = { ...currentTx, state: "ABORTING" };
           setTransaction(currentTx);
+          appendEvent("TX_ABORT_STARTED", {
+            reason: `Downstream node ${node.id} failed with confirmed rejection`,
+          });
+
+          // Calculate completed nodes in reverse dependency order
+          const compensable = getCompensableNodes(currentTx);
+          if (compensable.length > 0) {
+            currentTx = { ...currentTx, state: "AWAITING_COMPENSATION_APPROVAL" };
+            setTransaction(currentTx);
+            appendEvent("COMPENSATION_APPROVAL_REQUIRED", {
+              compensableNodes: compensable.map((c) => c.id),
+              resourceIds: compensable.map((c) => `${c.service}: ${c.resourceId}`),
+              prompt: `Downstream node failed. ${compensable.length} previously-created resources must be removed in reverse dependency order (${compensable.map((c) => c.service).join(" → ")}).`,
+            });
+          } else {
+            currentTx = { ...currentTx, state: "FAILED" };
+            setTransaction(currentTx);
+          }
+
           setIsRunning(false);
           return;
         }
@@ -231,6 +326,91 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
     }
 
     setIsRunning(false);
+  };
+
+  const approveCompensation = async () => {
+    if (typeof document === "undefined" || !document.modelContext) return;
+
+    setIsRunning(true);
+
+    // Compute completed nodes in REVERSE dependency / topological order
+    const compensableNodes = getCompensableNodes(transaction);
+
+    let currentTx: Transaction = {
+      ...transaction,
+      state: "COMPENSATING",
+      nodes: transaction.nodes.map((n) =>
+        compensableNodes.some((c) => c.id === n.id) ? { ...n, state: "COMPENSATING" } : n
+      ),
+    };
+    setTransaction(currentTx);
+
+    appendEvent("COMPENSATION_APPROVED", { byUser: true });
+
+    for (const compNode of compensableNodes) {
+      appendEvent(`${compNode.service.toUpperCase()}_COMPENSATION_STARTED`, {
+        operationKey: compNode.operationKey,
+        resourceId: compNode.resourceId,
+        service: compNode.service,
+      });
+
+      const compResult = await compensateNode(compNode, registeredToolsRef.current);
+
+      if (compResult.outcome === "COMPENSATED") {
+        appendEvent(`${compNode.service.toUpperCase()}_COMPENSATION_SUCCEEDED`, {
+          operationKey: compNode.operationKey,
+        });
+        appendEvent(`${compNode.service.toUpperCase()}_COMPENSATION_VERIFIED`, {
+          operationKey: compNode.operationKey,
+          exists: false,
+          verifiedOutcome: "Resource successfully absent from store",
+        });
+
+        currentTx = {
+          ...currentTx,
+          nodes: currentTx.nodes.map((n) =>
+            n.id === compNode.id ? compResult.updatedNode : n
+          ),
+        };
+        setTransaction(currentTx);
+
+        // Update authoritative state
+        setAuthoritativeState((prev) => ({
+          ...prev,
+          [compNode.service]: undefined,
+        }));
+      } else {
+        currentTx = {
+          ...currentTx,
+          state: "FAILED",
+          lastError: compResult.error,
+        };
+        setTransaction(currentTx);
+        appendEvent("COMPENSATION_FAILED", { error: compResult.error });
+        setIsRunning(false);
+        return;
+      }
+    }
+
+    currentTx = { ...currentTx, state: "COMPENSATED" };
+    setTransaction(currentTx);
+    appendEvent("TX_COMPENSATED", {
+      transactionId: currentTx.id,
+      status: "All previously created resources were successfully rolled back and verified in reverse order.",
+    });
+
+    setIsRunning(false);
+  };
+
+  const rejectCompensation = () => {
+    setTransaction((prev) => ({
+      ...prev,
+      state: "FAILED",
+      lastError: "Compensation rejected by operator. Resources retained in current state.",
+    }));
+    appendEvent("COMPENSATION_REJECTED_MANUAL_ATTENTION", {
+      retainedResources: getCompensableNodes(transaction).map((c) => c.id),
+    });
   };
 
   const inspectAllResources = async () => {
@@ -265,6 +445,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
     eventLog,
     authoritativeState,
     runDeployment,
+    approveCompensation,
+    rejectCompensation,
     inspectAllResources,
     resetDeployment,
     clearEventLog: () => setEventLog([]),

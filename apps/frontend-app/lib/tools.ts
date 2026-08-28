@@ -18,50 +18,55 @@ export const deployFrontendTool: ToolDefinition = {
         type: "string",
         description: "Unique idempotency operation key",
       },
+      failureMode: {
+        type: "string",
+        description: "Simulated failure mode",
+        enum: ["none", "reject-before-commit"],
+      },
     },
     required: ["projectName", "operationKey"],
   },
   execute: async (input: unknown) => {
-    try {
-      const args =
-        typeof input === "string" ? JSON.parse(input) : (input as Record<string, unknown>);
+    const args =
+      typeof input === "string" ? JSON.parse(input) : (input as Record<string, unknown>);
 
-      console.log("[frontend-app] deploy_frontend input =", args);
-
-      const res = await fetch("/api/frontends", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectName: args?.projectName,
-          backendResourceId: args?.backendResourceId,
-          operationKey: args?.operationKey,
-        }),
-      });
-
-      const data = await res.json();
-      console.log("[frontend-app] deploy_frontend result =", data);
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(data),
-          },
-        ],
-      };
-    } catch (err: unknown) {
-      console.error("[frontend-app] deploy_frontend failed:", err);
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      return {
-        isError: true,
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ error: errorMsg }),
-          },
-        ],
-      };
+    // Clean confirmed failure before commit
+    if (args?.failureMode === "reject-before-commit") {
+      console.warn(
+        `[frontend-app] [chaos:reject-before-commit] Explicitly rejecting before commit (operationKey: ${args?.operationKey}). Frontend preview will NOT be created.`
+      );
+      throw new Error(
+        `REJECTED_BEFORE_COMMIT: Simulated CDN preview domain validation failure before commit (operationKey: ${args?.operationKey})`
+      );
     }
+
+    console.log("[frontend-app] deploy_frontend input =", args);
+
+    const res = await fetch("/api/frontends", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        projectName: args?.projectName,
+        backendResourceId: args?.backendResourceId,
+        operationKey: args?.operationKey,
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to deploy frontend: HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    console.log("[frontend-app] deploy_frontend result =", data);
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(data),
+        },
+      ],
+    };
   },
 };
 

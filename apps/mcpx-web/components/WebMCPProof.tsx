@@ -44,27 +44,29 @@ export default function WebMCPProof() {
     discoverTools,
   } = useWebMCPDiscovery();
 
-  // Milestone 3: 4-Service Deployment DAG Hook
+  // Milestone 3: 4-Service Deployment DAG Hook (includes Challenge Scenario & Reverse Compensation)
   const {
     transaction: deployTx,
     isRunning: isRunningDeploy,
     eventLog: deployLog,
     authoritativeState: deployAuth,
     runDeployment,
+    approveCompensation: approveDeployCompensation,
+    rejectCompensation: rejectDeployCompensation,
     inspectAllResources,
     resetDeployment,
     clearEventLog: clearDeployLog,
   } = useDeploymentDemo(registeredToolsRef);
 
-  // Milestone 2: Saga Compensation Demo Hook
+  // Milestone 2: 2-Node Saga Compensation Demo Hook
   const {
     transaction: sagaTx,
     isRunning: isRunningSaga,
     eventLog: sagaLog,
     authoritativeState: sagaAuth,
     runCompensationDemo,
-    approveCompensation,
-    rejectCompensation,
+    approveCompensation: approveSagaCompensation,
+    rejectCompensation: rejectSagaCompensation,
     resetCompensationDemo,
     clearEventLog: clearSagaLog,
   } = useCompensationDemo(registeredToolsRef);
@@ -131,7 +133,7 @@ export default function WebMCPProof() {
         disabled={executingTool !== null || isRunningDeploy || isRunningSaga || isRunningReliability}
       />
 
-      {/* 2. Final Milestone: 4-Service Deployment DAG */}
+      {/* 2. Final Combined Milestone: 4-Service Deployment DAG & Challenge Scenario */}
       <DeploymentDemo
         transaction={deployTx}
         isRunning={isRunningDeploy}
@@ -139,12 +141,14 @@ export default function WebMCPProof() {
         eventLog={deployLog}
         authoritativeState={deployAuth}
         onRunDeployment={runDeployment}
+        onApproveCompensation={approveDeployCompensation}
+        onRejectCompensation={rejectDeployCompensation}
         onInspectAll={inspectAllResources}
         onReset={resetDeployment}
         onClearLog={clearDeployLog}
       />
 
-      {/* 3. Milestone 2: Saga Compensation Demo */}
+      {/* 3. Milestone 2: 2-Node Saga Compensation Demo */}
       <CompensationDemo
         transaction={sagaTx}
         isRunning={isRunningSaga}
@@ -152,13 +156,13 @@ export default function WebMCPProof() {
         eventLog={sagaLog}
         authoritativeState={sagaAuth}
         onRunDemo={runCompensationDemo}
-        onApproveCompensation={approveCompensation}
-        onRejectCompensation={rejectCompensation}
+        onApproveCompensation={approveSagaCompensation}
+        onRejectCompensation={rejectSagaCompensation}
         onResetDemo={resetCompensationDemo}
         onClearLog={clearSagaLog}
       />
 
-      {/* 4. Milestone 1: Reliability Recovery Demo */}
+      {/* 4. Milestone 1: Single-Node Uncertainty Recovery Demo */}
       <ReliabilityDemo
         reliabilityOpKey={reliabilityOpKey}
         onOpKeyChange={setReliabilityOpKey}
