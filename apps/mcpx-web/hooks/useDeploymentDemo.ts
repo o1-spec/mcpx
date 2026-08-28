@@ -51,6 +51,8 @@ export interface FourServiceAuthoritativeState {
   };
 }
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Unified Atomic Transition API Helper:
 async function persistAtomicTransition(params: {
   transactionId: string;
@@ -392,6 +394,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
       },
     ]);
 
+    await delay(350);
+
     // 4. DAG Execution Loop
     while (true) {
       const runnableNodes = getRunnableNodes(currentTx);
@@ -442,6 +446,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
         };
         setTransaction(currentTx);
         setEventLog((prev) => [...prev, startEv]);
+
+        await delay(500);
 
         // Execute WebMCP tool in browser
         const execResult = await executeNode(nodeToExecute, registeredToolsRef.current);
@@ -521,6 +527,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
               },
             }));
           }
+
+          await delay(400);
         } else if (execResult.outcome === "IN_DOUBT") {
           // ATOMIC TRANSITION: Node IN_DOUBT + Event in ONE Postgres transaction
           const inDoubtEv = await persistAtomicTransition({
@@ -554,6 +562,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
             return;
           }
 
+          await delay(700);
+
           // ATOMIC TRANSITION: Transition to RECONCILING in ONE Postgres transaction
           const reconcileStartEv = await persistAtomicTransition({
             transactionId: txId,
@@ -574,6 +584,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           };
           setTransaction(currentTx);
           setEventLog((prev) => [...prev, reconcileStartEv]);
+
+          await delay(600);
 
           // Execute WebMCP authoritative inspection
           const reconcileResult = await reconcileNode(
@@ -618,6 +630,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
                 },
               }));
             }
+
+            await delay(400);
           } else {
             const failEv = await persistAtomicTransition({
               transactionId: txId,
@@ -669,6 +683,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           };
           setTransaction(currentTx);
           setEventLog((prev) => [...prev, failEv]);
+
+          await delay(500);
 
           // Calculate compensable completed nodes in reverse dependency order
           const compensable = getCompensableNodes(currentTx);
@@ -733,6 +749,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
     setTransaction(currentTx);
     setEventLog((prev) => [...prev, compStartEv]);
 
+    await delay(500);
+
     for (const compNode of compensableNodes) {
       const nodeStartEv = await persistAtomicTransition({
         transactionId: txId,
@@ -746,6 +764,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
         },
       });
       setEventLog((prev) => [...prev, nodeStartEv]);
+
+      await delay(400);
 
       const compResult = await compensateNode(compNode, registeredToolsRef.current);
 
@@ -777,6 +797,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
         } else {
           setAuthoritativeState((prev) => ({ ...prev, [compNode.service]: undefined }));
         }
+
+        await delay(350);
       } else {
         const nodeFailEv = await persistAtomicTransition({
           transactionId: txId,

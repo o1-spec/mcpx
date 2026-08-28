@@ -40,65 +40,60 @@ export default function RoutingAppPage() {
   }, [fetchRoutes]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 sm:p-10 selection:bg-indigo-500 selection:text-white">
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <header className="border-b border-slate-800 pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <span className="flex h-3 w-3 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
-                </span>
-                <h1 className="text-2xl font-bold tracking-tight text-white">
-                  Routing Service
-                </h1>
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                Port 3001 • Target Origin for WebMCP Cross-Origin Delegation
-              </p>
+        <header className="border-b border-slate-800 pb-5 flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <span className="h-2 w-2 rounded-full bg-cyan-400"></span>
+              <h1 className="text-xl font-semibold tracking-tight text-white">
+                Routing Service
+              </h1>
             </div>
-            <div className="text-right">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-950 text-cyan-400 border border-cyan-800/50">
-                localhost:3001
-              </span>
-            </div>
+            <p className="text-xs text-slate-400">
+              Gateway routing proxy for WebMCP microservices
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+            <span className="px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800">
+              Port 3001
+            </span>
           </div>
         </header>
 
         {/* WebMCP Registrar Component */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
-            WebMCP Status
-          </h2>
+        <section className="space-y-2">
+          <span className="text-xs font-medium text-slate-400 uppercase tracking-wider block">
+            WebMCP status
+          </span>
           <WebMCPRegistrar onStatusChange={setStatus} />
         </section>
 
-        {/* Exposed Tools Card */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 space-y-4 shadow-sm">
+        {/* Exposed Tools */}
+        <section className="rounded-xl border border-slate-800/80 bg-slate-900/30 p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
-              Exposed WebMCP Tools ({status.tools.length})
-            </h2>
+            <span className="text-xs font-medium text-slate-300 uppercase tracking-wider">
+              Exposed WebMCP tools ({status.tools.length})
+            </span>
             <span className="text-xs text-slate-400">
-              Target: <code className="text-cyan-300">http://localhost:3000</code>
+              Host: <code className="text-slate-300 font-mono">http://localhost:3000</code>
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {status.tools.map((toolName) => (
               <div
                 key={toolName}
-                className="flex items-center justify-between p-3 rounded-lg border border-slate-800 bg-slate-950/60"
+                className="flex items-center justify-between p-3 rounded-lg border border-slate-800/60 bg-slate-950/60"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-emerald-400 font-bold">✓</span>
-                  <code className="text-sm font-mono font-medium text-slate-200">
+                  <span className="text-cyan-400 text-xs">✓</span>
+                  <code className="text-xs font-mono text-slate-200">
                     {toolName}
                   </code>
                 </div>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
                   {toolName === "create_route"
                     ? "POST"
                     : toolName === "get_route"
@@ -110,52 +105,50 @@ export default function RoutingAppPage() {
           </div>
         </section>
 
-        {/* Live Route Store State */}
-        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 space-y-4 shadow-sm">
+        {/* Active Routes */}
+        <section className="rounded-xl border border-slate-800/80 bg-slate-900/30 p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
-                In-Memory Route Store
-              </h2>
-              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300">
+              <span className="text-xs font-medium text-slate-300 uppercase tracking-wider">
+                Active routes
+              </span>
+              <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800 text-slate-300">
                 {routes.length} active
               </span>
             </div>
             <button
               onClick={fetchRoutes}
               disabled={loadingRoutes}
-              className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors font-medium cursor-pointer"
+              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium cursor-pointer"
             >
-              {loadingRoutes ? "Refreshing..." : "Refresh Store"}
+              {loadingRoutes ? "Refreshing..." : "Refresh"}
             </button>
           </div>
 
           {routes.length === 0 ? (
-            <div className="text-center py-6 text-slate-500 text-sm border border-dashed border-slate-800 rounded-lg">
-              No routes in store yet. Trigger <code className="text-cyan-400">create_route</code> via WebMCP from mcpx-web (:3000).
+            <div className="text-center py-8 text-slate-500 text-xs border border-dashed border-slate-800 rounded-lg">
+              No active routes. Gateway routes are bound and unbound dynamically via WebMCP.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse font-mono">
+              <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 bg-slate-950/40">
-                    <th className="py-2 px-3">Operation Key</th>
-                    <th className="py-2 px-3">Project Name</th>
-                    <th className="py-2 px-3">Target URL</th>
-                    <th className="py-2 px-3">Created At</th>
+                  <tr className="border-b border-slate-800 text-slate-400 font-medium">
+                    <th className="py-2.5 px-3">Operation key</th>
+                    <th className="py-2.5 px-3">Project</th>
+                    <th className="py-2.5 px-3">Target URL</th>
+                    <th className="py-2.5 px-3">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                <tbody className="divide-y divide-slate-800/50 text-slate-300 font-mono text-[11px]">
                   {routes.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-800/30">
-                      <td className="py-2 px-3 text-cyan-300 font-semibold">
+                    <tr key={r.id} className="hover:bg-slate-800/20">
+                      <td className="py-2.5 px-3 text-indigo-300">
                         {r.operationKey}
                       </td>
-                      <td className="py-2 px-3">{r.projectName}</td>
-                      <td className="py-2 px-3 text-slate-400">{r.targetUrl}</td>
-                      <td className="py-2 px-3 text-slate-500 text-[11px]">
-                        {new Date(r.createdAt).toLocaleTimeString()}
-                      </td>
+                      <td className="py-2.5 px-3 font-sans font-medium text-white">{r.projectName}</td>
+                      <td className="py-2.5 px-3 text-slate-400">{r.targetUrl}</td>
+                      <td className="py-2.5 px-3 text-emerald-400 font-sans">Active</td>
                     </tr>
                   ))}
                 </tbody>

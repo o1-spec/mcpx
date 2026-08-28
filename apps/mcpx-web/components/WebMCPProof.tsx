@@ -15,6 +15,9 @@ import ManualWebMCPControls from "@/components/ManualWebMCPControls";
 import EmbeddedServices from "@/components/EmbeddedServices";
 
 export default function WebMCPProof() {
+  // Developer Details Collapsed State (Collapsed by default for clean presentation)
+  const [showDevDetails, setShowDevDetails] = useState(false);
+
   // Manual Controls State
   const [operationKey, setOperationKey] = useState("tx:demo-001:routing:create");
   const [projectName, setProjectName] = useState("mcpx-demo");
@@ -120,24 +123,8 @@ export default function WebMCPProof() {
   };
 
   return (
-    <div className="space-y-10">
-      {/* 1. WebMCP Bridges Status for All 4 Services */}
-      <WebMCPBridgeStatus
-        isDatabaseConnected={isDatabaseConnected}
-        isComputeConnected={isComputeConnected}
-        isRoutingConnected={isRoutingConnected}
-        isFrontendConnected={isFrontendConnected}
-        isSupported={isSupported}
-        databaseTools={databaseTools}
-        computeTools={computeTools}
-        routingTools={routingTools}
-        frontendTools={frontendTools}
-        discoveryError={discoveryError}
-        onRefreshTools={discoverTools}
-        disabled={executingTool !== null || isRunningDeploy || isRunningSaga || isRunningReliability}
-      />
-
-      {/* 2. Durable 4-Service Deployment DAG & Challenge Scenario */}
+    <div className="space-y-6">
+      {/* 1. Main Challenge Demo Experience */}
       <DeploymentDemo
         transaction={deployTx}
         isRunning={isRunningDeploy}
@@ -156,65 +143,130 @@ export default function WebMCPProof() {
         onClearLog={clearDeployLog}
       />
 
-      {/* 3. Milestone 2: 2-Node Saga Compensation Demo */}
-      <CompensationDemo
-        transaction={sagaTx}
-        isRunning={isRunningSaga}
-        isConnected={isConnected}
-        eventLog={sagaLog}
-        authoritativeState={sagaAuth}
-        onRunDemo={runCompensationDemo}
-        onApproveCompensation={approveSagaCompensation}
-        onRejectCompensation={rejectSagaCompensation}
-        onResetDemo={resetCompensationDemo}
-        onClearLog={clearSagaLog}
-      />
+      {/* 2. Developer Details & Low-Level Diagnostics (Collapsed by default) */}
+      <div className="pt-2">
+        <button
+          onClick={() => setShowDevDetails(!showDevDetails)}
+          className="w-full py-3 px-4 rounded-xl border border-slate-800/80 bg-slate-900/20 hover:bg-slate-900/40 text-xs font-medium text-slate-400 hover:text-slate-200 flex items-center justify-between transition-colors cursor-pointer"
+        >
+          <span className="flex items-center gap-2">
+            <span>{showDevDetails ? "▾" : "▸"}</span>
+            <span>Developer details & diagnostics</span>
+          </span>
+          <span className="text-[11px] text-slate-500 font-normal">
+            {showDevDetails ? "Collapse" : "Low-level tools, microservice iframes, and test controls"}
+          </span>
+        </button>
 
-      {/* 4. Milestone 1: Single-Node Uncertainty Recovery Demo */}
-      <ReliabilityDemo
-        reliabilityOpKey={reliabilityOpKey}
-        onOpKeyChange={setReliabilityOpKey}
-        isRunning={isRunningReliability}
-        isConnected={isRoutingConnected}
-        transactionNode={reliabilityNode}
-        eventLog={reliabilityLog}
-        authoritativeState={reliabilityAuth}
-        onRunDemo={runReliabilityDemo}
-        onResetDemo={resetReliabilityDemo}
-        onClearLog={clearReliabilityLog}
-      />
+        {showDevDetails && (
+          <div className="mt-4 space-y-6 animate-in fade-in duration-200">
+            {/* Crash Recovery Pause Option */}
+            <div className="p-4 rounded-xl border border-slate-800/80 bg-slate-900/40 text-xs space-y-2">
+              <span className="font-semibold text-slate-300 block">
+                Coordinator crash recovery test
+              </span>
+              <label className="flex items-center gap-2 text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pauseBeforeReconcile}
+                  onChange={(e) => setPauseBeforeReconcile(e.target.checked)}
+                  className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span>Pause after IN_DOUBT (Enables browser refresh to verify reconciliation recovery)</span>
+              </label>
+            </div>
 
-      {/* 5. Manual Controls (Day-1 Proof) */}
-      <ManualWebMCPControls
-        operationKey={operationKey}
-        projectName={projectName}
-        targetUrl={targetUrl}
-        onOperationKeyChange={setOperationKey}
-        onProjectNameChange={setProjectName}
-        onTargetUrlChange={setTargetUrl}
-        onCreateRoute={() =>
-          executeWebMCPTool("create_route", {
-            projectName,
-            targetUrl,
-            operationKey,
-            failureMode: "none",
-          })
-        }
-        onInspectRoute={() => executeWebMCPTool("get_route", { operationKey })}
-        onDeleteRoute={() => executeWebMCPTool("delete_route", { operationKey })}
-        lastResult={lastResult}
-        onClearResult={() => setLastResult(null)}
-        executingTool={executingTool}
-      />
+            {/* Microservice Host Origins */}
+            <div className="p-4 rounded-xl border border-slate-800/80 bg-slate-900/40 text-xs font-mono space-y-2 text-slate-400">
+              <span className="font-sans font-semibold text-slate-300 block">
+                Microservice host ports
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                <div>Database: <span className="text-slate-300">:3002</span></div>
+                <div>Compute: <span className="text-slate-300">:3003</span></div>
+                <div>Routing: <span className="text-slate-300">:3001</span></div>
+                <div>Frontend: <span className="text-slate-300">:3004</span></div>
+              </div>
+            </div>
 
-      {/* 6. Embedded Microservices (4 Ports) */}
-      <EmbeddedServices
-        databaseIframeRef={databaseIframeRef}
-        computeIframeRef={computeIframeRef}
-        routingIframeRef={routingIframeRef}
-        frontendIframeRef={frontendIframeRef}
-        onLoad={discoverTools}
-      />
+            {/* WebMCP Bridge Status Detail */}
+            <WebMCPBridgeStatus
+              isDatabaseConnected={isDatabaseConnected}
+              isComputeConnected={isComputeConnected}
+              isRoutingConnected={isRoutingConnected}
+              isFrontendConnected={isFrontendConnected}
+              isSupported={isSupported}
+              databaseTools={databaseTools}
+              computeTools={computeTools}
+              routingTools={routingTools}
+              frontendTools={frontendTools}
+              discoveryError={discoveryError}
+              onRefreshTools={discoverTools}
+              disabled={executingTool !== null || isRunningDeploy || isRunningSaga || isRunningReliability}
+            />
+
+            {/* Milestone 2 Saga Compensation Demo */}
+            <CompensationDemo
+              transaction={sagaTx}
+              isRunning={isRunningSaga}
+              isConnected={isConnected}
+              eventLog={sagaLog}
+              authoritativeState={sagaAuth}
+              onRunDemo={runCompensationDemo}
+              onApproveCompensation={approveSagaCompensation}
+              onRejectCompensation={rejectSagaCompensation}
+              onResetDemo={resetCompensationDemo}
+              onClearLog={clearSagaLog}
+            />
+
+            {/* Milestone 1 Reliability Demo */}
+            <ReliabilityDemo
+              reliabilityOpKey={reliabilityOpKey}
+              onOpKeyChange={setReliabilityOpKey}
+              isRunning={isRunningReliability}
+              isConnected={isRoutingConnected}
+              transactionNode={reliabilityNode}
+              eventLog={reliabilityLog}
+              authoritativeState={reliabilityAuth}
+              onRunDemo={runReliabilityDemo}
+              onResetDemo={resetReliabilityDemo}
+              onClearLog={clearReliabilityLog}
+            />
+
+            {/* Manual Direct Tool Invocation */}
+            <ManualWebMCPControls
+              operationKey={operationKey}
+              projectName={projectName}
+              targetUrl={targetUrl}
+              onOperationKeyChange={setOperationKey}
+              onProjectNameChange={setProjectName}
+              onTargetUrlChange={setTargetUrl}
+              onCreateRoute={() =>
+                executeWebMCPTool("create_route", {
+                  projectName,
+                  targetUrl,
+                  operationKey,
+                  failureMode: "none",
+                })
+              }
+              onInspectRoute={() => executeWebMCPTool("get_route", { operationKey })}
+              onDeleteRoute={() => executeWebMCPTool("delete_route", { operationKey })}
+              lastResult={lastResult}
+              onClearResult={() => setLastResult(null)}
+              executingTool={executingTool}
+            />
+
+            {/* Embedded Microservice Iframes (ports 3001, 3002, 3003, 3004) */}
+            <EmbeddedServices
+              databaseIframeRef={databaseIframeRef}
+              computeIframeRef={computeIframeRef}
+              routingIframeRef={routingIframeRef}
+              frontendIframeRef={frontendIframeRef}
+              onLoad={discoverTools}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
