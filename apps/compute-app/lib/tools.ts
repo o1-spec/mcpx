@@ -26,6 +26,7 @@ export const deployBackendTool: ToolDefinition = {
       const args =
         typeof input === "string" ? JSON.parse(input) : (input as Record<string, unknown>);
 
+      console.log("[compute-app] deploy_backend operationKey =", args?.operationKey);
       console.log("[compute-app] deploy_backend input =", args);
 
       const res = await fetch("/api/backends", {
@@ -84,7 +85,7 @@ export const getBackendTool: ToolDefinition = {
         typeof input === "string" ? JSON.parse(input) : (input as Record<string, unknown>);
       const opKey = String(args?.operationKey ?? "");
 
-      console.log("[compute-app] get_backend input operationKey =", opKey);
+      console.log("[compute-app] get_backend operationKey =", opKey);
 
       const res = await fetch(`/api/backends?operationKey=${encodeURIComponent(opKey)}`);
       const data = await res.json();
@@ -134,7 +135,7 @@ export const deleteBackendTool: ToolDefinition = {
         typeof input === "string" ? JSON.parse(input) : (input as Record<string, unknown>);
       const opKey = String(args?.operationKey ?? "");
 
-      console.log("[compute-app] delete_backend input operationKey =", opKey);
+      console.log("[compute-app] delete_backend operationKey =", opKey);
 
       const res = await fetch(`/api/backends?operationKey=${encodeURIComponent(opKey)}`, {
         method: "DELETE",

@@ -8,6 +8,7 @@ export type NodeState =
   | "FAILED"
   | "COMPENSATING"
   | "COMPENSATED"
+  | "MANUAL_ATTENTION_REQUIRED"
   | "SKIPPED";
 
 export type TransactionState =
@@ -18,6 +19,7 @@ export type TransactionState =
   | "AWAITING_COMPENSATION_APPROVAL"
   | "COMPENSATING"
   | "COMPENSATED"
+  | "MANUAL_ATTENTION_REQUIRED"
   | "FAILED";
 
 export interface TransactionNode {

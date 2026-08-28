@@ -32,6 +32,7 @@ const txStateColors: Record<TransactionState, string> = {
   AWAITING_COMPENSATION_APPROVAL: "bg-amber-900 text-amber-100 border-amber-400 font-bold animate-pulse",
   COMPENSATING: "bg-indigo-950 text-indigo-300 border-indigo-500/60 animate-pulse",
   COMPENSATED: "bg-emerald-950 text-emerald-300 border-emerald-500/60 font-bold",
+  MANUAL_ATTENTION_REQUIRED: "bg-rose-950 text-rose-300 border-rose-500/80 font-bold animate-pulse",
   FAILED: "bg-rose-950 text-rose-300 border-rose-500/60 font-bold",
 };
 
@@ -198,6 +199,12 @@ export default function DeploymentDemo({
               {isCompensated && (
                 <div className="pt-2 text-emerald-400 text-[11px] font-sans font-medium flex items-center gap-1.5">
                   <span>✓</span> Transaction compensated. Routing, Backend, and Database were removed in reverse order and verified.
+                </div>
+              )}
+
+              {transaction.state === "MANUAL_ATTENTION_REQUIRED" && (
+                <div className="pt-2 text-rose-400 text-[11px] font-sans font-bold flex items-center gap-1.5">
+                  <span>✕</span> {transaction.lastError || "Manual attention required: resource retained in store after compensation."}
                 </div>
               )}
             </div>

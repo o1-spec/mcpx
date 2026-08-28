@@ -48,6 +48,11 @@ export const stateColors: Record<NodeState, { badge: string; pill: string; borde
     pill: "bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/40",
     border: "border-emerald-500/60",
   },
+  MANUAL_ATTENTION_REQUIRED: {
+    badge: "bg-rose-950 text-rose-300 border-rose-500/80 font-bold animate-pulse",
+    pill: "bg-rose-600 text-white font-bold shadow-lg shadow-rose-500/40",
+    border: "border-rose-500/80",
+  },
   SKIPPED: {
     badge: "bg-slate-800/60 text-slate-500 border-slate-700/50",
     pill: "bg-slate-800 text-slate-500 border-slate-700",

@@ -31,6 +31,7 @@ const txStateColors: Record<TransactionState, string> = {
   AWAITING_COMPENSATION_APPROVAL: "bg-amber-900 text-amber-100 border-amber-400 animate-pulse font-bold",
   COMPENSATING: "bg-indigo-950 text-indigo-300 border-indigo-500/60 animate-pulse",
   COMPENSATED: "bg-emerald-950 text-emerald-300 border-emerald-500/60 font-bold",
+  MANUAL_ATTENTION_REQUIRED: "bg-rose-950 text-rose-300 border-rose-500/80 font-bold animate-pulse",
   FAILED: "bg-rose-950 text-rose-300 border-rose-500/60 font-bold",
 };
 
@@ -69,7 +70,7 @@ export default function CompensationDemo({
 
         <div className="flex items-center gap-2">
           <span
-            className={`px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wider border ${txStateColors[transaction.state]
+            className={`px-3.5 py-1 rounded-full text-xs font-mono uppercase tracking-wider border ${txStateColors[transaction.state]
               }`}
           >
             TX: {transaction.state.replace(/_/g, " ")}

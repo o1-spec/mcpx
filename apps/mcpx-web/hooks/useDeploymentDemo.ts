@@ -374,15 +374,22 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
         };
         setTransaction(currentTx);
 
-        // Update authoritative state
-        setAuthoritativeState((prev) => ({
-          ...prev,
-          [compNode.service]: undefined,
-        }));
+        // Update local authoritative tracking correctly for backend/compute
+        if (compNode.service === "compute") {
+          setAuthoritativeState((prev) => ({
+            ...prev,
+            backend: undefined,
+          }));
+        } else {
+          setAuthoritativeState((prev) => ({
+            ...prev,
+            [compNode.service]: undefined,
+          }));
+        }
       } else {
         currentTx = {
           ...currentTx,
-          state: "FAILED",
+          state: "MANUAL_ATTENTION_REQUIRED",
           lastError: compResult.error,
         };
         setTransaction(currentTx);
@@ -392,12 +399,48 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
       }
     }
 
-    currentTx = { ...currentTx, state: "COMPENSATED" };
-    setTransaction(currentTx);
-    appendEvent("TX_COMPENSATED", {
-      transactionId: currentTx.id,
-      status: "All previously created resources were successfully rolled back and verified in reverse order.",
-    });
+    // Final Transaction-Level Verification Sweep:
+    // Verify all 4 resources are authoritatively absent via WebMCP inspection
+    let anyResourceRemains = false;
+    for (const node of currentTx.nodes) {
+      const inspTool = registeredToolsRef.current.find((t) => t.name === node.inspectTool);
+      if (!inspTool) continue;
+
+      try {
+        const raw = await document.modelContext.executeTool(
+          inspTool,
+          JSON.stringify({ operationKey: node.operationKey })
+        );
+        const norm = normalizeWebMCPResult(raw) as { exists?: boolean };
+        console.log(`[mcpx-web] final sweep inspection for ${node.id}:`, norm);
+        if (norm?.exists === true) {
+          anyResourceRemains = true;
+          console.error(`[mcpx-web] final sweep found resource still present for ${node.id}`);
+        }
+      } catch (err) {
+        console.error(`[mcpx-web] final sweep error for ${node.id}:`, err);
+      }
+    }
+
+    if (anyResourceRemains) {
+      currentTx = {
+        ...currentTx,
+        state: "MANUAL_ATTENTION_REQUIRED",
+        lastError: "Resource still exists in microservice store after compensation.",
+      };
+      setTransaction(currentTx);
+      appendEvent("TRANSACTION_COMPENSATION_INCOMPLETE", {
+        reason: "One or more resources remained present during final authoritative verification sweep.",
+      });
+    } else {
+      currentTx = { ...currentTx, state: "COMPENSATED" };
+      setTransaction(currentTx);
+      setAuthoritativeState({});
+      appendEvent("TX_COMPENSATED", {
+        transactionId: currentTx.id,
+        status: "All previously created resources were successfully rolled back and authoritatively verified absent in reverse order.",
+      });
+    }
 
     setIsRunning(false);
   };
@@ -416,6 +459,8 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
   const inspectAllResources = async () => {
     if (typeof document === "undefined" || !document.modelContext) return;
 
+    const newAuth: FourServiceAuthoritativeState = {};
+
     for (const node of transaction.nodes) {
       const inspectTool = registeredToolsRef.current.find((t) => t.name === node.inspectTool);
       if (!inspectTool) continue;
@@ -425,12 +470,33 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           inspectTool,
           JSON.stringify({ operationKey: node.operationKey })
         );
-        const normalized = normalizeWebMCPResult(raw);
+        const normalized = normalizeWebMCPResult(raw) as {
+          exists?: boolean;
+          database?: { id: string; name: string; operationKey: string; createdAt?: string };
+          backend?: { id: string; projectName: string; databaseResourceId: string; healthUrl: string; operationKey: string };
+          route?: { id: string; projectName: string; targetUrl: string; operationKey: string };
+          frontend?: { id: string; projectName: string; backendResourceId: string; previewUrl: string; operationKey: string };
+        };
+
         console.log(`[mcpx-dag] authoritative inspection for ${node.id}:`, normalized);
+
+        if (normalized?.exists) {
+          if (node.service === "database" && normalized.database) {
+            newAuth.database = normalized.database;
+          } else if (node.service === "compute" && normalized.backend) {
+            newAuth.backend = normalized.backend;
+          } else if (node.service === "routing" && normalized.route) {
+            newAuth.routing = normalized.route;
+          } else if (node.service === "frontend" && normalized.frontend) {
+            newAuth.frontend = normalized.frontend;
+          }
+        }
       } catch (err) {
         console.error(`[mcpx-dag] inspect ${node.id} failed:`, err);
       }
     }
+
+    setAuthoritativeState(newAuth);
   };
 
   const resetDeployment = () => {

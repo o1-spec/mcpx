@@ -5,6 +5,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const operationKey = searchParams.get("operationKey");
 
+  console.log("[compute-app] GET operationKey =", operationKey);
+
   if (!operationKey) {
     return NextResponse.json({
       exists: false,
@@ -29,6 +31,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { projectName, databaseResourceId, operationKey } = body;
+
+    console.log("[compute-app] POST operationKey =", operationKey);
 
     if (!projectName || !operationKey) {
       return NextResponse.json(
@@ -84,6 +88,8 @@ export async function DELETE(request: NextRequest) {
     }
   }
 
+  console.log("[compute-app] DELETE operationKey =", operationKey);
+
   if (!operationKey) {
     return NextResponse.json(
       { error: "Missing required parameter: operationKey" },
@@ -91,14 +97,31 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
+  console.log("[compute-app] store before delete", [...backendStore.values()]);
+
   if (backendStore.has(operationKey)) {
+    const existing = backendStore.get(operationKey);
+    const resourceId = existing?.id;
     backendStore.delete(operationKey);
+
+    // Local authoritative post-deletion assertion
+    if (backendStore.has(operationKey)) {
+      throw new Error("BACKEND_COMPENSATION_PRECONDITION_FAILED: resource still in store after delete");
+    }
+
+    console.log("[compute-app] store after delete", [...backendStore.values()]);
+
     return NextResponse.json({
       status: "deleted",
+      operationKey,
+      resourceId,
     });
   }
 
+  console.log("[compute-app] store after delete (already absent)", [...backendStore.values()]);
+
   return NextResponse.json({
     status: "already_absent",
+    operationKey,
   });
 }
