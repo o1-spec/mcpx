@@ -1,39 +1,13 @@
-export type NodeState =
-  | "PENDING"
-  | "EXECUTING"
-  | "SUCCEEDED"
-  | "IN_DOUBT"
-  | "RECONCILING"
-  | "RECOVERED"
-  | "FAILED"
-  | "COMPENSATING"
-  | "COMPENSATED";
-
-export type TransactionState =
-  | "CREATED"
-  | "EXECUTING"
-  | "COMMITTED"
-  | "ABORTING"
-  | "AWAITING_COMPENSATION_APPROVAL"
-  | "COMPENSATING"
-  | "COMPENSATED"
-  | "FAILED";
-
-export interface TransactionNode {
-  id: string; // e.g. "routing:create" | "database:create"
-  label?: string;
-  state: NodeState;
-  operationKey: string;
-  resourceId?: string;
-  lastError?: string;
-}
-
-export interface TransactionModel {
-  id: string;
-  state: TransactionState;
-  nodes: TransactionNode[];
-  lastError?: string;
-}
+export type {
+  NodeState,
+  TransactionState,
+  TransactionNode,
+  Transaction as TransactionModel,
+  ServiceContract,
+  ExecutionResult,
+  ReconciliationResult,
+  CompensationResult,
+} from "@/lib/transaction";
 
 export interface TransactionEvent {
   id: string;

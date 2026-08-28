@@ -7,16 +7,29 @@ import type {
   TransactionEvent,
   AuthoritativeState,
 } from "@/types/reliability";
-import { normalizeWebMCPResult } from "@/lib/webmcp-utils";
+import {
+  createTransactionNode,
+  executeNode,
+  reconcileNode,
+} from "@/lib/transaction";
 
 export function useReliabilityDemo(registeredToolsRef: RefObject<RegisteredTool[]>) {
   const [reliabilityOpKey, setReliabilityOpKey] = useState("tx:demo-002:routing:create");
   const [isRunning, setIsRunning] = useState(false);
-  const [transactionNode, setTransactionNode] = useState<TransactionNode>({
-    id: "routing:create",
-    state: "PENDING",
-    operationKey: "tx:demo-002:routing:create",
-  });
+  const [transactionNode, setTransactionNode] = useState<TransactionNode>(
+    createTransactionNode({
+      service: "routing",
+      id: "routing:create",
+      label: "Routing Service (create_route)",
+      operationKey: "tx:demo-002:routing:create",
+      executeArgs: {
+        projectName: "mcpx-demo",
+        targetUrl: "http://localhost:4000",
+        operationKey: "tx:demo-002:routing:create",
+        failureMode: "drop-ack-after-commit",
+      },
+    })
+  );
   const [eventLog, setEventLog] = useState<TransactionEvent[]>([]);
   const [authoritativeState, setAuthoritativeState] = useState<AuthoritativeState>({
     inspected: false,
@@ -42,14 +55,6 @@ export function useReliabilityDemo(registeredToolsRef: RefObject<RegisteredTool[
       return;
     }
 
-    const createTool = registeredToolsRef.current.find((t) => t.name === "create_route");
-    const getTool = registeredToolsRef.current.find((t) => t.name === "get_route");
-
-    if (!createTool || !getTool) {
-      alert("WebMCP tools not fully discovered. Please ensure iframe is loaded and tools are registered.");
-      return;
-    }
-
     setIsRunning(true);
     setEventLog([]);
     setAuthoritativeState({ inspected: false });
@@ -58,12 +63,21 @@ export function useReliabilityDemo(registeredToolsRef: RefObject<RegisteredTool[
     const currentOpKey = `tx:demo-${Date.now()}:routing:create`;
     setReliabilityOpKey(currentOpKey);
 
-    // 1. PENDING -> EXECUTING
-    setTransactionNode({
+    const node = createTransactionNode({
+      service: "routing",
       id: "routing:create",
-      state: "EXECUTING",
+      label: "Routing Service (create_route)",
       operationKey: currentOpKey,
+      executeArgs: {
+        projectName: "mcpx-demo",
+        targetUrl: "http://localhost:4000",
+        operationKey: currentOpKey,
+        failureMode: "drop-ack-after-commit",
+      },
     });
+
+    // 1. PENDING -> EXECUTING
+    setTransactionNode({ ...node, state: "EXECUTING" });
     appendEvent("ROUTE_EXECUTE_STARTED", {
       operationKey: currentOpKey,
       projectName: "mcpx-demo",
@@ -71,42 +85,22 @@ export function useReliabilityDemo(registeredToolsRef: RefObject<RegisteredTool[
       failureMode: "drop-ack-after-commit",
     });
 
-    try {
-      // 2. Invoke create_route with drop-ack-after-commit chaos injection
-      const createArgs = {
-        projectName: "mcpx-demo",
-        targetUrl: "http://localhost:4000",
-        operationKey: currentOpKey,
-        failureMode: "drop-ack-after-commit",
-      };
+    // 2. Generic Node Execution through WebMCP
+    const execResult = await executeNode(node, registeredToolsRef.current);
+    setTransactionNode(execResult.updatedNode);
 
-      console.log("[mcpx-web] [reliability] calling create_route with drop-ack-after-commit...");
-      await document.modelContext.executeTool(createTool, JSON.stringify(createArgs));
-
-      setTransactionNode({
-        id: "routing:create",
-        state: "SUCCEEDED",
-        operationKey: currentOpKey,
-      });
+    if (execResult.outcome === "SUCCEEDED") {
       appendEvent("ROUTE_EXECUTE_SUCCEEDED", { operationKey: currentOpKey });
       setIsRunning(false);
       return;
-    } catch (err: unknown) {
-      // 3. Acknowledgement lost -> EXECUTING -> IN_DOUBT
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.warn("[mcpx-web] [reliability] transport error caught:", errMsg);
+    }
 
+    if (execResult.outcome === "IN_DOUBT") {
+      // 3. Acknowledgement lost -> EXECUTING -> IN_DOUBT
       appendEvent("ROUTE_EXECUTE_UNCERTAIN", {
-        error: errMsg,
+        error: execResult.error,
         reason:
           "Transport error occurred after mutation dispatch. Cannot determine if server committed.",
-      });
-
-      setTransactionNode({
-        id: "routing:create",
-        state: "IN_DOUBT",
-        operationKey: currentOpKey,
-        lastError: errMsg,
       });
       appendEvent("ROUTE_MARKED_IN_DOUBT", { operationKey: currentOpKey });
     }
@@ -118,116 +112,77 @@ export function useReliabilityDemo(registeredToolsRef: RefObject<RegisteredTool[
       method: "WebMCP get_route inspection",
     });
 
-    try {
-      // 5. Invoke get_route through WebMCP with the EXACT SAME operationKey
-      console.log("[mcpx-web] reconciliation operationKey", currentOpKey);
+    // 5. Generic Node Reconciliation through WebMCP with exact operationKey
+    const reconcileResult = await reconcileNode(
+      execResult.updatedNode,
+      registeredToolsRef.current
+    );
+    setTransactionNode(reconcileResult.updatedNode);
 
-      const rawInspectResult = await document.modelContext.executeTool(
-        getTool,
-        JSON.stringify({ operationKey: currentOpKey })
-      );
+    if (reconcileResult.outcome === "RECOVERED") {
+      const routeData = reconcileResult.resource as {
+        id?: string;
+        projectName?: string;
+        createdAt?: string;
+      };
 
-      console.log("[mcpx-web] raw get_route WebMCP result", rawInspectResult);
-
-      const normalized = normalizeWebMCPResult(rawInspectResult);
-
-      console.log("[mcpx-web] normalized get_route result", normalized);
-
-      const inspection =
-        normalized && typeof normalized === "object"
-          ? (normalized as {
-              exists?: boolean;
-              route?: {
-                id: string;
-                projectName: string;
-                targetUrl: string;
-                operationKey: string;
-                createdAt: string;
-              };
-            })
-          : null;
-
-      console.log("[mcpx-web] normalized exists value", inspection?.exists);
-      console.log("[mcpx-web] normalized resource ID", inspection?.route?.id);
-
-      if (inspection?.exists === true && inspection.route) {
-        // 6. Resource exists -> RECONCILING -> RECOVERED
-        const foundRoute = inspection.route;
-        setAuthoritativeState({
-          inspected: true,
-          exists: true,
-          route: foundRoute,
-        });
-
-        setTransactionNode({
-          id: "routing:create",
-          state: "RECOVERED",
+      setAuthoritativeState({
+        inspected: true,
+        exists: true,
+        route: {
+          id: reconcileResult.resourceId ?? routeData?.id ?? "unknown",
+          projectName: routeData?.projectName ?? "mcpx-demo",
+          targetUrl: "http://localhost:4000",
           operationKey: currentOpKey,
-          resourceId: foundRoute.id,
-        });
-
-        appendEvent("ROUTE_REMOTE_STATE_FOUND", {
-          operationKey: currentOpKey,
-          resourceId: foundRoute.id,
-          projectName: foundRoute.projectName,
-          createdAt: foundRoute.createdAt,
-        });
-        appendEvent("ROUTE_RECOVERED", {
-          operationKey: currentOpKey,
-          resourceId: foundRoute.id,
-          reconciliationOutcome:
-            "Resource was committed prior to ACK drop; state recovered successfully.",
-        });
-      } else if (inspection?.exists === false) {
-        // 7. Resource explicitly absent -> RECONCILING -> FAILED
-        setAuthoritativeState({ inspected: true, exists: false });
-        setTransactionNode({
-          id: "routing:create",
-          state: "FAILED",
-          operationKey: currentOpKey,
-          lastError: "Authoritative inspection found no resource.",
-        });
-        appendEvent("ROUTE_REMOTE_STATE_ABSENT", {
-          operationKey: currentOpKey,
-          message: "Authoritative inspection confirmed no resource exists in routeStore.",
-        });
-      } else {
-        // 8. Result uninterpretable / malformed -> Remain RECONCILING!
-        console.warn("[mcpx-web] Inspection result could not be interpreted:", normalized);
-        setAuthoritativeState({ inspected: true, exists: undefined });
-        setTransactionNode((prev) => ({
-          ...prev,
-          state: "RECONCILING",
-          lastError: "Inspection result could not be interpreted.",
-        }));
-        appendEvent("ROUTE_INSPECTION_UNINTERPRETABLE", {
-          operationKey: currentOpKey,
-          raw: rawInspectResult as Record<string, unknown>,
-          normalized: (normalized as Record<string, unknown>) ?? null,
-        });
-      }
-    } catch (inspectErr: unknown) {
-      const inspectErrMsg = inspectErr instanceof Error ? inspectErr.message : String(inspectErr);
-      setTransactionNode((prev) => ({
-        ...prev,
-        state: "RECONCILING",
-        lastError: `Inspection failed: ${inspectErrMsg}`,
-      }));
-      appendEvent("ROUTE_RECONCILIATION_FAILED_TO_INSPECT", {
-        operationKey: currentOpKey,
-        error: inspectErrMsg,
+          createdAt: routeData?.createdAt ?? new Date().toISOString(),
+        },
       });
-    } finally {
-      setIsRunning(false);
+
+      appendEvent("ROUTE_REMOTE_STATE_FOUND", {
+        operationKey: currentOpKey,
+        resourceId: reconcileResult.resourceId,
+        projectName: routeData?.projectName,
+        createdAt: routeData?.createdAt,
+      });
+      appendEvent("ROUTE_RECOVERED", {
+        operationKey: currentOpKey,
+        resourceId: reconcileResult.resourceId,
+        reconciliationOutcome:
+          "Resource was committed prior to ACK drop; state recovered successfully.",
+      });
+    } else if (reconcileResult.outcome === "ABSENT") {
+      setAuthoritativeState({ inspected: true, exists: false });
+      appendEvent("ROUTE_REMOTE_STATE_ABSENT", {
+        operationKey: currentOpKey,
+        message: "Authoritative inspection confirmed no resource exists in routeStore.",
+      });
+    } else {
+      setAuthoritativeState({ inspected: true, exists: undefined });
+      appendEvent("ROUTE_INSPECTION_UNINTERPRETABLE", {
+        operationKey: currentOpKey,
+        raw: reconcileResult.rawResult as Record<string, unknown>,
+        normalized: (reconcileResult.normalizedResult as Record<string, unknown>) ?? null,
+      });
     }
+
+    setIsRunning(false);
   };
 
   const resetReliabilityDemo = () => {
-    setTransactionNode({
-      id: "routing:create",
-      state: "PENDING",
-      operationKey: reliabilityOpKey,
-    });
+    setTransactionNode(
+      createTransactionNode({
+        service: "routing",
+        id: "routing:create",
+        label: "Routing Service (create_route)",
+        operationKey: reliabilityOpKey,
+        executeArgs: {
+          projectName: "mcpx-demo",
+          targetUrl: "http://localhost:4000",
+          operationKey: reliabilityOpKey,
+          failureMode: "drop-ack-after-commit",
+        },
+      })
+    );
     setEventLog([]);
     setAuthoritativeState({ inspected: false });
   };

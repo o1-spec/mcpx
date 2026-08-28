@@ -3,33 +3,53 @@
 import { useState, useCallback, RefObject } from "react";
 import type { RegisteredTool } from "@/types/webmcp";
 import type {
-  TransactionModel,
   TransactionEvent,
   AuthoritativeState,
 } from "@/types/reliability";
-import { normalizeWebMCPResult } from "@/lib/webmcp-utils";
+import {
+  Transaction,
+  createTransactionNode,
+  getRunnableNodes,
+  getCompensableNodes,
+  executeNode,
+  compensateNode,
+} from "@/lib/transaction";
 
 export function useCompensationDemo(registeredToolsRef: RefObject<RegisteredTool[]>) {
   const [isRunning, setIsRunning] = useState(false);
-  const [transaction, setTransaction] = useState<TransactionModel>({
+
+  const initialTx: Transaction = {
     id: "tx:demo-init",
     state: "CREATED",
     nodes: [
-      {
+      createTransactionNode({
+        service: "database",
         id: "database:create",
         label: "Database Service (create_database)",
-        state: "PENDING",
         operationKey: "tx:init:database:create",
-      },
-      {
+        dependencies: [],
+        executeArgs: {
+          name: "mcpx-prod-db",
+          operationKey: "tx:init:database:create",
+        },
+      }),
+      createTransactionNode({
+        service: "routing",
         id: "routing:create",
         label: "Routing Service (create_route)",
-        state: "PENDING",
         operationKey: "tx:init:routing:create",
-      },
+        dependencies: ["database:create"],
+        executeArgs: {
+          projectName: "mcpx-demo",
+          targetUrl: "http://localhost:4000",
+          operationKey: "tx:init:routing:create",
+          failureMode: "reject-before-commit",
+        },
+      }),
     ],
-  });
+  };
 
+  const [transaction, setTransaction] = useState<Transaction>(initialTx);
   const [eventLog, setEventLog] = useState<TransactionEvent[]>([]);
   const [authoritativeState, setAuthoritativeState] = useState<AuthoritativeState>({
     inspected: false,
@@ -55,14 +75,6 @@ export function useCompensationDemo(registeredToolsRef: RefObject<RegisteredTool
       return;
     }
 
-    const createDbTool = registeredToolsRef.current.find((t) => t.name === "create_database");
-    const createRouteTool = registeredToolsRef.current.find((t) => t.name === "create_route");
-
-    if (!createDbTool || !createRouteTool) {
-      alert("Required WebMCP tools (create_database, create_route) not discovered.");
-      return;
-    }
-
     setIsRunning(true);
     setEventLog([]);
     setAuthoritativeState({ inspected: false });
@@ -71,161 +83,123 @@ export function useCompensationDemo(registeredToolsRef: RefObject<RegisteredTool
     const dbOpKey = `${txId}:database:create`;
     const routeOpKey = `${txId}:routing:create`;
 
-    // 1. Transaction CREATED -> EXECUTING
-    const initialTx: TransactionModel = {
+    // Declaratively define DAG
+    const dbNode = createTransactionNode({
+      service: "database",
+      id: "database:create",
+      label: "Database Service (create_database)",
+      operationKey: dbOpKey,
+      dependencies: [],
+      executeArgs: {
+        name: "mcpx-prod-db",
+        operationKey: dbOpKey,
+      },
+    });
+
+    const routeNode = createTransactionNode({
+      service: "routing",
+      id: "routing:create",
+      label: "Routing Service (create_route)",
+      operationKey: routeOpKey,
+      dependencies: ["database:create"],
+      executeArgs: {
+        projectName: "mcpx-demo",
+        targetUrl: "http://localhost:4000",
+        operationKey: routeOpKey,
+        failureMode: "reject-before-commit",
+      },
+    });
+
+    let currentTx: Transaction = {
       id: txId,
       state: "EXECUTING",
-      nodes: [
-        {
-          id: "database:create",
-          label: "Database Service (create_database)",
-          state: "PENDING",
-          operationKey: dbOpKey,
-        },
-        {
-          id: "routing:create",
-          label: "Routing Service (create_route)",
-          state: "PENDING",
-          operationKey: routeOpKey,
-        },
-      ],
+      nodes: [dbNode, routeNode],
     };
 
-    setTransaction(initialTx);
+    setTransaction(currentTx);
     appendEvent("TX_CREATED", { transactionId: txId, dbOpKey, routeOpKey });
 
-    let createdDbId: string | undefined;
+    // Execute runnable nodes using dependency scheduler
+    while (true) {
+      const runnable = getRunnableNodes(currentTx);
+      if (runnable.length === 0) break;
 
-    // 2. Step 1: Execute create_database through WebMCP
-    setTransaction((prev) => ({
-      ...prev,
-      nodes: prev.nodes.map((n) =>
-        n.id === "database:create" ? { ...n, state: "EXECUTING" } : n
-      ),
-    }));
-    appendEvent("DATABASE_EXECUTE_STARTED", { operationKey: dbOpKey });
+      for (const node of runnable) {
+        // Transition node to EXECUTING
+        currentTx = {
+          ...currentTx,
+          nodes: currentTx.nodes.map((n) =>
+            n.id === node.id ? { ...n, state: "EXECUTING" } : n
+          ),
+        };
+        setTransaction(currentTx);
 
-    try {
-      const rawDbRes = await document.modelContext.executeTool(
-        createDbTool,
-        JSON.stringify({
-          name: "mcpx-prod-db",
-          operationKey: dbOpKey,
-        })
-      );
+        appendEvent(`${node.service.toUpperCase()}_EXECUTE_STARTED`, {
+          operationKey: node.operationKey,
+          ...(node.executeArgs.failureMode ? { failureMode: node.executeArgs.failureMode } : {}),
+        });
 
-      const normalizedDb = normalizeWebMCPResult(rawDbRes) as {
-        status?: string;
-        database?: { id: string; name: string; operationKey: string; createdAt: string };
-      };
+        const execResult = await executeNode(node, registeredToolsRef.current);
 
-      createdDbId = normalizedDb?.database?.id;
+        currentTx = {
+          ...currentTx,
+          nodes: currentTx.nodes.map((n) =>
+            n.id === node.id ? execResult.updatedNode : n
+          ),
+        };
+        setTransaction(currentTx);
 
-      setTransaction((prev) => ({
-        ...prev,
-        nodes: prev.nodes.map((n) =>
-          n.id === "database:create"
-            ? { ...n, state: "SUCCEEDED", resourceId: createdDbId }
-            : n
-        ),
-      }));
+        if (execResult.outcome === "SUCCEEDED") {
+          appendEvent(`${node.service.toUpperCase()}_EXECUTE_SUCCEEDED`, {
+            operationKey: node.operationKey,
+            resourceId: execResult.resourceId,
+          });
 
-      setAuthoritativeState((prev) => ({
-        ...prev,
-        inspected: true,
-        database: normalizedDb.database,
-      }));
+          if (node.service === "database" && execResult.resourceId) {
+            setAuthoritativeState((prev) => ({
+              ...prev,
+              inspected: true,
+              database: {
+                id: execResult.resourceId!,
+                name: "mcpx-prod-db",
+                operationKey: node.operationKey,
+                createdAt: new Date().toISOString(),
+              },
+            }));
+          }
+        } else if (execResult.outcome === "FAILED") {
+          appendEvent(`${node.service.toUpperCase()}_EXECUTE_FAILED`, {
+            operationKey: node.operationKey,
+            error: execResult.error,
+            note: "Confirmed failure before commit",
+          });
 
-      appendEvent("DATABASE_EXECUTE_SUCCEEDED", {
-        operationKey: dbOpKey,
-        resourceId: createdDbId,
-      });
-    } catch (err: unknown) {
-      console.error("[mcpx-saga] database execution failed unexpectedly:", err);
-      const errMsg = err instanceof Error ? err.message : String(err);
-      setTransaction((prev) => ({
-        ...prev,
-        state: "FAILED",
-        nodes: prev.nodes.map((n) =>
-          n.id === "database:create" ? { ...n, state: "FAILED", lastError: errMsg } : n
-        ),
-      }));
-      setIsRunning(false);
-      return;
+          // Abort transaction and compute compensable nodes in reverse dependency order
+          currentTx = { ...currentTx, state: "ABORTING" };
+          setTransaction(currentTx);
+          appendEvent("TX_ABORT_STARTED", {
+            reason: `Downstream node ${node.id} failed with confirmed rejection`,
+          });
+
+          const compensable = getCompensableNodes(currentTx);
+          if (compensable.length > 0) {
+            currentTx = { ...currentTx, state: "AWAITING_COMPENSATION_APPROVAL" };
+            setTransaction(currentTx);
+            appendEvent("COMPENSATION_APPROVAL_REQUIRED", {
+              compensableNodes: compensable.map((c) => c.id),
+              resourceId: compensable[0]?.resourceId,
+              prompt: "Routing failed. 1 previously-created resource must be removed to restore the transaction.",
+            });
+          } else {
+            currentTx = { ...currentTx, state: "FAILED" };
+            setTransaction(currentTx);
+          }
+
+          setIsRunning(false);
+          return;
+        }
+      }
     }
-
-    // 3. Step 2: Execute create_route with confirmed failure: failureMode = "reject-before-commit"
-    setTransaction((prev) => ({
-      ...prev,
-      nodes: prev.nodes.map((n) =>
-        n.id === "routing:create" ? { ...n, state: "EXECUTING" } : n
-      ),
-    }));
-    appendEvent("ROUTE_EXECUTE_STARTED", {
-      operationKey: routeOpKey,
-      failureMode: "reject-before-commit",
-    });
-
-    try {
-      await document.modelContext.executeTool(
-        createRouteTool,
-        JSON.stringify({
-          projectName: "mcpx-demo",
-          targetUrl: "http://localhost:4000",
-          operationKey: routeOpKey,
-          failureMode: "reject-before-commit",
-        })
-      );
-
-      // Unexpected success
-      setTransaction((prev) => ({
-        ...prev,
-        state: "COMMITTED",
-        nodes: prev.nodes.map((n) =>
-          n.id === "routing:create" ? { ...n, state: "SUCCEEDED" } : n
-        ),
-      }));
-      setIsRunning(false);
-      return;
-    } catch (routeErr: unknown) {
-      const errMsg = routeErr instanceof Error ? routeErr.message : String(routeErr);
-      console.warn("[mcpx-saga] routing confirmed failure:", errMsg);
-
-      // Confirmed clean failure -> routing:create is FAILED
-      setTransaction((prev) => ({
-        ...prev,
-        nodes: prev.nodes.map((n) =>
-          n.id === "routing:create"
-            ? { ...n, state: "FAILED", lastError: errMsg }
-            : n
-        ),
-      }));
-      appendEvent("ROUTE_EXECUTE_FAILED", {
-        operationKey: routeOpKey,
-        error: errMsg,
-        note: "Confirmed failure before commit",
-      });
-    }
-
-    // 4. Step 3: Transaction ABORTING -> AWAITING_COMPENSATION_APPROVAL
-    setTransaction((prev) => ({
-      ...prev,
-      state: "ABORTING",
-    }));
-    appendEvent("TX_ABORT_STARTED", {
-      reason: "Downstream node routing:create failed with confirmed rejection",
-    });
-
-    // 5. Require Human Approval
-    setTransaction((prev) => ({
-      ...prev,
-      state: "AWAITING_COMPENSATION_APPROVAL",
-    }));
-    appendEvent("COMPENSATION_APPROVAL_REQUIRED", {
-      compensableNodes: ["database:create"],
-      resourceId: createdDbId,
-      prompt: "Routing failed. 1 previously-created resource must be removed to restore the transaction.",
-    });
 
     setIsRunning(false);
   };
@@ -233,89 +207,75 @@ export function useCompensationDemo(registeredToolsRef: RefObject<RegisteredTool
   const approveCompensation = async () => {
     if (typeof document === "undefined" || !document.modelContext) return;
 
-    const deleteDbTool = registeredToolsRef.current.find((t) => t.name === "delete_database");
-    const getDbTool = registeredToolsRef.current.find((t) => t.name === "get_database");
-
-    if (!deleteDbTool || !getDbTool) {
-      alert("WebMCP database tools not found for compensation.");
-      return;
-    }
-
-    const dbNode = transaction.nodes.find((n) => n.id === "database:create");
-    if (!dbNode) return;
-
     setIsRunning(true);
 
-    // 1. Transaction & Node -> COMPENSATING
-    setTransaction((prev) => ({
-      ...prev,
+    // Compute completed nodes in REVERSE dependency / topological order
+    const compensableNodes = getCompensableNodes(transaction);
+
+    let currentTx: Transaction = {
+      ...transaction,
       state: "COMPENSATING",
-      nodes: prev.nodes.map((n) =>
-        n.id === "database:create" ? { ...n, state: "COMPENSATING" } : n
+      nodes: transaction.nodes.map((n) =>
+        compensableNodes.some((c) => c.id === n.id) ? { ...n, state: "COMPENSATING" } : n
       ),
-    }));
+    };
+    setTransaction(currentTx);
+
     appendEvent("COMPENSATION_APPROVED", { byUser: true });
-    appendEvent("DATABASE_COMPENSATION_STARTED", {
-      operationKey: dbNode.operationKey,
-      resourceId: dbNode.resourceId,
-    });
 
-    try {
-      // 2. Invoke delete_database via WebMCP
-      await document.modelContext.executeTool(
-        deleteDbTool,
-        JSON.stringify({ operationKey: dbNode.operationKey })
-      );
-      appendEvent("DATABASE_COMPENSATION_SUCCEEDED", { operationKey: dbNode.operationKey });
+    for (const compNode of compensableNodes) {
+      appendEvent(`${compNode.service.toUpperCase()}_COMPENSATION_STARTED`, {
+        operationKey: compNode.operationKey,
+        resourceId: compNode.resourceId,
+      });
 
-      // 3. Authoritatively verify with get_database via WebMCP
-      const rawInspect = await document.modelContext.executeTool(
-        getDbTool,
-        JSON.stringify({ operationKey: dbNode.operationKey })
-      );
-      const normalizedInspect = normalizeWebMCPResult(rawInspect) as { exists?: boolean };
+      const compResult = await compensateNode(compNode, registeredToolsRef.current);
 
-      console.log("[mcpx-saga] compensation verification result =", normalizedInspect);
-
-      if (normalizedInspect && normalizedInspect.exists === false) {
-        appendEvent("DATABASE_COMPENSATION_VERIFIED", {
-          operationKey: dbNode.operationKey,
+      if (compResult.outcome === "COMPENSATED") {
+        appendEvent(`${compNode.service.toUpperCase()}_COMPENSATION_SUCCEEDED`, {
+          operationKey: compNode.operationKey,
+        });
+        appendEvent(`${compNode.service.toUpperCase()}_COMPENSATION_VERIFIED`, {
+          operationKey: compNode.operationKey,
           exists: false,
           verifiedOutcome: "Resource successfully absent from store",
         });
 
-        setAuthoritativeState((prev) => ({
-          ...prev,
-          database: undefined,
-        }));
-
-        // 4. Mark COMPENSATED
-        setTransaction((prev) => ({
-          ...prev,
-          state: "COMPENSATED",
-          nodes: prev.nodes.map((n) =>
-            n.id === "database:create" ? { ...n, state: "COMPENSATED" } : n
+        currentTx = {
+          ...currentTx,
+          nodes: currentTx.nodes.map((n) =>
+            n.id === compNode.id ? compResult.updatedNode : n
           ),
-        }));
-        appendEvent("TX_COMPENSATED", {
-          transactionId: transaction.id,
-          status: "Transaction fully rolled back and compensated.",
-        });
+        };
+        setTransaction(currentTx);
+
+        if (compNode.service === "database") {
+          setAuthoritativeState((prev) => ({
+            ...prev,
+            database: undefined,
+          }));
+        }
       } else {
-        throw new Error("Authoritative verification found resource still existing after delete.");
+        currentTx = {
+          ...currentTx,
+          state: "FAILED",
+          lastError: compResult.error,
+        };
+        setTransaction(currentTx);
+        appendEvent("COMPENSATION_FAILED", { error: compResult.error });
+        setIsRunning(false);
+        return;
       }
-    } catch (compErr: unknown) {
-      const errMsg = compErr instanceof Error ? compErr.message : String(compErr);
-      console.error("[mcpx-saga] compensation failed:", errMsg);
-      setTransaction((prev) => ({
-        ...prev,
-        state: "FAILED",
-        lastError: `Compensation failed: ${errMsg}`,
-      }));
-      appendEvent("COMPENSATION_FAILED", { error: errMsg });
-    } finally {
-      setIsRunning(false);
     }
+
+    currentTx = { ...currentTx, state: "COMPENSATED" };
+    setTransaction(currentTx);
+    appendEvent("TX_COMPENSATED", {
+      transactionId: currentTx.id,
+      status: "Transaction fully rolled back and compensated.",
+    });
+
+    setIsRunning(false);
   };
 
   const rejectCompensation = () => {
@@ -325,29 +285,12 @@ export function useCompensationDemo(registeredToolsRef: RefObject<RegisteredTool
       lastError: "Compensation rejected by operator. Resources retained in current state.",
     }));
     appendEvent("COMPENSATION_REJECTED_MANUAL_ATTENTION", {
-      retainedResources: ["database:create"],
+      retainedResources: getCompensableNodes(transaction).map((c) => c.id),
     });
   };
 
   const resetCompensationDemo = () => {
-    setTransaction({
-      id: "tx:demo-init",
-      state: "CREATED",
-      nodes: [
-        {
-          id: "database:create",
-          label: "Database Service (create_database)",
-          state: "PENDING",
-          operationKey: "tx:init:database:create",
-        },
-        {
-          id: "routing:create",
-          label: "Routing Service (create_route)",
-          state: "PENDING",
-          operationKey: "tx:init:routing:create",
-        },
-      ],
-    });
+    setTransaction(initialTx);
     setEventLog([]);
     setAuthoritativeState({ inspected: false });
   };
