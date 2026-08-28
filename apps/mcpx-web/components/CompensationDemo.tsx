@@ -49,7 +49,7 @@ export default function CompensationDemo({
   const dbNode = transaction.nodes.find((n) => n.id === "database:create");
 
   return (
-    <section className="rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-950/20 via-slate-900/60 to-slate-900/60 p-6 sm:p-8 shadow-2xl space-y-6">
+    <section className="rounded-2xl border border-amber-500/30 bg-linear-to-b from-amber-950/20 via-slate-900/60 to-slate-900/60 p-6 sm:p-8 shadow-2xl space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-500/20 pb-4">
         <div>
@@ -69,9 +69,8 @@ export default function CompensationDemo({
 
         <div className="flex items-center gap-2">
           <span
-            className={`px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wider border ${
-              txStateColors[transaction.state]
-            }`}
+            className={`px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wider border ${txStateColors[transaction.state]
+              }`}
           >
             TX: {transaction.state.replace(/_/g, " ")}
           </span>
@@ -154,7 +153,7 @@ export default function CompensationDemo({
 
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                 <span className="text-slate-500">Transaction ID:</span>
-                <span className="text-cyan-300 font-semibold truncate max-w-[200px]">
+                <span className="text-cyan-300 font-semibold truncate max-w-50">
                   {transaction.id}
                 </span>
               </div>

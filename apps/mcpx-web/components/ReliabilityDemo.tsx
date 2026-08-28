@@ -35,7 +35,7 @@ export default function ReliabilityDemo({
   onClearLog,
 }: ReliabilityDemoProps) {
   return (
-    <section className="rounded-2xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950/20 via-slate-900/60 to-slate-900/60 p-6 sm:p-8 shadow-2xl space-y-6">
+    <section className="rounded-2xl border border-indigo-500/30 bg-linear-to-b from-indigo-950/20 via-slate-900/60 to-slate-900/60 p-6 sm:p-8 shadow-2xl space-y-6">
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-500/20 pb-4">
         <div>
@@ -55,9 +55,8 @@ export default function ReliabilityDemo({
 
         <div className="flex items-center gap-2">
           <span
-            className={`px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${
-              stateColors[transactionNode.state].badge
-            }`}
+            className={`px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${stateColors[transactionNode.state].badge
+              }`}
           >
             State: {transactionNode.state}
           </span>

@@ -24,7 +24,7 @@ export default function EventLogList({ eventLog, onClearLog }: EventLogListProps
         )}
       </div>
 
-      <div className="flex-1 min-h-[300px] max-h-[420px] rounded-xl border border-slate-800 bg-slate-950 p-4 font-mono text-xs overflow-y-auto space-y-2.5">
+      <div className="flex-1 min-h-75 max-h-105 rounded-xl border border-slate-800 bg-slate-950 p-4 font-mono text-xs overflow-y-auto space-y-2.5">
         {eventLog.length === 0 ? (
           <div className="h-full flex items-center justify-center text-slate-600 italic">
             No events logged yet. Click [ RUN RELIABILITY DEMO ] to execute.

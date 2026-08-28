@@ -28,6 +28,36 @@ export function getRunnableNodes(transaction: Transaction): TransactionNode[] {
 }
 
 /**
+ * Resolves dynamic execution arguments from upstream dependency outputs
+ */
+export function resolveExecuteArgs(
+  node: TransactionNode,
+  transaction: Transaction
+): Record<string, unknown> {
+  const nodeMap = new Map<string, TransactionNode>(
+    transaction.nodes.map((n) => [n.id, n])
+  );
+
+  const resolved: Record<string, unknown> = { ...node.executeArgs };
+
+  for (const depId of node.dependencies) {
+    const depNode = nodeMap.get(depId);
+    if (!depNode || !depNode.resourceId) continue;
+
+    if (depNode.service === "database" && !resolved.databaseResourceId) {
+      resolved.databaseResourceId = depNode.resourceId;
+    } else if (depNode.service === "compute" && !resolved.backendResourceId) {
+      resolved.backendResourceId = depNode.resourceId;
+      if (node.service === "routing" && (!resolved.targetUrl || resolved.targetUrl === "http://localhost:4000")) {
+        resolved.targetUrl = `http://localhost:3003/health/${resolved.projectName ?? "mcpx-demo"}`;
+      }
+    }
+  }
+
+  return resolved;
+}
+
+/**
  * Returns all completed nodes that require compensation,
  * sorted in REVERSE dependency / topological order (dependents compensate before dependencies).
  */

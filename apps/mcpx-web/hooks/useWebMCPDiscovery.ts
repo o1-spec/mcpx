@@ -13,6 +13,8 @@ export function useWebMCPDiscovery() {
   const registeredToolsRef = useRef<RegisteredTool[]>([]);
   const routingIframeRef = useRef<HTMLIFrameElement>(null);
   const databaseIframeRef = useRef<HTMLIFrameElement>(null);
+  const computeIframeRef = useRef<HTMLIFrameElement>(null);
+  const frontendIframeRef = useRef<HTMLIFrameElement>(null);
 
   const discoverTools = useCallback(async () => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
@@ -24,15 +26,20 @@ export function useWebMCPDiscovery() {
 
     setIsSupported(true);
     setDiscoveryError(null);
-    console.log("[mcpx-web] requesting tools from localhost:3001 and localhost:3002");
+    console.log("[mcpx-web] requesting tools from all 4 services: 3001, 3002, 3003, 3004");
 
     try {
-      // Query tools from both routing-app and database-app origins
+      // Query tools from all four microservice origins
       const tools = await document.modelContext.getTools({
-        fromOrigins: ["http://localhost:3001", "http://localhost:3002"],
+        fromOrigins: [
+          "http://localhost:3001",
+          "http://localhost:3002",
+          "http://localhost:3003",
+          "http://localhost:3004",
+        ],
       });
 
-      console.log("[mcpx-web] tools returned", tools);
+      console.log("[mcpx-web] 4-service tools returned:", tools);
 
       registeredToolsRef.current = tools || [];
 
@@ -82,40 +89,66 @@ export function useWebMCPDiscovery() {
     };
   }, [discoverTools]);
 
-  const routingTools = discoveredTools.filter(
-    (t) =>
-      t.origin?.includes(":3001") ||
-      ["create_route", "get_route", "delete_route"].includes(t.name)
-  );
-
   const databaseTools = discoveredTools.filter(
     (t) =>
       t.origin?.includes(":3002") ||
       ["create_database", "get_database", "delete_database"].includes(t.name)
   );
 
-  const isRoutingConnected = ["create_route", "get_route", "delete_route"].every((name) =>
-    discoveredTools.some((t) => t.name === name)
+  const computeTools = discoveredTools.filter(
+    (t) =>
+      t.origin?.includes(":3003") ||
+      ["deploy_backend", "get_backend", "delete_backend"].includes(t.name)
+  );
+
+  const routingTools = discoveredTools.filter(
+    (t) =>
+      t.origin?.includes(":3001") ||
+      ["create_route", "get_route", "delete_route"].includes(t.name)
+  );
+
+  const frontendTools = discoveredTools.filter(
+    (t) =>
+      t.origin?.includes(":3004") ||
+      ["deploy_frontend", "get_frontend", "delete_frontend"].includes(t.name)
   );
 
   const isDatabaseConnected = ["create_database", "get_database", "delete_database"].every((name) =>
     discoveredTools.some((t) => t.name === name)
   );
 
-  const isConnected = isRoutingConnected && isDatabaseConnected;
+  const isComputeConnected = ["deploy_backend", "get_backend", "delete_backend"].every((name) =>
+    discoveredTools.some((t) => t.name === name)
+  );
+
+  const isRoutingConnected = ["create_route", "get_route", "delete_route"].every((name) =>
+    discoveredTools.some((t) => t.name === name)
+  );
+
+  const isFrontendConnected = ["deploy_frontend", "get_frontend", "delete_frontend"].every((name) =>
+    discoveredTools.some((t) => t.name === name)
+  );
+
+  const isConnected = isDatabaseConnected && isComputeConnected && isRoutingConnected && isFrontendConnected;
 
   return {
     discoveredTools,
-    routingTools,
     databaseTools,
+    computeTools,
+    routingTools,
+    frontendTools,
     isConnected,
-    isRoutingConnected,
     isDatabaseConnected,
+    isComputeConnected,
+    isRoutingConnected,
+    isFrontendConnected,
     isSupported,
     discoveryError,
     registeredToolsRef,
-    routingIframeRef,
     databaseIframeRef,
+    computeIframeRef,
+    routingIframeRef,
+    frontendIframeRef,
     discoverTools,
   };
 }

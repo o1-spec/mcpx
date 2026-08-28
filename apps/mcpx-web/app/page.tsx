@@ -8,7 +8,7 @@ export default function Home() {
         <header className="border-b border-slate-800 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center font-bold text-white shadow-lg shadow-cyan-500/20">
+              <div className="h-8 w-8 rounded-lg bg-linear-to-tr from-cyan-500 to-indigo-500 flex items-center justify-center font-bold text-white shadow-lg shadow-cyan-500/20">
                 M
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">

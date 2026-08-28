@@ -149,9 +149,9 @@ export default function ManualWebMCPControls({
               )}
             </div>
 
-            <div className="flex-1 min-h-[220px] rounded-xl border border-slate-800/80 bg-slate-950 p-4 font-mono text-xs overflow-auto">
+            <div className="flex-1 min-h-55 rounded-xl border border-slate-800/80 bg-slate-950 p-4 font-mono text-xs overflow-auto">
               {lastResult ? (
-                <pre className="text-emerald-400 whitespace-pre-wrap break-words">
+                <pre className="text-emerald-400 whitespace-pre-wrap wrap-break-word">
                   {lastResult}
                 </pre>
               ) : (

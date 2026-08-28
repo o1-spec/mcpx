@@ -20,16 +20,14 @@ export default function TransactionDAG({ transaction }: TransactionDAGProps) {
       <div className="flex flex-col md:flex-row items-center gap-4">
         {/* Node 1: Database */}
         <div
-          className={`flex-1 w-full p-4 rounded-xl border transition-all ${
-            dbNode ? stateColors[dbNode.state].border : "border-slate-800"
-          } bg-slate-900/60`}
+          className={`flex-1 w-full p-4 rounded-xl border transition-all ${dbNode ? stateColors[dbNode.state].border : "border-slate-800"
+            } bg-slate-900/60`}
         >
           <div className="flex items-center justify-between mb-2">
             <span className="font-bold text-slate-200">1. DATABASE</span>
             <span
-              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                dbNode ? stateColors[dbNode.state].badge : ""
-              }`}
+              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${dbNode ? stateColors[dbNode.state].badge : ""
+                }`}
             >
               {dbNode?.state ?? "PENDING"}
             </span>
@@ -40,7 +38,7 @@ export default function TransactionDAG({ transaction }: TransactionDAGProps) {
             </div>
             <div>
               <span className="text-slate-500">Key:</span>{" "}
-              <span className="text-emerald-300 truncate inline-block max-w-[180px] align-bottom">
+              <span className="text-emerald-300 truncate inline-block max-w-45 align-bottom">
                 {dbNode?.operationKey}
               </span>
             </div>
@@ -61,16 +59,14 @@ export default function TransactionDAG({ transaction }: TransactionDAGProps) {
 
         {/* Node 2: Routing */}
         <div
-          className={`flex-1 w-full p-4 rounded-xl border transition-all ${
-            routeNode ? stateColors[routeNode.state].border : "border-slate-800"
-          } bg-slate-900/60`}
+          className={`flex-1 w-full p-4 rounded-xl border transition-all ${routeNode ? stateColors[routeNode.state].border : "border-slate-800"
+            } bg-slate-900/60`}
         >
           <div className="flex items-center justify-between mb-2">
             <span className="font-bold text-slate-200">2. ROUTING</span>
             <span
-              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                routeNode ? stateColors[routeNode.state].badge : ""
-              }`}
+              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${routeNode ? stateColors[routeNode.state].badge : ""
+                }`}
             >
               {routeNode?.state ?? "PENDING"}
             </span>
@@ -81,12 +77,12 @@ export default function TransactionDAG({ transaction }: TransactionDAGProps) {
             </div>
             <div>
               <span className="text-slate-500">Key:</span>{" "}
-              <span className="text-cyan-300 truncate inline-block max-w-[180px] align-bottom">
+              <span className="text-cyan-300 truncate inline-block max-w-45 align-bottom">
                 {routeNode?.operationKey}
               </span>
             </div>
             {routeNode?.lastError && (
-              <div className="text-rose-400 text-[10px] pt-1 truncate max-w-[220px]">
+              <div className="text-rose-400 text-[10px] pt-1 truncate max-w-55">
                 <span className="font-bold">Error:</span> {routeNode.lastError}
               </div>
             )}

@@ -19,11 +19,10 @@ export default function AuthoritativeInspectionCard({
         </span>
         {authoritativeState.inspected && (
           <span
-            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-              authoritativeState.exists
+            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${authoritativeState.exists
                 ? "bg-emerald-950 text-emerald-300 border border-emerald-500/40"
                 : "bg-rose-950 text-rose-300 border border-rose-500/40"
-            }`}
+              }`}
           >
             {authoritativeState.exists ? "Resource Exists: YES" : "Resource Exists: NO"}
           </span>
@@ -39,13 +38,13 @@ export default function AuthoritativeInspectionCard({
         </div>
         <div className="flex justify-between py-1 border-b border-slate-800/60">
           <span className="text-slate-500">Resource ID:</span>
-          <span className="text-indigo-300 font-semibold truncate max-w-[200px]">
+          <span className="text-indigo-300 font-semibold truncate max-w-50">
             {authoritativeState.route?.id || transactionNode.resourceId || "—"}
           </span>
         </div>
         <div className="flex justify-between py-1 border-b border-slate-800/60">
           <span className="text-slate-500">Operation Key:</span>
-          <span className="text-cyan-300 font-semibold truncate max-w-[200px]">
+          <span className="text-cyan-300 font-semibold truncate max-w-50">
             {transactionNode.operationKey || "—"}
           </span>
         </div>

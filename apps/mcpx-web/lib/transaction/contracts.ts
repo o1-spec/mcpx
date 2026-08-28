@@ -18,6 +18,23 @@ export const SERVICE_CONTRACTS: Record<string, ServiceContract> = {
       return undefined;
     },
   },
+  compute: {
+    service: "compute",
+    origin: "http://localhost:3003",
+    executeTool: "deploy_backend",
+    inspectTool: "get_backend",
+    compensateTool: "delete_backend",
+    extractResourceId: (data: unknown): string | undefined => {
+      if (data && typeof data === "object") {
+        const obj = data as {
+          backend?: { id?: string };
+          id?: string;
+        };
+        return obj.backend?.id ?? obj.id;
+      }
+      return undefined;
+    },
+  },
   routing: {
     service: "routing",
     origin: "http://localhost:3001",
@@ -31,6 +48,23 @@ export const SERVICE_CONTRACTS: Record<string, ServiceContract> = {
           id?: string;
         };
         return obj.route?.id ?? obj.id;
+      }
+      return undefined;
+    },
+  },
+  frontend: {
+    service: "frontend",
+    origin: "http://localhost:3004",
+    executeTool: "deploy_frontend",
+    inspectTool: "get_frontend",
+    compensateTool: "delete_frontend",
+    extractResourceId: (data: unknown): string | undefined => {
+      if (data && typeof data === "object") {
+        const obj = data as {
+          frontend?: { id?: string };
+          id?: string;
+        };
+        return obj.frontend?.id ?? obj.id;
       }
       return undefined;
     },

@@ -3,39 +3,83 @@
 import type { DiscoveredToolInfo } from "@/types/reliability";
 
 interface WebMCPBridgeStatusProps {
-  isRoutingConnected: boolean;
   isDatabaseConnected: boolean;
+  isComputeConnected: boolean;
+  isRoutingConnected: boolean;
+  isFrontendConnected: boolean;
   isSupported: boolean | null;
-  routingTools: DiscoveredToolInfo[];
   databaseTools: DiscoveredToolInfo[];
+  computeTools: DiscoveredToolInfo[];
+  routingTools: DiscoveredToolInfo[];
+  frontendTools: DiscoveredToolInfo[];
   discoveryError: string | null;
   onRefreshTools: () => void;
   disabled?: boolean;
 }
 
 export default function WebMCPBridgeStatus({
-  isRoutingConnected,
   isDatabaseConnected,
+  isComputeConnected,
+  isRoutingConnected,
+  isFrontendConnected,
   isSupported,
-  routingTools,
   databaseTools,
+  computeTools,
+  routingTools,
+  frontendTools,
   discoveryError,
   onRefreshTools,
   disabled,
 }: WebMCPBridgeStatusProps) {
-  const expectedRoutingTools = ["create_route", "get_route", "delete_route"];
-  const expectedDatabaseTools = ["create_database", "get_database", "delete_database"];
+  const services = [
+    {
+      name: "Database Service",
+      port: ":3002",
+      origin: "http://localhost:3002",
+      color: "emerald",
+      connected: isDatabaseConnected,
+      tools: ["create_database", "get_database", "delete_database"],
+      discovered: databaseTools,
+    },
+    {
+      name: "Compute Service",
+      port: ":3003",
+      origin: "http://localhost:3003",
+      color: "indigo",
+      connected: isComputeConnected,
+      tools: ["deploy_backend", "get_backend", "delete_backend"],
+      discovered: computeTools,
+    },
+    {
+      name: "Routing Service",
+      port: ":3001",
+      origin: "http://localhost:3001",
+      color: "cyan",
+      connected: isRoutingConnected,
+      tools: ["create_route", "get_route", "delete_route"],
+      discovered: routingTools,
+    },
+    {
+      name: "Frontend Service",
+      port: ":3004",
+      origin: "http://localhost:3004",
+      color: "violet",
+      connected: isFrontendConnected,
+      tools: ["deploy_frontend", "get_frontend", "delete_frontend"],
+      discovered: frontendTools,
+    },
+  ];
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-6">
-      {/* Header with status badges and refresh */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            Cross-Origin WebMCP Bridges
+            Cross-Origin WebMCP Bridges (4 Microservices)
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Browser-native tool delegation to <code className="text-cyan-300">localhost:3001</code> and <code className="text-emerald-300">localhost:3002</code>
+            Zero-broker browser delegation across <code className="text-emerald-300">:3002</code>, <code className="text-indigo-300">:3003</code>, <code className="text-cyan-300">:3001</code>, and <code className="text-violet-300">:3004</code>
           </p>
         </div>
 
@@ -69,105 +113,58 @@ export default function WebMCPBridgeStatus({
         </div>
       )}
 
-      {/* Two Service Grids: Routing & Database */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Routing Service */}
-        <div className="p-4 rounded-xl border border-slate-800/90 bg-slate-950/60 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  isRoutingConnected ? "bg-cyan-400 animate-pulse" : "bg-rose-400"
-                }`}
-              />
-              <span className="font-bold text-sm text-slate-200">Routing Service</span>
-              <span className="text-xs text-slate-500 font-mono">:3001</span>
-            </div>
-            <span
-              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                isRoutingConnected
-                  ? "bg-cyan-950/80 text-cyan-300 border-cyan-500/40"
-                  : "bg-rose-950/80 text-rose-300 border-rose-500/40"
-              }`}
-            >
-              {isRoutingConnected ? "CONNECTED" : "NOT CONNECTED"}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 gap-2 font-mono text-xs">
-            {expectedRoutingTools.map((expectedName) => {
-              const match = routingTools.find((t) => t.name === expectedName);
-              const isDiscovered = !!match;
-              return (
-                <div
-                  key={expectedName}
-                  className={`flex items-center justify-between p-2 rounded-lg border transition-all ${
-                    isDiscovered
-                      ? "border-cyan-500/30 bg-cyan-950/20 text-cyan-200"
-                      : "border-slate-800/80 bg-slate-900/30 text-slate-500"
+      {/* 4-Service Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {services.map((svc) => (
+          <div
+            key={svc.name}
+            className="p-4 rounded-xl border border-slate-800/90 bg-slate-950/60 space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    svc.connected ? "bg-emerald-400 animate-pulse" : "bg-rose-400"
                   }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className={isDiscovered ? "text-cyan-400 font-bold" : "text-slate-600"}>
-                      {isDiscovered ? "✓" : "○"}
-                    </span>
-                    <span>{expectedName}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500">http://localhost:3001</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Database Service */}
-        <div className="p-4 rounded-xl border border-slate-800/90 bg-slate-950/60 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+                />
+                <span className="font-bold text-xs text-slate-200">{svc.name}</span>
+                <span className="text-[10px] text-slate-500 font-mono">{svc.port}</span>
+              </div>
               <span
-                className={`h-2 w-2 rounded-full ${
-                  isDatabaseConnected ? "bg-emerald-400 animate-pulse" : "bg-rose-400"
+                className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                  svc.connected
+                    ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/40"
+                    : "bg-rose-950/80 text-rose-300 border-rose-500/40"
                 }`}
-              />
-              <span className="font-bold text-sm text-slate-200">Database Service</span>
-              <span className="text-xs text-slate-500 font-mono">:3002</span>
+              >
+                {svc.connected ? "CONNECTED" : "OFFLINE"}
+              </span>
             </div>
-            <span
-              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                isDatabaseConnected
-                  ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/40"
-                  : "bg-rose-950/80 text-rose-300 border-rose-500/40"
-              }`}
-            >
-              {isDatabaseConnected ? "CONNECTED" : "NOT CONNECTED"}
-            </span>
-          </div>
 
-          <div className="grid grid-cols-1 gap-2 font-mono text-xs">
-            {expectedDatabaseTools.map((expectedName) => {
-              const match = databaseTools.find((t) => t.name === expectedName);
-              const isDiscovered = !!match;
-              return (
-                <div
-                  key={expectedName}
-                  className={`flex items-center justify-between p-2 rounded-lg border transition-all ${
-                    isDiscovered
-                      ? "border-emerald-500/30 bg-emerald-950/20 text-emerald-200"
-                      : "border-slate-800/80 bg-slate-900/30 text-slate-500"
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className={isDiscovered ? "text-emerald-400 font-bold" : "text-slate-600"}>
-                      {isDiscovered ? "✓" : "○"}
-                    </span>
-                    <span>{expectedName}</span>
+            <div className="grid grid-cols-1 gap-1.5 font-mono text-[11px]">
+              {svc.tools.map((expectedName) => {
+                const isDiscovered = svc.discovered.some((t) => t.name === expectedName);
+                return (
+                  <div
+                    key={expectedName}
+                    className={`flex items-center justify-between p-1.5 rounded-md border transition-all ${
+                      isDiscovered
+                        ? "border-slate-700/80 bg-slate-900/60 text-slate-200"
+                        : "border-slate-800/80 bg-slate-900/20 text-slate-600"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className={isDiscovered ? "text-emerald-400 font-bold" : "text-slate-600"}>
+                        {isDiscovered ? "✓" : "○"}
+                      </span>
+                      <span>{expectedName}</span>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-slate-500">http://localhost:3002</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );

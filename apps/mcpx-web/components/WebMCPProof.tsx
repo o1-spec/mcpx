@@ -4,9 +4,11 @@ import { useState } from "react";
 import type { ToolResult } from "@/types/webmcp";
 import { normalizeWebMCPResult } from "@/lib/webmcp-utils";
 import { useWebMCPDiscovery } from "@/hooks/useWebMCPDiscovery";
-import { useReliabilityDemo } from "@/hooks/useReliabilityDemo";
+import { useDeploymentDemo } from "@/hooks/useDeploymentDemo";
 import { useCompensationDemo } from "@/hooks/useCompensationDemo";
+import { useReliabilityDemo } from "@/hooks/useReliabilityDemo";
 import WebMCPBridgeStatus from "@/components/WebMCPBridgeStatus";
+import DeploymentDemo from "@/components/DeploymentDemo";
 import CompensationDemo from "@/components/CompensationDemo";
 import ReliabilityDemo from "@/components/ReliabilityDemo";
 import ManualWebMCPControls from "@/components/ManualWebMCPControls";
@@ -20,40 +22,45 @@ export default function WebMCPProof() {
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [executingTool, setExecutingTool] = useState<string | null>(null);
 
-  // Discovery Hook
+  // Discovery Hook (4 microservices)
   const {
     discoveredTools,
-    routingTools,
     databaseTools,
+    computeTools,
+    routingTools,
+    frontendTools,
     isConnected,
-    isRoutingConnected,
     isDatabaseConnected,
+    isComputeConnected,
+    isRoutingConnected,
+    isFrontendConnected,
     isSupported,
     discoveryError,
     registeredToolsRef,
-    routingIframeRef,
     databaseIframeRef,
+    computeIframeRef,
+    routingIframeRef,
+    frontendIframeRef,
     discoverTools,
   } = useWebMCPDiscovery();
 
-  // Reliability Demo Hook (Day-1 Regression)
+  // Milestone 3: 4-Service Deployment DAG Hook
   const {
-    reliabilityOpKey,
-    setReliabilityOpKey,
-    isRunning: isRunningReliabilityDemo,
-    transactionNode: reliabilityNode,
-    eventLog: reliabilityEventLog,
-    authoritativeState: reliabilityAuth,
-    runReliabilityDemo,
-    resetReliabilityDemo,
-    clearEventLog: clearReliabilityLog,
-  } = useReliabilityDemo(registeredToolsRef);
+    transaction: deployTx,
+    isRunning: isRunningDeploy,
+    eventLog: deployLog,
+    authoritativeState: deployAuth,
+    runDeployment,
+    inspectAllResources,
+    resetDeployment,
+    clearEventLog: clearDeployLog,
+  } = useDeploymentDemo(registeredToolsRef);
 
-  // Saga Compensation Demo Hook (Milestone 2)
+  // Milestone 2: Saga Compensation Demo Hook
   const {
-    transaction,
+    transaction: sagaTx,
     isRunning: isRunningSaga,
-    eventLog: sagaEventLog,
+    eventLog: sagaLog,
     authoritativeState: sagaAuth,
     runCompensationDemo,
     approveCompensation,
@@ -61,6 +68,19 @@ export default function WebMCPProof() {
     resetCompensationDemo,
     clearEventLog: clearSagaLog,
   } = useCompensationDemo(registeredToolsRef);
+
+  // Milestone 1: Reliability Demo Hook (drop-ack-after-commit -> IN_DOUBT -> RECOVERED)
+  const {
+    reliabilityOpKey,
+    setReliabilityOpKey,
+    isRunning: isRunningReliability,
+    transactionNode: reliabilityNode,
+    eventLog: reliabilityLog,
+    authoritativeState: reliabilityAuth,
+    runReliabilityDemo,
+    resetReliabilityDemo,
+    clearEventLog: clearReliabilityLog,
+  } = useReliabilityDemo(registeredToolsRef);
 
   // Manual tool execution
   const executeWebMCPTool = async (toolName: string, args: Record<string, unknown>) => {
@@ -95,24 +115,41 @@ export default function WebMCPProof() {
 
   return (
     <div className="space-y-10">
-      {/* 1. WebMCP Bridges Status for Routing & Database */}
+      {/* 1. WebMCP Bridges Status for All 4 Services */}
       <WebMCPBridgeStatus
-        isRoutingConnected={isRoutingConnected}
         isDatabaseConnected={isDatabaseConnected}
+        isComputeConnected={isComputeConnected}
+        isRoutingConnected={isRoutingConnected}
+        isFrontendConnected={isFrontendConnected}
         isSupported={isSupported}
-        routingTools={routingTools}
         databaseTools={databaseTools}
+        computeTools={computeTools}
+        routingTools={routingTools}
+        frontendTools={frontendTools}
         discoveryError={discoveryError}
         onRefreshTools={discoverTools}
-        disabled={executingTool !== null || isRunningReliabilityDemo || isRunningSaga}
+        disabled={executingTool !== null || isRunningDeploy || isRunningSaga || isRunningReliability}
       />
 
-      {/* 2. Saga Compensation Demo (Milestone 2) */}
+      {/* 2. Final Milestone: 4-Service Deployment DAG */}
+      <DeploymentDemo
+        transaction={deployTx}
+        isRunning={isRunningDeploy}
+        isConnected={isConnected}
+        eventLog={deployLog}
+        authoritativeState={deployAuth}
+        onRunDeployment={runDeployment}
+        onInspectAll={inspectAllResources}
+        onReset={resetDeployment}
+        onClearLog={clearDeployLog}
+      />
+
+      {/* 3. Milestone 2: Saga Compensation Demo */}
       <CompensationDemo
-        transaction={transaction}
+        transaction={sagaTx}
         isRunning={isRunningSaga}
         isConnected={isConnected}
-        eventLog={sagaEventLog}
+        eventLog={sagaLog}
         authoritativeState={sagaAuth}
         onRunDemo={runCompensationDemo}
         onApproveCompensation={approveCompensation}
@@ -121,21 +158,21 @@ export default function WebMCPProof() {
         onClearLog={clearSagaLog}
       />
 
-      {/* 3. Reliability Demo (Milestone 1 Regression: IN_DOUBT -> RECONCILING -> RECOVERED) */}
+      {/* 4. Milestone 1: Reliability Recovery Demo */}
       <ReliabilityDemo
         reliabilityOpKey={reliabilityOpKey}
         onOpKeyChange={setReliabilityOpKey}
-        isRunning={isRunningReliabilityDemo}
+        isRunning={isRunningReliability}
         isConnected={isRoutingConnected}
         transactionNode={reliabilityNode}
-        eventLog={reliabilityEventLog}
+        eventLog={reliabilityLog}
         authoritativeState={reliabilityAuth}
         onRunDemo={runReliabilityDemo}
         onResetDemo={resetReliabilityDemo}
         onClearLog={clearReliabilityLog}
       />
 
-      {/* 4. Manual WebMCP Controls (Day-1 Proof) */}
+      {/* 5. Manual Controls (Day-1 Proof) */}
       <ManualWebMCPControls
         operationKey={operationKey}
         projectName={projectName}
@@ -158,10 +195,12 @@ export default function WebMCPProof() {
         executingTool={executingTool}
       />
 
-      {/* 5. Embedded Resource Providers */}
+      {/* 6. Embedded Microservices (4 Ports) */}
       <EmbeddedServices
-        routingIframeRef={routingIframeRef}
         databaseIframeRef={databaseIframeRef}
+        computeIframeRef={computeIframeRef}
+        routingIframeRef={routingIframeRef}
+        frontendIframeRef={frontendIframeRef}
         onLoad={discoverTools}
       />
     </div>
