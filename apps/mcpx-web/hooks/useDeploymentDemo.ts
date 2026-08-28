@@ -51,7 +51,35 @@ export interface FourServiceAuthoritativeState {
   };
 }
 
-// Durable API client helpers:
+// Unified Atomic Transition API Helper:
+async function persistAtomicTransition(params: {
+  transactionId: string;
+  nodeId?: string;
+  nodeState?: string;
+  resourceId?: string;
+  lastError?: string;
+  executeArgs?: Record<string, unknown>;
+  txState?: string;
+  eventType: string;
+  eventPayload?: Record<string, unknown>;
+}): Promise<TransactionEvent> {
+  const res = await fetch(`/api/transactions/${encodeURIComponent(params.transactionId)}/transition`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    throw new Error(
+      errorBody.error || `Atomic transition failed: HTTP ${res.status} for ${params.eventType}`
+    );
+  }
+
+  const data = await res.json();
+  return data.event as TransactionEvent;
+}
+
 async function persistTxCreation(tx: Transaction, scenario: string) {
   const res = await fetch("/api/transactions", {
     method: "POST",
@@ -64,43 +92,6 @@ async function persistTxCreation(tx: Transaction, scenario: string) {
     }),
   });
   if (!res.ok) throw new Error("Failed to persist transaction creation to database");
-}
-
-async function persistTxState(txId: string, state: TransactionState, lastError?: string) {
-  const res = await fetch(`/api/transactions/${encodeURIComponent(txId)}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ state, lastError }),
-  });
-  if (!res.ok) throw new Error(`Failed to persist transaction state (${state}) to database`);
-}
-
-async function persistNodeState(txId: string, nodeId: string, patch: Partial<TransactionNode>) {
-  const res = await fetch(
-    `/api/transactions/${encodeURIComponent(txId)}/nodes/${encodeURIComponent(nodeId)}`,
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    }
-  );
-  if (!res.ok) throw new Error(`Failed to persist node (${nodeId}) state to database`);
-}
-
-async function persistEvent(
-  txId: string,
-  type: string,
-  details?: Record<string, unknown>,
-  nodeId?: string
-): Promise<TransactionEvent> {
-  const res = await fetch(`/api/transactions/${encodeURIComponent(txId)}/events`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, details, nodeId }),
-  });
-  if (!res.ok) throw new Error(`Failed to persist event (${type}) to database`);
-  const data = await res.json();
-  return data.event as TransactionEvent;
 }
 
 export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]>) {
@@ -167,29 +158,6 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
   const [eventLog, setEventLog] = useState<TransactionEvent[]>([]);
   const [authoritativeState, setAuthoritativeState] = useState<FourServiceAuthoritativeState>({});
 
-  const appendDurableEvent = useCallback(
-    async (txId: string, type: string, details?: Record<string, unknown>, nodeId?: string) => {
-      try {
-        const persisted = await persistEvent(txId, type, details, nodeId);
-        setEventLog((prev) => [...prev, persisted]);
-        console.log(`[mcpx-durable-event #${persisted.sequence}] ${type}`, details ?? "");
-        return persisted;
-      } catch (err) {
-        console.error(`[mcpx-web] Failed to append durable event ${type}:`, err);
-        // Local fallback if DB is unreachable
-        const fallback: TransactionEvent = {
-          id: crypto.randomUUID(),
-          type,
-          timestamp: new Date().toISOString(),
-          details,
-        };
-        setEventLog((prev) => [...prev, fallback]);
-        return fallback;
-      }
-    },
-    []
-  );
-
   // Rehydration & Safe Recovery from Durable Postgres Database
   const rehydrateTransaction = useCallback(
     async (txId: string) => {
@@ -222,8 +190,10 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
         for (const node of loadedTx.nodes) {
           if (node.resourceId) {
             if (node.service === "database") {
+              const schemaName = `mcpx_${node.resourceId.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase()}`;
               authProjection.database = {
                 id: node.resourceId,
+                schemaName,
                 name: "mcpx-prod-db",
                 operationKey: node.operationKey,
               };
@@ -262,18 +232,23 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
         // SAFE RESUME RULES ON REFRESH:
         let updatedTx = { ...loadedTx };
 
-        // 1. Check for EXECUTING nodes (uncertain outcome at crash time -> reconcile)
         for (const node of loadedTx.nodes) {
           if (node.state === "EXECUTING") {
             console.warn(
               `[mcpx-recovery] Node ${node.id} was EXECUTING at reload time. Reconciling authoritatively...`
             );
-            await persistNodeState(txId, node.id, { state: "RECONCILING" });
-            await appendDurableEvent(txId, "COORDINATOR_RECOVERY_EXECUTING_TO_RECONCILING", {
+            const ev = await persistAtomicTransition({
+              transactionId: txId,
               nodeId: node.id,
-              operationKey: node.operationKey,
-              reason: "Coordinator reloaded during in-flight execution. Triggering authoritative inspection.",
-            }, node.id);
+              nodeState: "RECONCILING",
+              eventType: "COORDINATOR_RECOVERY_EXECUTING_TO_RECONCILING",
+              eventPayload: {
+                nodeId: node.id,
+                operationKey: node.operationKey,
+                reason: "Coordinator reloaded during in-flight execution. Triggering authoritative inspection.",
+              },
+            });
+            setEventLog((prev) => [...prev, ev]);
 
             const reconcileResult = await reconcileNode(
               { ...node, state: "RECONCILING" },
@@ -281,14 +256,18 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
             );
 
             if (reconcileResult.outcome === "RECOVERED") {
-              await persistNodeState(txId, node.id, {
-                state: "RECOVERED",
-                resourceId: reconcileResult.resourceId,
-              });
-              await appendDurableEvent(txId, "COORDINATOR_RECOVERY_RECOVERED", {
+              const recEv = await persistAtomicTransition({
+                transactionId: txId,
                 nodeId: node.id,
+                nodeState: "RECOVERED",
                 resourceId: reconcileResult.resourceId,
-              }, node.id);
+                eventType: "COORDINATOR_RECOVERY_RECOVERED",
+                eventPayload: {
+                  nodeId: node.id,
+                  resourceId: reconcileResult.resourceId,
+                },
+              });
+              setEventLog((prev) => [...prev, recEv]);
 
               updatedTx = {
                 ...updatedTx,
@@ -297,11 +276,17 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
                 ),
               };
             } else {
-              await persistNodeState(txId, node.id, { state: "RECOVERY_RETRY_AVAILABLE" });
-              await appendDurableEvent(txId, "COORDINATOR_RECOVERY_ABSENT", {
+              const failEv = await persistAtomicTransition({
+                transactionId: txId,
                 nodeId: node.id,
-                outcome: "Resource not found in authoritative inspection. Safe retry available.",
-              }, node.id);
+                nodeState: "RECOVERY_RETRY_AVAILABLE",
+                eventType: "COORDINATOR_RECOVERY_ABSENT",
+                eventPayload: {
+                  nodeId: node.id,
+                  outcome: "Resource not found in authoritative inspection. Safe retry available.",
+                },
+              });
+              setEventLog((prev) => [...prev, failEv]);
 
               updatedTx = {
                 ...updatedTx,
@@ -312,25 +297,23 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
             }
             setTransaction(updatedTx);
           } else if (node.state === "IN_DOUBT" || node.state === "RECONCILING") {
-            // 2. Check for IN_DOUBT / RECONCILING nodes (resume reconciliation)
             console.log(
               `[mcpx-recovery] Resuming reconciliation for ${node.id} (${node.state})...`
             );
-            await appendDurableEvent(txId, "COORDINATOR_RECOVERY_RESUMING_RECONCILIATION", {
-              nodeId: node.id,
-              operationKey: node.operationKey,
-            }, node.id);
-
             const reconcileResult = await reconcileNode(node, registeredToolsRef.current);
             if (reconcileResult.outcome === "RECOVERED") {
-              await persistNodeState(txId, node.id, {
-                state: "RECOVERED",
-                resourceId: reconcileResult.resourceId,
-              });
-              await appendDurableEvent(txId, "COORDINATOR_RECOVERY_RECOVERED", {
+              const recEv = await persistAtomicTransition({
+                transactionId: txId,
                 nodeId: node.id,
+                nodeState: "RECOVERED",
                 resourceId: reconcileResult.resourceId,
-              }, node.id);
+                eventType: "COORDINATOR_RECOVERY_RECOVERED",
+                eventPayload: {
+                  nodeId: node.id,
+                  resourceId: reconcileResult.resourceId,
+                },
+              });
+              setEventLog((prev) => [...prev, recEv]);
 
               updatedTx = {
                 ...updatedTx,
@@ -351,7 +334,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
         return false;
       }
     },
-    [registeredToolsRef, appendDurableEvent]
+    [registeredToolsRef]
   );
 
   // Initial mount: load from URL query or localStorage
@@ -390,7 +373,6 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
 
     // 1. DURABLE PERSISTENCE: Save transaction and nodes to Postgres FIRST
     await persistTxCreation(currentTx, scenarioDesc);
-    await persistTxState(txId, "EXECUTING");
 
     // 2. Set active transaction ID in URL and localStorage
     if (typeof window !== "undefined") {
@@ -400,11 +382,15 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
 
     // 3. Project to React state
     setTransaction(currentTx);
-    await appendDurableEvent(txId, "TX_CREATED", {
-      transactionId: txId,
-      scenario: scenarioDesc,
-      totalNodes: 4,
-    });
+    setEventLog([
+      {
+        id: crypto.randomUUID(),
+        sequence: 1,
+        type: "TX_CREATED",
+        timestamp: new Date().toISOString(),
+        details: { transactionId: txId, scenario: scenarioDesc, totalNodes: 4 },
+      },
+    ]);
 
     // 4. DAG Execution Loop
     while (true) {
@@ -414,13 +400,18 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           (n) => n.state === "SUCCEEDED" || n.state === "RECOVERED"
         );
         if (allCompleted) {
-          await persistTxState(txId, "COMMITTED");
+          const commitEv = await persistAtomicTransition({
+            transactionId: txId,
+            txState: "COMMITTED",
+            eventType: "TX_COMMITTED",
+            eventPayload: {
+              transactionId: txId,
+              status: "All 4 microservices deployed, bound via WebMCP, and persisted in Postgres.",
+            },
+          });
           currentTx = { ...currentTx, state: "COMMITTED" };
           setTransaction(currentTx);
-          await appendDurableEvent(txId, "TX_COMMITTED", {
-            transactionId: txId,
-            status: "All 4 microservices deployed, bound via WebMCP, and persisted in Postgres.",
-          });
+          setEventLog((prev) => [...prev, commitEv]);
         }
         break;
       }
@@ -429,10 +420,18 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
         const resolvedArgs = resolveExecuteArgs(node, currentTx);
         const nodeToExecute = { ...node, executeArgs: resolvedArgs };
 
-        // Persist EXECUTING before updating React
-        await persistNodeState(txId, node.id, {
-          state: "EXECUTING",
+        // ATOMIC TRANSITION: Node EXECUTING + Event in ONE Postgres transaction
+        const startEv = await persistAtomicTransition({
+          transactionId: txId,
+          nodeId: node.id,
+          nodeState: "EXECUTING",
           executeArgs: resolvedArgs,
+          eventType: `${node.service.toUpperCase()}_EXECUTE_STARTED`,
+          eventPayload: {
+            operationKey: node.operationKey,
+            ...(nodeToExecute.executeArgs.failureMode ? { failureMode: nodeToExecute.executeArgs.failureMode } : {}),
+            resolvedArgs,
+          },
         });
 
         currentTx = {
@@ -442,26 +441,23 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           ),
         };
         setTransaction(currentTx);
-
-        await appendDurableEvent(
-          txId,
-          `${node.service.toUpperCase()}_EXECUTE_STARTED`,
-          {
-            operationKey: node.operationKey,
-            ...(nodeToExecute.executeArgs.failureMode ? { failureMode: nodeToExecute.executeArgs.failureMode } : {}),
-            resolvedArgs,
-          },
-          node.id
-        );
+        setEventLog((prev) => [...prev, startEv]);
 
         // Execute WebMCP tool in browser
         const execResult = await executeNode(nodeToExecute, registeredToolsRef.current);
 
         if (execResult.outcome === "SUCCEEDED") {
-          // Persist SUCCEEDED state and resourceId before updating UI
-          await persistNodeState(txId, node.id, {
-            state: "SUCCEEDED",
+          // ATOMIC TRANSITION: Node SUCCEEDED + Event in ONE Postgres transaction
+          const successEv = await persistAtomicTransition({
+            transactionId: txId,
+            nodeId: node.id,
+            nodeState: "SUCCEEDED",
             resourceId: execResult.resourceId,
+            eventType: `${node.service.toUpperCase()}_EXECUTE_SUCCEEDED`,
+            eventPayload: {
+              operationKey: node.operationKey,
+              resourceId: execResult.resourceId,
+            },
           });
 
           currentTx = {
@@ -471,16 +467,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
             ),
           };
           setTransaction(currentTx);
-
-          await appendDurableEvent(
-            txId,
-            `${node.service.toUpperCase()}_EXECUTE_SUCCEEDED`,
-            {
-              operationKey: node.operationKey,
-              resourceId: execResult.resourceId,
-            },
-            node.id
-          );
+          setEventLog((prev) => [...prev, successEv]);
 
           // Update authoritative projection with real schema/URL metadata
           if (node.service === "database" && execResult.resourceId) {
@@ -535,10 +522,18 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
             }));
           }
         } else if (execResult.outcome === "IN_DOUBT") {
-          // Persist IN_DOUBT before updating UI
-          await persistNodeState(txId, node.id, {
-            state: "IN_DOUBT",
+          // ATOMIC TRANSITION: Node IN_DOUBT + Event in ONE Postgres transaction
+          const inDoubtEv = await persistAtomicTransition({
+            transactionId: txId,
+            nodeId: node.id,
+            nodeState: "IN_DOUBT",
             lastError: execResult.error,
+            eventType: `${node.service.toUpperCase()}_MARKED_IN_DOUBT`,
+            eventPayload: {
+              operationKey: node.operationKey,
+              error: execResult.error,
+              reason: "Transport ACK lost after mutation dispatch. Transitioning to IN_DOUBT.",
+            },
           });
 
           currentTx = {
@@ -548,42 +543,29 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
             ),
           };
           setTransaction(currentTx);
-
-          await appendDurableEvent(
-            txId,
-            `${node.service.toUpperCase()}_EXECUTE_UNCERTAIN`,
-            {
-              error: execResult.error,
-              reason: "Transport ACK lost after mutation dispatch. Transitioning to IN_DOUBT.",
-            },
-            node.id
-          );
-          await appendDurableEvent(
-            txId,
-            `${node.service.toUpperCase()}_MARKED_IN_DOUBT`,
-            { operationKey: node.operationKey },
-            node.id
-          );
+          setEventLog((prev) => [...prev, inDoubtEv]);
 
           // OPTIONAL: Pause before reconciliation if dev flag enabled (to allow browser refresh test)
           if (pauseBeforeReconcile) {
             console.log(
               "[mcpx-web] PAUSED_BEFORE_RECONCILIATION: Coordinator paused with node in IN_DOUBT state. Refresh the browser to test recovery!"
             );
-            await appendDurableEvent(
-              txId,
-              "COORDINATOR_PAUSED_IN_DOUBT",
-              {
-                message: "Coordinator paused for crash/refresh test. Refresh the page to test recovery!",
-              },
-              node.id
-            );
             setIsRunning(false);
             return;
           }
 
-          // Transition to RECONCILING
-          await persistNodeState(txId, node.id, { state: "RECONCILING" });
+          // ATOMIC TRANSITION: Transition to RECONCILING in ONE Postgres transaction
+          const reconcileStartEv = await persistAtomicTransition({
+            transactionId: txId,
+            nodeId: node.id,
+            nodeState: "RECONCILING",
+            eventType: `${node.service.toUpperCase()}_RECONCILIATION_STARTED`,
+            eventPayload: {
+              operationKey: node.operationKey,
+              inspectTool: node.inspectTool,
+            },
+          });
+
           currentTx = {
             ...currentTx,
             nodes: currentTx.nodes.map((n) =>
@@ -591,16 +573,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
             ),
           };
           setTransaction(currentTx);
-
-          await appendDurableEvent(
-            txId,
-            `${node.service.toUpperCase()}_RECONCILIATION_STARTED`,
-            {
-              operationKey: node.operationKey,
-              inspectTool: node.inspectTool,
-            },
-            node.id
-          );
+          setEventLog((prev) => [...prev, reconcileStartEv]);
 
           // Execute WebMCP authoritative inspection
           const reconcileResult = await reconcileNode(
@@ -609,9 +582,18 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           );
 
           if (reconcileResult.outcome === "RECOVERED") {
-            await persistNodeState(txId, node.id, {
-              state: "RECOVERED",
+            // ATOMIC TRANSITION: Node RECOVERED + Event in ONE Postgres transaction
+            const recEv = await persistAtomicTransition({
+              transactionId: txId,
+              nodeId: node.id,
+              nodeState: "RECOVERED",
               resourceId: reconcileResult.resourceId,
+              eventType: `${node.service.toUpperCase()}_RECOVERED`,
+              eventPayload: {
+                operationKey: node.operationKey,
+                resourceId: reconcileResult.resourceId,
+                outcome: "Resource verified in store prior to ACK drop; state recovered.",
+              },
             });
 
             currentTx = {
@@ -621,26 +603,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
               ),
             };
             setTransaction(currentTx);
-
-            await appendDurableEvent(
-              txId,
-              `${node.service.toUpperCase()}_REMOTE_STATE_FOUND`,
-              {
-                operationKey: node.operationKey,
-                resourceId: reconcileResult.resourceId,
-              },
-              node.id
-            );
-            await appendDurableEvent(
-              txId,
-              `${node.service.toUpperCase()}_RECOVERED`,
-              {
-                operationKey: node.operationKey,
-                resourceId: reconcileResult.resourceId,
-                outcome: "Resource verified in store prior to ACK drop; state recovered.",
-              },
-              node.id
-            );
+            setEventLog((prev) => [...prev, recEv]);
 
             if (node.service === "routing" && reconcileResult.resourceId) {
               setAuthoritativeState((prev) => ({
@@ -656,11 +619,18 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
               }));
             }
           } else {
-            await persistNodeState(txId, node.id, {
-              state: "FAILED",
+            const failEv = await persistAtomicTransition({
+              transactionId: txId,
+              nodeId: node.id,
+              nodeState: "FAILED",
               lastError: reconcileResult.error,
+              txState: "FAILED",
+              eventType: `${node.service.toUpperCase()}_RECONCILIATION_FAILED`,
+              eventPayload: {
+                operationKey: node.operationKey,
+                error: reconcileResult.error,
+              },
             });
-            await persistTxState(txId, "FAILED", reconcileResult.error);
 
             currentTx = {
               ...currentTx,
@@ -670,16 +640,25 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
               ),
             };
             setTransaction(currentTx);
+            setEventLog((prev) => [...prev, failEv]);
             setIsRunning(false);
             return;
           }
         } else {
-          // Confirmed clean failure (reject-before-commit)
-          await persistNodeState(txId, node.id, {
-            state: "FAILED",
+          // ATOMIC TRANSITION: Confirmed clean failure + TX ABORTING in ONE Postgres transaction
+          const failEv = await persistAtomicTransition({
+            transactionId: txId,
+            nodeId: node.id,
+            nodeState: "FAILED",
             lastError: execResult.error,
+            txState: "ABORTING",
+            eventType: `${node.service.toUpperCase()}_EXECUTE_FAILED`,
+            eventPayload: {
+              operationKey: node.operationKey,
+              error: execResult.error,
+              note: "Confirmed clean failure before commit",
+            },
           });
-          await persistTxState(txId, "ABORTING");
 
           currentTx = {
             ...currentTx,
@@ -689,37 +668,34 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
             ),
           };
           setTransaction(currentTx);
-
-          await appendDurableEvent(
-            txId,
-            `${node.service.toUpperCase()}_EXECUTE_FAILED`,
-            {
-              operationKey: node.operationKey,
-              error: execResult.error,
-              note: "Confirmed clean failure before commit",
-            },
-            node.id
-          );
-          await appendDurableEvent(txId, "TX_ABORT_STARTED", {
-            reason: `Downstream node ${node.id} failed with confirmed rejection`,
-          });
+          setEventLog((prev) => [...prev, failEv]);
 
           // Calculate compensable completed nodes in reverse dependency order
           const compensable = getCompensableNodes(currentTx);
           if (compensable.length > 0) {
-            await persistTxState(txId, "AWAITING_COMPENSATION_APPROVAL");
+            const reqEv = await persistAtomicTransition({
+              transactionId: txId,
+              txState: "AWAITING_COMPENSATION_APPROVAL",
+              eventType: "COMPENSATION_APPROVAL_REQUIRED",
+              eventPayload: {
+                compensableNodes: compensable.map((c) => c.id),
+                resourceIds: compensable.map((c) => `${c.service}: ${c.resourceId}`),
+                prompt: `Downstream node failed. ${compensable.length} previously-created resources must be removed in reverse dependency order (${compensable.map((c) => c.service).join(" → ")}).`,
+              },
+            });
             currentTx = { ...currentTx, state: "AWAITING_COMPENSATION_APPROVAL" };
             setTransaction(currentTx);
-
-            await appendDurableEvent(txId, "COMPENSATION_APPROVAL_REQUIRED", {
-              compensableNodes: compensable.map((c) => c.id),
-              resourceIds: compensable.map((c) => `${c.service}: ${c.resourceId}`),
-              prompt: `Downstream node failed. ${compensable.length} previously-created resources must be removed in reverse dependency order (${compensable.map((c) => c.service).join(" → ")}).`,
-            });
+            setEventLog((prev) => [...prev, reqEv]);
           } else {
-            await persistTxState(txId, "FAILED");
+            const txFailEv = await persistAtomicTransition({
+              transactionId: txId,
+              txState: "FAILED",
+              eventType: "TX_FAILED",
+              eventPayload: { reason: "Execution failed with 0 compensable resources." },
+            });
             currentTx = { ...currentTx, state: "FAILED" };
             setTransaction(currentTx);
+            setEventLog((prev) => [...prev, txFailEv]);
           }
 
           setIsRunning(false);
@@ -739,10 +715,13 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
 
     const compensableNodes = getCompensableNodes(transaction);
 
-    await persistTxState(txId, "COMPENSATING");
-    for (const c of compensableNodes) {
-      await persistNodeState(txId, c.id, { state: "COMPENSATING" });
-    }
+    // Mark TX COMPENSATING
+    const compStartEv = await persistAtomicTransition({
+      transactionId: txId,
+      txState: "COMPENSATING",
+      eventType: "COMPENSATION_APPROVED",
+      eventPayload: { byUser: true, totalResources: compensableNodes.length },
+    });
 
     let currentTx: Transaction = {
       ...transaction,
@@ -752,25 +731,37 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
       ),
     };
     setTransaction(currentTx);
-
-    await appendDurableEvent(txId, "COMPENSATION_APPROVED", { byUser: true });
+    setEventLog((prev) => [...prev, compStartEv]);
 
     for (const compNode of compensableNodes) {
-      await appendDurableEvent(
-        txId,
-        `${compNode.service.toUpperCase()}_COMPENSATION_STARTED`,
-        {
+      const nodeStartEv = await persistAtomicTransition({
+        transactionId: txId,
+        nodeId: compNode.id,
+        nodeState: "COMPENSATING",
+        eventType: `${compNode.service.toUpperCase()}_COMPENSATION_STARTED`,
+        eventPayload: {
           operationKey: compNode.operationKey,
           resourceId: compNode.resourceId,
           service: compNode.service,
         },
-        compNode.id
-      );
+      });
+      setEventLog((prev) => [...prev, nodeStartEv]);
 
       const compResult = await compensateNode(compNode, registeredToolsRef.current);
 
       if (compResult.outcome === "COMPENSATED") {
-        await persistNodeState(txId, compNode.id, { state: "COMPENSATED" });
+        // ATOMIC TRANSITION: Node COMPENSATED + Event in ONE Postgres transaction
+        const nodeCompEv = await persistAtomicTransition({
+          transactionId: txId,
+          nodeId: compNode.id,
+          nodeState: "COMPENSATED",
+          eventType: `${compNode.service.toUpperCase()}_COMPENSATION_VERIFIED`,
+          eventPayload: {
+            operationKey: compNode.operationKey,
+            exists: false,
+            verifiedOutcome: "Resource successfully absent from Postgres/microservice store",
+          },
+        });
 
         currentTx = {
           ...currentTx,
@@ -779,23 +770,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           ),
         };
         setTransaction(currentTx);
-
-        await appendDurableEvent(
-          txId,
-          `${compNode.service.toUpperCase()}_COMPENSATION_SUCCEEDED`,
-          { operationKey: compNode.operationKey },
-          compNode.id
-        );
-        await appendDurableEvent(
-          txId,
-          `${compNode.service.toUpperCase()}_COMPENSATION_VERIFIED`,
-          {
-            operationKey: compNode.operationKey,
-            exists: false,
-            verifiedOutcome: "Resource successfully absent from Postgres/microservice store",
-          },
-          compNode.id
-        );
+        setEventLog((prev) => [...prev, nodeCompEv]);
 
         if (compNode.service === "compute") {
           setAuthoritativeState((prev) => ({ ...prev, backend: undefined }));
@@ -803,10 +778,14 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           setAuthoritativeState((prev) => ({ ...prev, [compNode.service]: undefined }));
         }
       } else {
-        await persistTxState(txId, "MANUAL_ATTENTION_REQUIRED", compResult.error);
-        await persistNodeState(txId, compNode.id, {
-          state: "MANUAL_ATTENTION_REQUIRED",
+        const nodeFailEv = await persistAtomicTransition({
+          transactionId: txId,
+          nodeId: compNode.id,
+          nodeState: "MANUAL_ATTENTION_REQUIRED",
           lastError: compResult.error,
+          txState: "MANUAL_ATTENTION_REQUIRED",
+          eventType: "COMPENSATION_FAILED",
+          eventPayload: { error: compResult.error },
         });
 
         currentTx = {
@@ -815,14 +794,13 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           lastError: compResult.error,
         };
         setTransaction(currentTx);
-        await appendDurableEvent(txId, "COMPENSATION_FAILED", { error: compResult.error }, compNode.id);
+        setEventLog((prev) => [...prev, nodeFailEv]);
         setIsRunning(false);
         return;
       }
     }
 
     // Final Transaction-Level Verification Sweep:
-    // WebMCP inspect all 4 services to confirm 0 resources remain
     let anyResourceRemains = false;
     for (const node of currentTx.nodes) {
       const inspTool = registeredToolsRef.current.find((t) => t.name === node.inspectTool);
@@ -844,25 +822,36 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
     }
 
     if (anyResourceRemains) {
-      await persistTxState(txId, "MANUAL_ATTENTION_REQUIRED", "Resource remained after compensation");
+      const incompleteEv = await persistAtomicTransition({
+        transactionId: txId,
+        txState: "MANUAL_ATTENTION_REQUIRED",
+        lastError: "Resource remained after compensation",
+        eventType: "TRANSACTION_COMPENSATION_INCOMPLETE",
+        eventPayload: {
+          reason: "One or more resources remained present during final authoritative verification sweep.",
+        },
+      });
       currentTx = {
         ...currentTx,
         state: "MANUAL_ATTENTION_REQUIRED",
         lastError: "Resource still exists in microservice store after compensation.",
       };
       setTransaction(currentTx);
-      await appendDurableEvent(txId, "TRANSACTION_COMPENSATION_INCOMPLETE", {
-        reason: "One or more resources remained present during final authoritative verification sweep.",
-      });
+      setEventLog((prev) => [...prev, incompleteEv]);
     } else {
-      await persistTxState(txId, "COMPENSATED");
+      const compCompleteEv = await persistAtomicTransition({
+        transactionId: txId,
+        txState: "COMPENSATED",
+        eventType: "TX_COMPENSATED",
+        eventPayload: {
+          transactionId: currentTx.id,
+          status: "All previously created resources were successfully rolled back, real schemas dropped, and authoritatively verified absent.",
+        },
+      });
       currentTx = { ...currentTx, state: "COMPENSATED" };
       setTransaction(currentTx);
       setAuthoritativeState({});
-      await appendDurableEvent(txId, "TX_COMPENSATED", {
-        transactionId: currentTx.id,
-        status: "All previously created resources were successfully rolled back, real schemas dropped, and authoritatively verified absent.",
-      });
+      setEventLog((prev) => [...prev, compCompleteEv]);
     }
 
     setIsRunning(false);
@@ -870,15 +859,21 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
 
   const rejectCompensation = async () => {
     const txId = transaction.id;
-    await persistTxState(txId, "FAILED", "Compensation rejected by operator.");
+    const rejEv = await persistAtomicTransition({
+      transactionId: txId,
+      txState: "FAILED",
+      lastError: "Compensation rejected by operator.",
+      eventType: "COMPENSATION_REJECTED_MANUAL_ATTENTION",
+      eventPayload: {
+        retainedResources: getCompensableNodes(transaction).map((c) => c.id),
+      },
+    });
     setTransaction((prev) => ({
       ...prev,
       state: "FAILED",
       lastError: "Compensation rejected by operator. Resources retained in current state.",
     }));
-    await appendDurableEvent(txId, "COMPENSATION_REJECTED_MANUAL_ATTENTION", {
-      retainedResources: getCompensableNodes(transaction).map((c) => c.id),
-    });
+    setEventLog((prev) => [...prev, rejEv]);
   };
 
   const inspectAllResources = async () => {

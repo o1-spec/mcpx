@@ -88,7 +88,8 @@ export async function verifySchemaInPostgres(schemaName: string): Promise<boolea
 }
 
 /**
- * Creates a real Postgres schema and registers metadata idempotently
+ * Creates a real Postgres schema and registers metadata in ONE ATOMIC PostgreSQL TRANSACTION.
+ * If metadata insertion fails, schema creation is automatically rolled back with 0 orphan schemas.
  */
 export async function createRealDatabase(
   name: string,
@@ -107,11 +108,13 @@ export async function createRealDatabase(
   const client = await pool.connect();
 
   try {
-    // 1. Check existing metadata
+    await client.query("BEGIN");
+
+    // 1. Check existing metadata with row lock
     const existing = await client.query(
       `SELECT id, operation_key, schema_name, name, created_at, deleted_at 
        FROM database_resources 
-       WHERE operation_key = $1 AND deleted_at IS NULL`,
+       WHERE operation_key = $1 AND deleted_at IS NULL FOR UPDATE`,
       [operationKey]
     );
 
@@ -120,6 +123,7 @@ export async function createRealDatabase(
       const schemaExists = await verifySchemaInPostgres(row.schema_name);
 
       if (schemaExists) {
+        await client.query("COMMIT");
         return {
           status: "already_exists",
           database: {
@@ -137,16 +141,10 @@ export async function createRealDatabase(
     const resourceId = crypto.randomUUID();
     const schemaName = generateSafeSchemaName(resourceId);
 
-    // 3. Create the real Postgres schema
+    // 3. Create the real Postgres schema INSIDE TRANSACTION
     await client.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
 
-    // Verify creation
-    const created = await verifySchemaInPostgres(schemaName);
-    if (!created) {
-      throw new Error(`Failed to verify Postgres schema creation for "${schemaName}"`);
-    }
-
-    // 4. Insert or update metadata
+    // 4. Insert or update metadata INSIDE SAME TRANSACTION
     const now = new Date();
     await client.query(
       `INSERT INTO database_resources (id, operation_key, schema_name, name, created_at, deleted_at)
@@ -159,6 +157,9 @@ export async function createRealDatabase(
       [resourceId, operationKey, schemaName, name, now]
     );
 
+    // 5. Commit both schema creation and metadata registration together
+    await client.query("COMMIT");
+
     return {
       status: "created",
       database: {
@@ -169,6 +170,9 @@ export async function createRealDatabase(
         createdAt: now.toISOString(),
       },
     };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
   } finally {
     client.release();
   }
@@ -231,7 +235,7 @@ export async function getRealDatabase(operationKey: string): Promise<{
 }
 
 /**
- * Idempotently drops the Postgres schema and marks metadata as deleted
+ * Idempotently drops the Postgres schema and marks metadata as deleted in ONE ATOMIC TRANSACTION.
  */
 export async function deleteRealDatabase(operationKey: string): Promise<{
   status: "deleted" | "already_absent";
@@ -242,14 +246,17 @@ export async function deleteRealDatabase(operationKey: string): Promise<{
   const client = await pool.connect();
 
   try {
+    await client.query("BEGIN");
+
     const res = await client.query(
       `SELECT id, operation_key, schema_name, name, created_at, deleted_at 
        FROM database_resources 
-       WHERE operation_key = $1 AND deleted_at IS NULL`,
+       WHERE operation_key = $1 AND deleted_at IS NULL FOR UPDATE`,
       [operationKey]
     );
 
     if (res.rows.length === 0) {
+      await client.query("COMMIT");
       return {
         status: "already_absent",
         operationKey,
@@ -259,26 +266,25 @@ export async function deleteRealDatabase(operationKey: string): Promise<{
     const row = res.rows[0];
     const schemaName = row.schema_name;
 
-    // Drop real Postgres schema
+    // Drop real Postgres schema inside transaction
     await client.query(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
 
-    // Verify deletion
-    const stillExists = await verifySchemaInPostgres(schemaName);
-    if (stillExists) {
-      throw new Error(`Failed to drop Postgres schema "${schemaName}"`);
-    }
-
-    // Mark deleted in metadata
+    // Mark deleted in metadata inside same transaction
     await client.query(
       `UPDATE database_resources SET deleted_at = NOW() WHERE operation_key = $1`,
       [operationKey]
     );
+
+    await client.query("COMMIT");
 
     return {
       status: "deleted",
       operationKey,
       schemaName,
     };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
   } finally {
     client.release();
   }

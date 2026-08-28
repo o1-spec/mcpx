@@ -19,21 +19,30 @@ export async function POST(
     try {
       await client.query("BEGIN");
 
-      // Atomically obtain the next sequence number for this transaction
-      const seqRes = await client.query(
-        `SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq 
-         FROM transaction_events 
-         WHERE transaction_id = $1`,
+      // Row-level lock on transactions table to allocate sequence atomically
+      const lockRes = await client.query(
+        `SELECT next_event_sequence FROM transactions WHERE id = $1 FOR UPDATE`,
         [transactionId]
       );
-      const nextSeq = seqRes.rows[0].next_seq;
+
+      if (lockRes.rows.length === 0) {
+        throw new Error(`Transaction ${transactionId} not found`);
+      }
+
+      const assignedSeq = lockRes.rows[0].next_event_sequence;
+
+      // Increment sequence in transactions
+      await client.query(
+        `UPDATE transactions SET next_event_sequence = next_event_sequence + 1, updated_at = NOW() WHERE id = $1`,
+        [transactionId]
+      );
 
       const eventId = crypto.randomUUID();
       const insertRes = await client.query(
         `INSERT INTO transaction_events (id, transaction_id, sequence, node_id, event_type, payload, occurred_at)
          VALUES ($1, $2, $3, $4, $5, $6, NOW())
          RETURNING id, sequence, node_id, event_type, payload, occurred_at`,
-        [eventId, transactionId, nextSeq, nodeId || null, type, JSON.stringify(details)]
+        [eventId, transactionId, assignedSeq, nodeId || null, type, JSON.stringify(details)]
       );
 
       await client.query("COMMIT");

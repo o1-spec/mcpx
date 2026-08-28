@@ -16,10 +16,10 @@ export async function POST(request: NextRequest) {
     try {
       await client.query("BEGIN");
 
-      // Insert transaction
+      // Insert transaction with next_event_sequence = 2 (since SEQ 1 is TX_CREATED)
       const txRes = await client.query(
-        `INSERT INTO transactions (id, state, scenario, created_at, updated_at)
-         VALUES ($1, $2, $3, NOW(), NOW())
+        `INSERT INTO transactions (id, state, scenario, next_event_sequence, created_at, updated_at)
+         VALUES ($1, $2, $3, 2, NOW(), NOW())
          ON CONFLICT (id) DO UPDATE 
          SET state = EXCLUDED.state, scenario = EXCLUDED.scenario, updated_at = NOW()
          RETURNING *`,
@@ -56,11 +56,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Record initial event
+      // Record initial event with sequence 1
       const eventId = crypto.randomUUID();
       await client.query(
         `INSERT INTO transaction_events (id, transaction_id, sequence, event_type, payload, occurred_at)
-         VALUES ($1, $2, 1, 'TX_CREATED', $3, NOW())`,
+         VALUES ($1, $2, 1, 'TX_CREATED', $3, NOW())
+         ON CONFLICT (transaction_id, sequence) DO NOTHING`,
         [eventId, id, JSON.stringify({ transactionId: id, scenario, totalNodes: nodes.length })]
       );
 
