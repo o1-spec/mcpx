@@ -45,12 +45,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const frontendOrigin = process.env.NEXT_PUBLIC_FRONTEND_ORIGIN || "http://localhost:3004";
     const newFrontend: FrontendRecord = {
       id: crypto.randomUUID(),
       projectName,
       backendResourceId: backendResourceId || "none",
       operationKey,
-      previewUrl: `http://localhost:3004/preview/${projectName}`,
+      previewUrl: `${frontendOrigin}/preview/${projectName}`,
       createdAt: new Date().toISOString(),
     };
 

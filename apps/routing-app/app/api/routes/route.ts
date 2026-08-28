@@ -13,12 +13,13 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  const routingOrigin = process.env.NEXT_PUBLIC_ROUTING_ORIGIN || "http://localhost:3001";
   const existingRoute = routeStore.get(operationKey);
   if (existingRoute) {
     return NextResponse.json({
       exists: true,
       route: existingRoute,
-      routeUrl: `http://localhost:3001/r/${existingRoute.projectName}`,
+      routeUrl: `${routingOrigin}/r/${existingRoute.projectName}`,
     });
   }
 
@@ -41,12 +42,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const routingOrigin = process.env.NEXT_PUBLIC_ROUTING_ORIGIN || "http://localhost:3001";
+
     const existing = routeStore.get(operationKey);
     if (existing) {
       return NextResponse.json({
         status: "already_exists",
         route: existing,
-        routeUrl: `http://localhost:3001/r/${existing.projectName}`,
+        routeUrl: `${routingOrigin}/r/${existing.projectName}`,
       });
     }
 
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
       {
         status: "created",
         route: newRoute,
-        routeUrl: `http://localhost:3001/r/${newRoute.projectName}`,
+        routeUrl: `${routingOrigin}/r/${newRoute.projectName}`,
       },
       { status: 201 }
     );

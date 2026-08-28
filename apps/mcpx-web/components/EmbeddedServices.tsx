@@ -1,6 +1,7 @@
 "use client";
 
 import { RefObject, useState } from "react";
+import { origins } from "@/lib/config/origins";
 
 interface EmbeddedServicesProps {
   databaseIframeRef: RefObject<HTMLIFrameElement | null>;
@@ -23,34 +24,34 @@ export default function EmbeddedServices({
     {
       id: "database",
       name: "Database Service",
-      port: ":3002",
+      port: origins.database.includes("localhost") ? ":3002" : "Cloud",
       color: "text-emerald-400",
       ref: databaseIframeRef,
-      url: "http://localhost:3002",
+      url: origins.database,
     },
     {
       id: "compute",
       name: "Compute Service",
-      port: ":3003",
+      port: origins.compute.includes("localhost") ? ":3003" : "Cloud",
       color: "text-indigo-400",
       ref: computeIframeRef,
-      url: "http://localhost:3003",
+      url: origins.compute,
     },
     {
       id: "routing",
       name: "Routing Service",
-      port: ":3001",
+      port: origins.routing.includes("localhost") ? ":3001" : "Cloud",
       color: "text-cyan-400",
       ref: routingIframeRef,
-      url: "http://localhost:3001",
+      url: origins.routing,
     },
     {
       id: "frontend",
       name: "Frontend Service",
-      port: ":3004",
+      port: origins.frontend.includes("localhost") ? ":3004" : "Cloud",
       color: "text-violet-400",
       ref: frontendIframeRef,
-      url: "http://localhost:3004",
+      url: origins.frontend,
     },
   ];
 

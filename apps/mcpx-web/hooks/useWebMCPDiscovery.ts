@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { RegisteredTool } from "@/types/webmcp";
 import type { DiscoveredToolInfo } from "@/types/reliability";
+import { origins } from "@/lib/config/origins";
 
 export function useWebMCPDiscovery() {
   const [discoveredTools, setDiscoveredTools] = useState<DiscoveredToolInfo[]>([]);
@@ -26,20 +27,17 @@ export function useWebMCPDiscovery() {
 
     setIsSupported(true);
     setDiscoveryError(null);
-    console.log("[mcpx-web] requesting tools from all 4 services: 3001, 3002, 3003, 3004");
 
     try {
-      // Query tools from all four microservice origins
+      // Query tools from configured reference microservice origins
       const tools = await document.modelContext.getTools({
         fromOrigins: [
-          "http://localhost:3001",
-          "http://localhost:3002",
-          "http://localhost:3003",
-          "http://localhost:3004",
+          origins.routing,
+          origins.database,
+          origins.compute,
+          origins.frontend,
         ],
       });
-
-      console.log("[mcpx-web] 4-service tools returned:", tools);
 
       registeredToolsRef.current = tools || [];
 

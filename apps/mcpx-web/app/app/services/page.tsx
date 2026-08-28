@@ -3,29 +3,30 @@
 import Link from "next/link";
 import AppNav from "@/components/services/AppNav";
 import { useConnectedServices } from "@/hooks/useConnectedServices";
+import { origins } from "@/lib/config/origins";
 
 const referenceServices = [
   {
     name: "Database Service",
-    origin: "http://localhost:3002",
+    origin: origins.database,
     tools: ["create_database", "get_database", "delete_database"],
     role: "PostgreSQL schema resource plane",
   },
   {
     name: "Compute Service",
-    origin: "http://localhost:3003",
+    origin: origins.compute,
     tools: ["deploy_backend", "get_backend", "delete_backend"],
     role: "Backend runtime health provider",
   },
   {
     name: "Routing Service",
-    origin: "http://localhost:3001",
+    origin: origins.routing,
     tools: ["create_route", "get_route", "delete_route"],
     role: "Gateway proxy route manager",
   },
   {
     name: "Frontend Service",
-    origin: "http://localhost:3004",
+    origin: origins.frontend,
     tools: ["deploy_frontend", "get_frontend", "delete_frontend"],
     role: "Application preview host",
   },

@@ -50,13 +50,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const computeOrigin = process.env.NEXT_PUBLIC_COMPUTE_ORIGIN || "http://localhost:3003";
     const id = crypto.randomUUID();
     const newBackend: BackendRecord = {
       id,
       projectName,
       databaseResourceId: databaseResourceId || "none",
       operationKey,
-      healthUrl: `http://localhost:3003/runtime/${id}/health`,
+      healthUrl: `${computeOrigin}/runtime/${id}/health`,
       createdAt: new Date().toISOString(),
     };
 

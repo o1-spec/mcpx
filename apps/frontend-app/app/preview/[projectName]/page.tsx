@@ -55,11 +55,14 @@ export default function PreviewPage({
     }
   }, [projectName]);
 
+  const routingOrigin = process.env.NEXT_PUBLIC_ROUTING_ORIGIN || "http://localhost:3001";
+  const computeOrigin = process.env.NEXT_PUBLIC_COMPUTE_ORIGIN || "http://localhost:3003";
+  const mcpxOrigin = process.env.NEXT_PUBLIC_MCPX_ORIGIN || "http://localhost:3000";
+
   const testBackendConnection = useCallback(async (backendId: string) => {
     try {
       setTestingBackend(true);
-      // Test through routing gateway on :3001 first, or direct compute runtime on :3003
-      const gatewayRes = await fetch(`http://localhost:3001/r/${projectName}`, {
+      const gatewayRes = await fetch(`${routingOrigin}/r/${projectName}`, {
         cache: "no-store",
       }).catch(() => null);
 
@@ -70,7 +73,7 @@ export default function PreviewPage({
       }
 
       // Fallback direct runtime check
-      const directRes = await fetch(`http://localhost:3003/runtime/${backendId}/health`, {
+      const directRes = await fetch(`${computeOrigin}/runtime/${backendId}/health`, {
         cache: "no-store",
       });
       const data = await directRes.json();
@@ -81,7 +84,7 @@ export default function PreviewPage({
     } finally {
       setTestingBackend(false);
     }
-  }, [projectName]);
+  }, [projectName, routingOrigin, computeOrigin]);
 
   useEffect(() => {
     fetchFrontendInfo();
@@ -201,24 +204,24 @@ export default function PreviewPage({
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Routing Gateway:</span>
               <a
-                href={`http://localhost:3001/r/${projectName}`}
+                href={`${routingOrigin}/r/${projectName}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-cyan-400 hover:underline flex items-center gap-1"
               >
-                http://localhost:3001/r/{projectName} ↗
+                {routingOrigin}/r/{projectName} ↗
               </a>
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Backend Health Endpoint:</span>
               <a
-                href={`http://localhost:3003/runtime/${frontend.backendResourceId}/health`}
+                href={`${computeOrigin}/runtime/${frontend.backendResourceId}/health`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-indigo-400 hover:underline flex items-center gap-1"
               >
-                http://localhost:3003/runtime/{frontend.backendResourceId.slice(0, 8)}.../health ↗
+                {computeOrigin}/runtime/{frontend.backendResourceId.slice(0, 8)}.../health ↗
               </a>
             </div>
 
@@ -249,12 +252,12 @@ export default function PreviewPage({
 
         {/* Footer Navigation */}
         <div className="flex justify-between items-center text-xs text-slate-500 pt-2 font-mono">
-          <span>Port 3004 • Live Preview Deployment</span>
+          <span>Live Preview Deployment</span>
           <Link
-            href="http://localhost:3000"
+            href={mcpxOrigin}
             className="text-violet-400 hover:underline"
           >
-            ← MCPx Control Plane (:3000)
+            ← MCPx Control Plane
           </Link>
         </div>
       </div>

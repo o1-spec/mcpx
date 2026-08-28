@@ -1,11 +1,11 @@
 import type { ToolDefinition } from "@/types/webmcp";
 
-const widgetStore = new Map<
+export const widgetStore = new Map<
   string,
   { id: string; name: string; operationKey: string; createdAt: string }
 >();
 
-const publicationStore = new Map<
+export const publicationStore = new Map<
   string,
   { id: string; widgetId: string; operationKey: string; createdAt: string }
 >();

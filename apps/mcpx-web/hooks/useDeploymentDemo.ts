@@ -16,6 +16,7 @@ import {
   compensateNode,
 } from "@/lib/transaction";
 import { normalizeWebMCPResult } from "@/lib/webmcp-utils";
+import { origins } from "@/lib/config/origins";
 
 export interface FourServiceAuthoritativeState {
   database?: {
@@ -204,7 +205,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
                 id: node.resourceId,
                 projectName: "mcpx-demo",
                 databaseResourceId: String(node.executeArgs?.databaseResourceId || ""),
-                healthUrl: `http://localhost:3003/runtime/${node.resourceId}/health`,
+                healthUrl: `${origins.compute}/runtime/${node.resourceId}/health`,
                 operationKey: node.operationKey,
                 httpStatus: "200 OK (Healthy)",
               };
@@ -213,7 +214,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
                 id: node.resourceId,
                 projectName: "mcpx-demo",
                 targetUrl: String(node.executeArgs?.targetUrl || ""),
-                routeUrl: `http://localhost:3001/r/mcpx-demo`,
+                routeUrl: `${origins.routing}/r/mcpx-demo`,
                 operationKey: node.operationKey,
                 httpStatus: "200 OK (Gateway Active)",
               };
@@ -222,7 +223,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
                 id: node.resourceId,
                 projectName: "mcpx-demo",
                 backendResourceId: String(node.executeArgs?.backendResourceId || ""),
-                previewUrl: `http://localhost:3004/preview/mcpx-demo`,
+                previewUrl: `${origins.frontend}/preview/mcpx-demo`,
                 operationKey: node.operationKey,
                 httpStatus: "200 OK (Live Preview)",
               };
@@ -488,7 +489,7 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
               },
             }));
           } else if (node.service === "compute" && execResult.resourceId) {
-            const healthUrl = `http://localhost:3003/runtime/${execResult.resourceId}/health`;
+            const healthUrl = `${origins.compute}/runtime/${execResult.resourceId}/health`;
             setAuthoritativeState((prev) => ({
               ...prev,
               backend: {
@@ -501,20 +502,20 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
               },
             }));
           } else if (node.service === "routing" && execResult.resourceId) {
-            const routeUrl = `http://localhost:3001/r/mcpx-demo`;
+            const routeUrl = `${origins.routing}/r/mcpx-demo`;
             setAuthoritativeState((prev) => ({
               ...prev,
               routing: {
                 id: execResult.resourceId!,
                 projectName: "mcpx-demo",
-                targetUrl: String(resolvedArgs.targetUrl || "http://localhost:3003/runtime/health"),
+                targetUrl: String(resolvedArgs.targetUrl || `${origins.compute}/runtime/health`),
                 routeUrl,
                 operationKey: node.operationKey,
                 httpStatus: "200 OK (Gateway Active)",
               },
             }));
           } else if (node.service === "frontend" && execResult.resourceId) {
-            const previewUrl = `http://localhost:3004/preview/mcpx-demo`;
+            const previewUrl = `${origins.frontend}/preview/mcpx-demo`;
             setAuthoritativeState((prev) => ({
               ...prev,
               frontend: {
@@ -928,19 +929,19 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
           } else if (node.service === "compute" && normalized.backend) {
             newAuth.backend = {
               ...normalized.backend,
-              healthUrl: normalized.backend.healthUrl || `http://localhost:3003/runtime/${normalized.backend.id}/health`,
+              healthUrl: normalized.backend.healthUrl || `${origins.compute}/runtime/${normalized.backend.id}/health`,
               httpStatus: "200 OK",
             };
           } else if (node.service === "routing" && normalized.route) {
             newAuth.routing = {
               ...normalized.route,
-              routeUrl: normalized.route.routeUrl || `http://localhost:3001/r/${normalized.route.projectName}`,
+              routeUrl: normalized.route.routeUrl || `${origins.routing}/r/${normalized.route.projectName}`,
               httpStatus: "200 OK",
             };
           } else if (node.service === "frontend" && normalized.frontend) {
             newAuth.frontend = {
               ...normalized.frontend,
-              previewUrl: normalized.frontend.previewUrl || `http://localhost:3004/preview/${normalized.frontend.projectName}`,
+              previewUrl: normalized.frontend.previewUrl || `${origins.frontend}/preview/${normalized.frontend.projectName}`,
               httpStatus: "200 OK",
             };
           }

@@ -1,5 +1,6 @@
 import type { Transaction, TransactionNode } from "./types";
 import { getServiceContract } from "./contracts";
+import { origins } from "@/lib/config/origins";
 
 /**
  * Returns all nodes ready to execute:
@@ -32,11 +33,13 @@ export function getRunnableNodes(transaction: Transaction): TransactionNode[] {
  */
 export function resolveExecuteArgs(
   node: TransactionNode,
-  transaction: Transaction
+  context: Transaction | TransactionNode[]
 ): Record<string, unknown> {
-  const nodeMap = new Map<string, TransactionNode>(
-    transaction.nodes.map((n) => [n.id, n])
-  );
+  const nodes = Array.isArray(context) ? context : context.nodes;
+  const nodeMap = new Map<string, TransactionNode>();
+  for (const n of nodes) {
+    nodeMap.set(n.id, n);
+  }
 
   const resolved: Record<string, unknown> = { ...node.executeArgs };
 
@@ -49,7 +52,7 @@ export function resolveExecuteArgs(
     } else if (depNode.service === "compute" && !resolved.backendResourceId) {
       resolved.backendResourceId = depNode.resourceId;
       if (node.service === "routing" && (!resolved.targetUrl || resolved.targetUrl === "http://localhost:4000")) {
-        resolved.targetUrl = `http://localhost:3003/runtime/${depNode.resourceId}/health`;
+        resolved.targetUrl = `${origins.compute}/runtime/${depNode.resourceId}/health`;
       }
     }
   }

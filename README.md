@@ -425,6 +425,70 @@ Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
+# Production Deployment
+
+MCPx is designed for multi-origin production deployments where each service runs on its own domain or subdomain while maintaining zero-broker browser WebMCP delegation.
+
+### Target Architecture
+
+```
+                               ┌─────────────────────────────┐
+                               │  https://mcpx.domain.com    │
+                               │  (Coordinator & Control)   │
+                               └──────────────┬──────────────┘
+                                              │ document.modelContext
+                  ┌───────────────────────────┼───────────────────────────┐
+                  │                           │                           │
+                  ▼                           ▼                           ▼
+    ┌───────────────────────────┐┌───────────────────────────┐┌───────────────────────────┐
+    │ https://db.domain.com     ││ https://compute.domain.com││ https://routing.domain.com│
+    │ (PostgreSQL Provisioner)  ││ (Backend Runtime Host)    ││ (Gateway Route Manager)   │
+    └───────────────────────────┘└───────────────────────────┘└───────────────────────────┘
+```
+
+### Environment Variables
+
+| Variable | Required For | Example Value | Description |
+| :--- | :--- | :--- | :--- |
+| `DATABASE_URL` | `mcpx-web`, `database-app` | `postgresql://...` | Managed PostgreSQL connection string (Supabase, Neon, Railway) |
+| `NEXT_PUBLIC_MCPX_ORIGIN` | All Services | `https://mcpx.domain.com` | Origin allowed in `exposedTo` array for WebMCP tool calls |
+| `NEXT_PUBLIC_ROUTING_ORIGIN` | `mcpx-web`, `frontend-app` | `https://routing.domain.com` | Public URL for Routing Gateway service |
+| `NEXT_PUBLIC_DATABASE_ORIGIN` | `mcpx-web` | `https://database.domain.com` | Public URL for Database Provisioning service |
+| `NEXT_PUBLIC_COMPUTE_ORIGIN` | `mcpx-web`, `frontend-app` | `https://compute.domain.com` | Public URL for Compute Runtime service |
+| `NEXT_PUBLIC_FRONTEND_ORIGIN` | `mcpx-web` | `https://preview.domain.com` | Public URL for Frontend Preview service |
+| `NEXT_PUBLIC_EXAMPLE_SERVICE_ORIGIN` | `mcpx-web` | `https://example.domain.com` | Public URL for optional external fixture service |
+
+### Recommended Hosting Options
+
+#### Option 1: Vercel (Multi-Project Monorepo) — Recommended
+1. Create a managed PostgreSQL database (Neon / Supabase / Vercel Postgres).
+2. Connect your GitHub repository to Vercel.
+3. Create 5 separate Vercel projects pointing to the same repo, setting the **Root Directory** for each:
+   - Project 1: `apps/mcpx-web` $\rightarrow$ Assigned domain `mcpx.yourdomain.com`
+   - Project 2: `apps/routing-app` $\rightarrow$ Assigned domain `routing.yourdomain.com`
+   - Project 3: `apps/database-app` $\rightarrow$ Assigned domain `database.yourdomain.com`
+   - Project 4: `apps/compute-app` $\rightarrow$ Assigned domain `compute.yourdomain.com`
+   - Project 5: `apps/frontend-app` $\rightarrow$ Assigned domain `frontend.yourdomain.com`
+4. Set the environment variables in each project's Vercel Settings.
+5. Deploy.
+
+#### Option 2: Railway (Single Project, Multi-Service)
+1. Create a new Railway project and add a PostgreSQL database service.
+2. Add 5 GitHub repo services within the project with root directories `apps/<service-name>`.
+3. Generate public Railway domains for each service (`https://...up.railway.app`).
+4. Set cross-referencing origin environment variables.
+
+### Health Check Verification
+
+Every deployed service exposes a lightweight `/api/health` endpoint:
+- `GET https://mcpx.domain.com/api/health` $\rightarrow$ `{ "status": "healthy", "service": "mcpx-web", "database": "healthy" }`
+- `GET https://db.domain.com/api/health` $\rightarrow$ `{ "status": "healthy", "service": "database-app", "database": "healthy" }`
+- `GET https://compute.domain.com/api/health` $\rightarrow$ `{ "status": "healthy", "service": "compute-app" }`
+- `GET https://routing.domain.com/api/health` $\rightarrow$ `{ "status": "healthy", "service": "routing-app" }`
+- `GET https://frontend.domain.com/api/health` $\rightarrow$ `{ "status": "healthy", "service": "frontend-app" }`
+
+---
+
 # Design Principles
 
 1. **Unknown is not failure**: A dropped response after dispatch is `IN_DOUBT`, never assumed failed.
@@ -433,3 +497,4 @@ Then open [http://localhost:3000](http://localhost:3000) in your browser.
 4. **Durable before presentation**: Persist state transitions to PostgreSQL atomically before updating the UI.
 5. **Human control for destructive rollback**: Automatic reconciliation for safe recovery; operator approval required for deletion.
 6. **Browser is the WebMCP plane**: The coordinator orchestrates through WebMCP browser context without bypassing browser security boundaries.
+

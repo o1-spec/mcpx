@@ -1,9 +1,10 @@
 import type { ServiceContract } from "./types";
+import { origins } from "@/lib/config/origins";
 
 export const SERVICE_CONTRACTS: Record<string, ServiceContract> = {
   database: {
     service: "database",
-    origin: "http://localhost:3002",
+    origin: origins.database,
     executeTool: "create_database",
     inspectTool: "get_database",
     compensateTool: "delete_database",
@@ -20,7 +21,7 @@ export const SERVICE_CONTRACTS: Record<string, ServiceContract> = {
   },
   compute: {
     service: "compute",
-    origin: "http://localhost:3003",
+    origin: origins.compute,
     executeTool: "deploy_backend",
     inspectTool: "get_backend",
     compensateTool: "delete_backend",
@@ -37,7 +38,7 @@ export const SERVICE_CONTRACTS: Record<string, ServiceContract> = {
   },
   routing: {
     service: "routing",
-    origin: "http://localhost:3001",
+    origin: origins.routing,
     executeTool: "create_route",
     inspectTool: "get_route",
     compensateTool: "delete_route",
@@ -54,7 +55,7 @@ export const SERVICE_CONTRACTS: Record<string, ServiceContract> = {
   },
   frontend: {
     service: "frontend",
-    origin: "http://localhost:3004",
+    origin: origins.frontend,
     executeTool: "deploy_frontend",
     inspectTool: "get_frontend",
     compensateTool: "delete_frontend",

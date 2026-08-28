@@ -10,6 +10,8 @@ import DeploymentDAG from "@/components/deployment/DeploymentDAG";
 import ApprovalCard from "@/components/compensation/ApprovalCard";
 import EventTimeline from "@/components/reliability/EventTimeline";
 
+import { origins } from "@/lib/config/origins";
+
 interface DeploymentDemoProps {
   transaction: TransactionModel;
   isRunning: boolean;
@@ -63,16 +65,16 @@ export default function DeploymentDemo({
   const backendHealthUrl =
     authoritativeState.backend?.healthUrl ||
     (authoritativeState.backend?.id
-      ? `http://localhost:3003/runtime/${authoritativeState.backend.id}/health`
+      ? `${origins.compute}/runtime/${authoritativeState.backend.id}/health`
       : undefined);
 
   const routingGatewayUrl =
     authoritativeState.routing?.routeUrl ||
-    (authoritativeState.routing ? `http://localhost:3001/r/${authoritativeState.routing.projectName}` : undefined);
+    (authoritativeState.routing ? `${origins.routing}/r/${authoritativeState.routing.projectName}` : undefined);
 
   const frontendPreviewUrl =
     authoritativeState.frontend?.previewUrl ||
-    (authoritativeState.frontend ? `http://localhost:3004/preview/${authoritativeState.frontend.projectName}` : undefined);
+    (authoritativeState.frontend ? `${origins.frontend}/preview/${authoritativeState.frontend.projectName}` : undefined);
 
   // Authoritative Resource Display Logic (strictly scoped to current transaction state):
   const getResourceStatus = (

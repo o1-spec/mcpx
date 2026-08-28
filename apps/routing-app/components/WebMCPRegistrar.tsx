@@ -26,6 +26,8 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
     tools: ["create_route", "get_route", "delete_route"],
   });
 
+  const mcpxOrigin = process.env.NEXT_PUBLIC_MCPX_ORIGIN || "http://localhost:3000";
+
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
@@ -53,7 +55,7 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
       try {
         const options = {
           signal: controller.signal,
-          exposedTo: ["http://localhost:3000"],
+          exposedTo: [mcpxOrigin],
         };
 
         // Await each registration to ensure promises resolve before declaring success
@@ -134,7 +136,7 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
         />
         <span>
           {status.registered
-            ? "WebMCP tools registered & exposed to http://localhost:3000"
+            ? `WebMCP tools registered & exposed to ${mcpxOrigin}`
             : status.error
             ? `Registration error: ${status.error}`
             : status.supported

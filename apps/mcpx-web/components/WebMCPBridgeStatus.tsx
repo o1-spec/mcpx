@@ -1,6 +1,7 @@
 "use client";
 
 import type { DiscoveredToolInfo } from "@/types/reliability";
+import { origins } from "@/lib/config/origins";
 
 interface WebMCPBridgeStatusProps {
   isDatabaseConnected: boolean;
@@ -34,8 +35,8 @@ export default function WebMCPBridgeStatus({
   const services = [
     {
       name: "Database Service",
-      port: ":3002",
-      origin: "http://localhost:3002",
+      port: origins.database.includes("localhost") ? ":3002" : "Cloud",
+      origin: origins.database,
       color: "emerald",
       connected: isDatabaseConnected,
       tools: ["create_database", "get_database", "delete_database"],
@@ -43,8 +44,8 @@ export default function WebMCPBridgeStatus({
     },
     {
       name: "Compute Service",
-      port: ":3003",
-      origin: "http://localhost:3003",
+      port: origins.compute.includes("localhost") ? ":3003" : "Cloud",
+      origin: origins.compute,
       color: "indigo",
       connected: isComputeConnected,
       tools: ["deploy_backend", "get_backend", "delete_backend"],
@@ -52,8 +53,8 @@ export default function WebMCPBridgeStatus({
     },
     {
       name: "Routing Service",
-      port: ":3001",
-      origin: "http://localhost:3001",
+      port: origins.routing.includes("localhost") ? ":3001" : "Cloud",
+      origin: origins.routing,
       color: "cyan",
       connected: isRoutingConnected,
       tools: ["create_route", "get_route", "delete_route"],
@@ -61,8 +62,8 @@ export default function WebMCPBridgeStatus({
     },
     {
       name: "Frontend Service",
-      port: ":3004",
-      origin: "http://localhost:3004",
+      port: origins.frontend.includes("localhost") ? ":3004" : "Cloud",
+      origin: origins.frontend,
       color: "violet",
       connected: isFrontendConnected,
       tools: ["deploy_frontend", "get_frontend", "delete_frontend"],
