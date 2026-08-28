@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: mcpx_postgres
+    environment:
+      POSTGRES_USER: mcpx
+      POSTGRES_PASSWORD: mcpx
+      POSTGRES_DB: mcpx_control
+    ports:
+      - "${MCPX_PG_PORT:-5435}:5432"
+    volumes:
+      - mcpx_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcpx -d mcpx_control"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mcpx_postgres_data:

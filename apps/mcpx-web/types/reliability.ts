@@ -11,6 +11,8 @@ export type {
 
 export interface TransactionEvent {
   id: string;
+  sequence?: number;
+  nodeId?: string;
   type: string;
   timestamp: string;
   details?: Record<string, unknown>;
@@ -34,6 +36,7 @@ export interface AuthoritativeState {
   };
   database?: {
     id: string;
+    schemaName?: string;
     name: string;
     operationKey: string;
     createdAt: string;

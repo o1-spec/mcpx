@@ -8,6 +8,7 @@ export type NodeState =
   | "FAILED"
   | "COMPENSATING"
   | "COMPENSATED"
+  | "RECOVERY_RETRY_AVAILABLE"
   | "MANUAL_ATTENTION_REQUIRED"
   | "SKIPPED";
 

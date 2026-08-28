@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { databaseStore, DatabaseRecord } from "@/lib/store";
+import {
+  createRealDatabase,
+  getRealDatabase,
+  deleteRealDatabase,
+} from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -8,21 +12,20 @@ export async function GET(request: NextRequest) {
   if (!operationKey) {
     return NextResponse.json({
       exists: false,
-      databases: Array.from(databaseStore.values()),
+      error: "Missing required parameter: operationKey",
     });
   }
 
-  const existing = databaseStore.get(operationKey);
-  if (existing) {
-    return NextResponse.json({
-      exists: true,
-      database: existing,
-    });
+  try {
+    const result = await getRealDatabase(operationKey);
+    return NextResponse.json(result);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json(
+      { exists: false, error: msg },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({
-    exists: false,
-  });
 }
 
 export async function POST(request: NextRequest) {
@@ -37,34 +40,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existing = databaseStore.get(operationKey);
-    if (existing) {
-      return NextResponse.json({
-        status: "already_exists",
-        database: existing,
-      });
-    }
-
-    const newDb: DatabaseRecord = {
-      id: crypto.randomUUID(),
-      name,
-      operationKey,
-      createdAt: new Date().toISOString(),
-    };
-
-    databaseStore.set(operationKey, newDb);
+    const result = await createRealDatabase(name, operationKey);
 
     return NextResponse.json(
-      {
-        status: "created",
-        database: newDb,
-      },
-      { status: 201 }
+      result,
+      { status: result.status === "created" ? 201 : 200 }
     );
-  } catch {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[database-app] POST /api/databases failed:", err);
     return NextResponse.json(
-      { error: "Invalid JSON request body" },
-      { status: 400 }
+      { error: `Database creation failed: ${msg}` },
+      { status: 500 }
     );
   }
 }
@@ -89,14 +76,15 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  if (databaseStore.has(operationKey)) {
-    databaseStore.delete(operationKey);
-    return NextResponse.json({
-      status: "deleted",
-    });
+  try {
+    const result = await deleteRealDatabase(operationKey);
+    return NextResponse.json(result);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[database-app] DELETE /api/databases failed:", err);
+    return NextResponse.json(
+      { error: `Database compensation failed: ${msg}` },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({
-    status: "already_absent",
-  });
 }

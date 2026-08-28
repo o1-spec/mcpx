@@ -44,16 +44,20 @@ export default function WebMCPProof() {
     discoverTools,
   } = useWebMCPDiscovery();
 
-  // Milestone 3: 4-Service Deployment DAG Hook (includes Challenge Scenario & Reverse Compensation)
+  // Milestone: Durable Coordinator & Real Postgres Resource Plane
   const {
     transaction: deployTx,
     isRunning: isRunningDeploy,
+    isHydrating: isHydratingDeploy,
+    pauseBeforeReconcile,
+    setPauseBeforeReconcile,
     eventLog: deployLog,
     authoritativeState: deployAuth,
     runDeployment,
     approveCompensation: approveDeployCompensation,
     rejectCompensation: rejectDeployCompensation,
     inspectAllResources,
+    rehydrateTransaction,
     resetDeployment,
     clearEventLog: clearDeployLog,
   } = useDeploymentDemo(registeredToolsRef);
@@ -133,17 +137,21 @@ export default function WebMCPProof() {
         disabled={executingTool !== null || isRunningDeploy || isRunningSaga || isRunningReliability}
       />
 
-      {/* 2. Final Combined Milestone: 4-Service Deployment DAG & Challenge Scenario */}
+      {/* 2. Durable 4-Service Deployment DAG & Challenge Scenario */}
       <DeploymentDemo
         transaction={deployTx}
         isRunning={isRunningDeploy}
+        isHydrating={isHydratingDeploy}
         isConnected={isConnected}
+        pauseBeforeReconcile={pauseBeforeReconcile}
+        onSetPauseBeforeReconcile={setPauseBeforeReconcile}
         eventLog={deployLog}
         authoritativeState={deployAuth}
         onRunDeployment={runDeployment}
         onApproveCompensation={approveDeployCompensation}
         onRejectCompensation={rejectDeployCompensation}
         onInspectAll={inspectAllResources}
+        onRehydrate={rehydrateTransaction}
         onReset={resetDeployment}
         onClearLog={clearDeployLog}
       />
