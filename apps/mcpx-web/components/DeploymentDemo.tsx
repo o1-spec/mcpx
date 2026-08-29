@@ -9,6 +9,10 @@ import type { FourServiceAuthoritativeState } from "@/hooks/useDeploymentDemo";
 import DeploymentDAG from "@/components/deployment/DeploymentDAG";
 import ApprovalCard from "@/components/compensation/ApprovalCard";
 import EventTimeline from "@/components/reliability/EventTimeline";
+import PageHeader from "@/components/ui/PageHeader";
+import StatusPill from "@/components/ui/StatusPill";
+import Panel from "@/components/ui/Panel";
+import DiagnosticsDrawer from "@/components/ui/DiagnosticsDrawer";
 import { origins } from "@/lib/config/origins";
 
 interface DeploymentDemoProps {
@@ -46,6 +50,7 @@ export default function DeploymentDemo({
 }: DeploymentDemoProps) {
   const [selectedScenario, setSelectedScenario] = useState<"challenge" | "happy">("challenge");
   const [copied, setCopied] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
 
   const isCommitted = transaction.state === "COMMITTED";
   const isCompensated = transaction.state === "COMPENSATED";
@@ -79,39 +84,36 @@ export default function DeploymentDemo({
   // Authoritative Resource Display Logic
   const getResourceStatus = (
     service: "database" | "backend" | "routing" | "frontend"
-  ): { label: string; style: string; sublink?: { url: string; text: string } } => {
+  ): { label: string; status: "READY" | "IN_DOUBT" | "EXECUTING" | "FAILED" | "COMPENSATED" | "DRAFT"; sublink?: { url: string; text: string } } => {
     if (isCompensated) {
       if (service === "frontend") {
-        return { label: "Never created ✓", style: "text-[#65696B] font-mono text-[11px]" };
+        return { label: "Never created", status: "COMPENSATED" };
       }
-      return { label: "Removed ✓", style: "text-[#65696B] font-mono text-[11px]" };
+      return { label: "Removed ✓", status: "COMPENSATED" };
     }
 
     if (service === "database") {
       if (dbNode?.state === "SUCCEEDED" && authoritativeState.database) {
-        return {
-          label: "Present",
-          style: "text-[#A5F36B] font-mono text-[11px]",
-        };
+        return { label: "Present · Active", status: "READY" };
       }
       if (dbNode?.state === "COMPENSATED") {
-        return { label: "Removed ✓", style: "text-[#65696B] font-mono text-[11px]" };
+        return { label: "Removed ✓", status: "COMPENSATED" };
       }
-      return { label: "Not created", style: "text-[#65696B] font-mono text-[11px]" };
+      return { label: "Not created", status: "DRAFT" };
     }
 
     if (service === "backend") {
       if (backendNode?.state === "SUCCEEDED" && authoritativeState.backend) {
         return {
           label: "Healthy · 200",
-          style: "text-[#A5F36B] font-mono text-[11px]",
+          status: "READY",
           sublink: backendHealthUrl ? { url: backendHealthUrl, text: "Health ↗" } : undefined,
         };
       }
       if (backendNode?.state === "COMPENSATED") {
-        return { label: "Removed ✓", style: "text-[#65696B] font-mono text-[11px]" };
+        return { label: "Removed ✓", status: "COMPENSATED" };
       }
-      return { label: "Not created", style: "text-[#65696B] font-mono text-[11px]" };
+      return { label: "Not created", status: "DRAFT" };
     }
 
     if (service === "routing") {
@@ -121,37 +123,37 @@ export default function DeploymentDemo({
       ) {
         return {
           label: routingNode.state === "RECOVERED" ? "Recovered · 200" : "Present · 200",
-          style: "text-[#A5F36B] font-mono text-[11px]",
+          status: "READY",
           sublink: routingGatewayUrl ? { url: routingGatewayUrl, text: "Gateway ↗" } : undefined,
         };
       }
       if (routingNode?.state === "IN_DOUBT") {
-        return { label: "Unknown (lost ACK)", style: "text-amber-400 font-mono text-[11px]" };
+        return { label: "Lost ACK (In Doubt)", status: "IN_DOUBT" };
       }
       if (routingNode?.state === "RECONCILING") {
-        return { label: "Inspecting remote store…", style: "text-cyan-400 font-mono text-[11px]" };
+        return { label: "Inspecting remote store…", status: "EXECUTING" };
       }
       if (routingNode?.state === "COMPENSATED") {
-        return { label: "Removed ✓", style: "text-[#65696B] font-mono text-[11px]" };
+        return { label: "Removed ✓", status: "COMPENSATED" };
       }
-      return { label: "Not created", style: "text-[#65696B] font-mono text-[11px]" };
+      return { label: "Not created", status: "DRAFT" };
     }
 
     if (service === "frontend") {
       if (frontendNode?.state === "SUCCEEDED" && authoritativeState.frontend) {
         return {
           label: "Live · 200",
-          style: "text-[#A5F36B] font-mono text-[11px]",
+          status: "READY",
           sublink: frontendPreviewUrl ? { url: frontendPreviewUrl, text: "Preview ↗" } : undefined,
         };
       }
       if (frontendNode?.state === "FAILED") {
-        return { label: "Failed before commit", style: "text-rose-400 font-mono text-[11px]" };
+        return { label: "Failed before commit", status: "FAILED" };
       }
-      return { label: "Not created", style: "text-[#65696B] font-mono text-[11px]" };
+      return { label: "Not created", status: "DRAFT" };
     }
 
-    return { label: "Unknown", style: "text-[#65696B] font-mono text-[11px]" };
+    return { label: "Unknown", status: "DRAFT" };
   };
 
   const handleRun = () => {
@@ -162,120 +164,126 @@ export default function DeploymentDemo({
 
   return (
     <div className="space-y-6">
-      {/* ============================================================ */}
-      {/* 1. CONTROL PLANE HEADER WITH SCENARIO TOGGLE */}
-      {/* ============================================================ */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-[17px] sm:text-[19px] font-bold tracking-tight text-[#F2F3F1] font-display">
-              Reference deployment
-            </h1>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[#969B9E]">
-              4 services
-            </span>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#A5F36B]/10 border border-[#A5F36B]/20 text-[#A5F36B] hidden sm:inline-block">
-              PostgreSQL durable
+      {/* 1. Page Header with Controls */}
+      <PageHeader
+        title="Runtime Control Plane"
+        description="Durable multi-service WebMCP coordinator with state persistence, authoritative reconciliation, and Saga rollback."
+        badge={
+          <div className="flex items-center gap-2">
+            <StatusPill status="ACTIVE" size="sm" />
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[#A0A0A4]">
+              4 microservices
             </span>
           </div>
-          <p className="text-[12.5px] text-[#969B9E] max-w-xl">
-            Application deployment across four independent WebMCP services with authoritative recovery.
-          </p>
-        </div>
-
-        {/* Compact Scenario Selector & Run Action */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center rounded-md border border-white/[0.08] bg-[#0C0E0F] p-0.5 font-mono text-[11.5px]">
-            <button
-              onClick={() => setSelectedScenario("challenge")}
-              className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
-                selectedScenario === "challenge"
-                  ? "bg-white/[0.08] text-[#F2F3F1] font-semibold"
-                  : "text-[#969B9E] hover:text-[#F2F3F1]"
-              }`}
-            >
-              Challenge
-            </button>
-            <button
-              onClick={() => setSelectedScenario("happy")}
-              className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
-                selectedScenario === "happy"
-                  ? "bg-white/[0.08] text-[#F2F3F1] font-semibold"
-                  : "text-[#969B9E] hover:text-[#F2F3F1]"
-              }`}
-            >
-              Happy path
-            </button>
-          </div>
-
-          <button
-            onClick={handleRun}
-            disabled={isRunning || isHydrating}
-            className="px-4 py-2 rounded-md font-mono text-[12px] font-medium bg-[#F2F3F1] text-[#080A0B] hover:bg-white transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-sm"
-          >
-            {isRunning ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-[#080A0B] animate-ping"></span>
-                <span>Executing…</span>
-              </>
-            ) : selectedScenario === "challenge" ? (
-              <span>Run challenge</span>
-            ) : (
-              <span>Run happy path</span>
-            )}
-          </button>
-
-          <button
-            onClick={onInspectAll}
-            disabled={isRunning}
-            className="px-3 py-2 rounded-md font-mono text-[12px] text-[#969B9E] hover:text-[#F2F3F1] hover:bg-white/[0.04] border border-white/[0.06] transition-colors cursor-pointer disabled:opacity-50"
-            title="Inspect remote state"
-          >
-            Inspect
-          </button>
-
-          <button
-            onClick={onReset}
-            disabled={isRunning}
-            className="px-3 py-2 rounded-md font-mono text-[12px] text-[#969B9E] hover:text-[#F2F3F1] hover:bg-white/[0.04] border border-white/[0.06] transition-colors cursor-pointer disabled:opacity-50"
-            title="Reset transaction"
-          >
-            Reset
-          </button>
-        </div>
-      </div>
-
-      {/* Scenario Explanation subtext */}
-      <div className="text-[11.5px] font-mono text-[#65696B]">
-        {selectedScenario === "challenge" ? (
-          <span>
-            <strong className="text-[#969B9E]">Scenario: </strong>
-            Lost acknowledgement on Routing (<code className="text-amber-400">IN_DOUBT</code>) → authoritative reconciliation (<code className="text-[#A5F36B]">RECOVERED</code>) → confirmed Frontend failure → human-approved reverse Saga rollback.
-          </span>
-        ) : (
-          <span>
-            <strong className="text-[#969B9E]">Scenario: </strong>
-            Happy path execution across all 4 services (<code className="text-[#A5F36B]">COMMITTED</code>).
-          </span>
-        )}
-      </div>
-
-      {/* ============================================================ */}
-      {/* 2. CORE TWO-COLUMN CONTROL PLANE (70% MAIN / 30% RAIL) */}
-      {/* ============================================================ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT COLUMN: LIVE TRANSACTION DAG (~68%) */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="border border-white/[0.08] bg-[#0C0E0F] p-6 relative">
-            <div className="flex items-center justify-between pb-4 mb-2 border-b border-white/[0.06] font-mono text-[11px] text-[#65696B]">
-              <span>LIVE TRANSACTION TOPOLOGY</span>
-              <span>STATE: {transaction.state}</span>
+        }
+        actions={
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Scenario Toggle */}
+            <div className="flex items-center rounded border border-white/[0.08] bg-[#0B0C0E] p-0.5 font-mono text-[11.5px]">
+              <button
+                type="button"
+                onClick={() => setSelectedScenario("challenge")}
+                className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
+                  selectedScenario === "challenge"
+                    ? "bg-white/[0.08] text-[#F5F5F3] font-semibold"
+                    : "text-[#A0A0A4] hover:text-[#F5F5F3]"
+                }`}
+              >
+                Challenge Mode
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedScenario("happy")}
+                className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
+                  selectedScenario === "happy"
+                    ? "bg-white/[0.08] text-[#F5F5F3] font-semibold"
+                    : "text-[#A0A0A4] hover:text-[#F5F5F3]"
+                }`}
+              >
+                Happy Path
+              </button>
             </div>
 
-            {/* Direct DAG Canvas (No giant outer card) */}
-            <DeploymentDAG transaction={transaction} />
+            {/* Run Action */}
+            <button
+              type="button"
+              onClick={handleRun}
+              disabled={isRunning || isHydrating}
+              className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold text-[12.5px] font-sans transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-sm"
+            >
+              {isRunning ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-[#070708] animate-ping" />
+                  <span>Executing Pipeline…</span>
+                </>
+              ) : selectedScenario === "challenge" ? (
+                <span>Run Challenge Flow →</span>
+              ) : (
+                <span>Run Happy Path →</span>
+              )}
+            </button>
 
-            {/* Inline Human Approval Safety Gate */}
+            {/* Diagnostics Drawer Trigger */}
+            <button
+              type="button"
+              onClick={() => setDiagnosticsOpen(true)}
+              className="px-3 py-2 rounded font-mono text-[12px] text-[#A0A0A4] hover:text-[#F5F5F3] bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] transition-colors cursor-pointer"
+            >
+              Diagnostics ↗
+            </button>
+
+            <button
+              type="button"
+              onClick={onReset}
+              disabled={isRunning}
+              className="px-3 py-2 rounded font-mono text-[12px] text-[#66686D] hover:text-[#F5F5F3] hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Reset
+            </button>
+          </div>
+        }
+      />
+
+      {/* Scenario Explanatory Sub-bar */}
+      <div className="p-3 bg-[#0B0C0E] border border-white/[0.06] rounded text-[12px] font-mono text-[#A0A0A4] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-[#66686D]">ACTIVE SCENARIO:</span>
+          {selectedScenario === "challenge" ? (
+            <span>
+              Lost ACK on Routing (<span className="text-amber-400">IN_DOUBT</span>) → authoritative reconciliation (<span className="text-[#A5F36B]">RECOVERED</span>) → confirmed Frontend failure → human-approved reverse rollback.
+            </span>
+          ) : (
+            <span>
+              Direct 4-node pipeline execution across all services (<span className="text-[#A5F36B]">COMMITTED</span>).
+            </span>
+          )}
+        </div>
+        <span className="text-[11px] text-[#66686D] shrink-0">POSTGRESQL DURABILITY</span>
+      </div>
+
+      {/* 2. Main Two-Column Control Plane */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* LEFT COLUMN: LIVE TRANSACTION TOPOLOGY (~68%) */}
+        <div className="lg:col-span-8 space-y-6">
+          <Panel
+            title="TRANSACTION TOPOLOGY"
+            badge={<StatusPill status={transaction.state} size="sm" />}
+            actions={
+              <button
+                type="button"
+                onClick={onInspectAll}
+                disabled={isRunning}
+                className="text-[11px] font-mono text-[#A0A0A4] hover:text-[#A5F36B] transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Inspect All Nodes ↻
+              </button>
+            }
+          >
+            <div className="py-2">
+              <DeploymentDAG transaction={transaction} />
+            </div>
+
+            {/* Inline Human Safety Gate */}
             {isAwaitingApproval && (
               <div className="mt-6 pt-6 border-t border-amber-500/30">
                 <ApprovalCard
@@ -286,23 +294,23 @@ export default function DeploymentDemo({
               </div>
             )}
 
-            {/* Completed Outcome Banner */}
+            {/* Outcome Banner Compensated */}
             {isCompensated && (
-              <div className="mt-6 p-4 border border-white/[0.08] bg-[#080A0B] font-mono text-[11.5px] space-y-1.5">
-                <div className="flex items-center justify-between text-[#F2F3F1] font-semibold">
+              <div className="mt-6 p-4 border border-white/[0.08] bg-[#070708] font-mono text-[11.5px] space-y-1.5 rounded">
+                <div className="flex items-center justify-between text-[#F5F5F3] font-semibold">
                   <span className="text-[#A5F36B]">✓ Transaction compensated</span>
                   <span>3 resources removed and verified</span>
                 </div>
-                <div className="text-[#969B9E] text-[11px]">
+                <div className="text-[#A0A0A4] text-[11px]">
                   Frontend was never created. Reverse rollback completed in verified order (Routing → Backend → Database).
                 </div>
               </div>
             )}
 
-            {/* Happy Path Outcome Banner */}
+            {/* Outcome Banner Committed */}
             {isCommitted && (
-              <div className="mt-6 p-4 border border-[#A5F36B]/30 bg-[#A5F36B]/5 font-mono text-[11.5px] space-y-2">
-                <div className="flex items-center justify-between text-[#F2F3F1] font-semibold">
+              <div className="mt-6 p-4 border border-[#A5F36B]/30 bg-[#A5F36B]/5 font-mono text-[11.5px] space-y-2 rounded">
+                <div className="flex items-center justify-between text-[#F5F5F3] font-semibold">
                   <span className="text-[#A5F36B]">✓ Deployment committed</span>
                   <span>4 resources active</span>
                 </div>
@@ -312,7 +320,7 @@ export default function DeploymentDemo({
                       href={frontendPreviewUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-1.5 rounded bg-[#A5F36B] text-[#080A0B] font-semibold text-[11px] hover:bg-white transition-colors"
+                      className="px-3 py-1.5 rounded bg-[#A5F36B] text-[#070708] font-semibold text-[11px] hover:bg-white transition-colors"
                     >
                       Open application ↗
                     </a>
@@ -322,7 +330,7 @@ export default function DeploymentDemo({
                       href={routingGatewayUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-1.5 rounded bg-white/[0.06] text-[#F2F3F1] text-[11px] hover:bg-white/[0.1] transition-colors"
+                      className="px-3 py-1.5 rounded bg-white/[0.06] text-[#F5F5F3] text-[11px] hover:bg-white/[0.1] transition-colors"
                     >
                       Gateway route ↗
                     </a>
@@ -330,34 +338,28 @@ export default function DeploymentDemo({
                 </div>
               </div>
             )}
-          </div>
+          </Panel>
+
+          {/* Full Event Timeline */}
+          <EventTimeline eventLog={eventLog} onClearLog={onClearLog} />
         </div>
 
-        {/* RIGHT COLUMN: TRANSACTION RAIL (~32%) */}
-        <div className="lg:col-span-4 space-y-4">
-          {/* Section 1: Transaction Summary */}
-          <div className="border border-white/[0.08] bg-[#0C0E0F] p-4 space-y-3 font-mono text-[11.5px]">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-              <span className="text-[10px] text-[#65696B] uppercase">Transaction</span>
-              <span
-                className={`px-2 py-0.5 text-[10px] border ${
-                  isCommitted || isCompensated
-                    ? "bg-emerald-950/60 text-[#A5F36B] border-[#A5F36B]/30"
-                    : isAwaitingApproval
-                    ? "bg-amber-950/60 text-amber-300 border-amber-500/40"
-                    : "bg-white/[0.04] text-[#F2F3F1] border-white/[0.08]"
-                }`}
-              >
-                {transaction.state}
-              </span>
-            </div>
+        {/* RIGHT COLUMN: TRANSACTION AUDIT RAIL (~32%) */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Section 1: Transaction Metadata */}
+          <Panel title="TRANSACTION METADATA">
+            <div className="space-y-3 font-mono text-[11.5px]">
+              <div className="flex items-center justify-between text-[#A0A0A4]">
+                <span>Status</span>
+                <StatusPill status={transaction.state} size="sm" />
+              </div>
 
-            <div className="space-y-1.5 text-[11px]">
-              <div className="flex items-center justify-between text-[#969B9E]">
-                <span>ID</span>
+              <div className="flex items-center justify-between text-[#A0A0A4]">
+                <span>Transaction ID</span>
                 <button
+                  type="button"
                   onClick={copyTxId}
-                  className="text-[#F2F3F1] hover:text-[#A5F36B] flex items-center gap-1 cursor-pointer"
+                  className="text-[#F5F5F3] hover:text-[#A5F36B] flex items-center gap-1 cursor-pointer"
                   title="Click to copy"
                 >
                   <span className="truncate max-w-[130px]">{transaction.id}</span>
@@ -365,53 +367,46 @@ export default function DeploymentDemo({
                 </button>
               </div>
 
-              <div className="flex items-center justify-between text-[#969B9E]">
+              <div className="flex items-center justify-between text-[#A0A0A4]">
                 <span>Durability</span>
-                <span className="text-[#A5F36B]">PostgreSQL connected</span>
+                <span className="text-[#A5F36B]">PostgreSQL (Port 5435)</span>
               </div>
 
-              <div className="flex items-center justify-between text-[#969B9E]">
-                <span>Workflow</span>
-                <span className="text-[#F2F3F1]">Reference deployment</span>
+              <div className="flex items-center justify-between text-[#A0A0A4]">
+                <span>Workflow Type</span>
+                <span className="text-[#F5F5F3]">4-Service Reference</span>
               </div>
             </div>
-          </div>
+          </Panel>
 
           {/* Section 2: Authoritative State List */}
-          <div className="border border-white/[0.08] bg-[#0C0E0F] p-4 space-y-3 font-mono text-[11.5px]">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-              <span className="text-[10px] text-[#65696B] uppercase">Authoritative State</span>
-              <span className="text-[10px] text-[#65696B]">REAL-TIME</span>
-            </div>
-
-            <div className="divide-y divide-white/[0.04] space-y-2 pt-1">
+          <Panel title="AUTHORITATIVE STATE" subtitle="REAL-TIME REMOTE">
+            <div className="divide-y divide-white/[0.04] space-y-2 pt-1 font-mono text-[11.5px]">
               {/* Database */}
               <div className="pt-2 flex items-center justify-between">
                 <div>
-                  <div className="text-[#F2F3F1] text-[12px]">Database</div>
-                  <div className="text-[10px] text-[#65696B]">PostgreSQL schema</div>
+                  <div className="text-[#F5F5F3] text-[12px] font-sans font-medium">Database Service</div>
+                  <div className="text-[10.5px] text-[#66686D]">PostgreSQL schema</div>
                 </div>
-                <div>{getResourceStatus("database").label}</div>
+                <StatusPill status={getResourceStatus("database").status} size="sm" />
               </div>
 
               {/* Backend */}
               <div className="pt-2 flex items-center justify-between">
                 <div>
-                  <div className="text-[#F2F3F1] text-[12px]">Backend</div>
-                  <div className="text-[10px] text-[#65696B]">Compute runtime</div>
+                  <div className="text-[#F5F5F3] text-[12px] font-sans font-medium">Compute Service</div>
+                  <div className="text-[10.5px] text-[#66686D]">Backend runtime</div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className={getResourceStatus("backend").style}>
-                    {getResourceStatus("backend").label}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <StatusPill status={getResourceStatus("backend").status} size="sm" />
                   {getResourceStatus("backend").sublink && (
                     <a
                       href={getResourceStatus("backend").sublink?.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[#A5F36B] hover:underline text-[10px]"
+                      className="text-[#A5F36B] hover:underline text-[10.5px]"
                     >
-                      {getResourceStatus("backend").sublink?.text}
+                      ↗
                     </a>
                   )}
                 </div>
@@ -420,21 +415,19 @@ export default function DeploymentDemo({
               {/* Routing */}
               <div className="pt-2 flex items-center justify-between">
                 <div>
-                  <div className="text-[#F2F3F1] text-[12px]">Routing</div>
-                  <div className="text-[10px] text-[#65696B]">Gateway proxy route</div>
+                  <div className="text-[#F5F5F3] text-[12px] font-sans font-medium">Routing Service</div>
+                  <div className="text-[10.5px] text-[#66686D]">Gateway proxy route</div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className={getResourceStatus("routing").style}>
-                    {getResourceStatus("routing").label}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <StatusPill status={getResourceStatus("routing").status} size="sm" />
                   {getResourceStatus("routing").sublink && (
                     <a
                       href={getResourceStatus("routing").sublink?.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[#A5F36B] hover:underline text-[10px]"
+                      className="text-[#A5F36B] hover:underline text-[10.5px]"
                     >
-                      {getResourceStatus("routing").sublink?.text}
+                      ↗
                     </a>
                   )}
                 </div>
@@ -443,64 +436,64 @@ export default function DeploymentDemo({
               {/* Frontend */}
               <div className="pt-2 flex items-center justify-between">
                 <div>
-                  <div className="text-[#F2F3F1] text-[12px]">Frontend</div>
-                  <div className="text-[10px] text-[#65696B]">Preview deployment</div>
+                  <div className="text-[#F5F5F3] text-[12px] font-sans font-medium">Frontend Service</div>
+                  <div className="text-[10.5px] text-[#66686D]">Preview deployment</div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className={getResourceStatus("frontend").style}>
-                    {getResourceStatus("frontend").label}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <StatusPill status={getResourceStatus("frontend").status} size="sm" />
                   {getResourceStatus("frontend").sublink && (
                     <a
                       href={getResourceStatus("frontend").sublink?.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[#A5F36B] hover:underline text-[10px]"
+                      className="text-[#A5F36B] hover:underline text-[10.5px]"
                     >
-                      {getResourceStatus("frontend").sublink?.text}
+                      ↗
                     </a>
                   )}
                 </div>
               </div>
             </div>
-          </div>
+          </Panel>
 
           {/* Section 3: Recent Activity Log */}
-          <div className="border border-white/[0.08] bg-[#0C0E0F] p-4 space-y-3 font-mono text-[11.5px]">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-              <span className="text-[10px] text-[#65696B] uppercase">Recent Activity</span>
-              <span className="text-[10px] text-[#65696B]">LATEST 5</span>
-            </div>
-
+          <Panel title="RECENT EVENTS" subtitle="LATEST 5">
             {recentEvents.length === 0 ? (
-              <div className="py-4 text-center text-[#65696B] text-[11px]">
+              <div className="py-4 text-center text-[#66686D] text-[11px] font-mono">
                 No events recorded yet. Run a scenario above.
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5 font-mono text-[11px]">
                 {recentEvents.map((ev, idx) => (
-                  <div key={idx} className="flex items-start justify-between text-[10.5px] leading-tight">
+                  <div key={idx} className="flex items-start justify-between border-b border-white/[0.04] pb-2">
                     <div className="space-y-0.5">
-                      <span className="text-[#F2F3F1] block">{ev.type}</span>
-                      <span className="text-[#65696B]">
+                      <span className="text-[#F5F5F3] block font-medium">{ev.type}</span>
+                      <span className="text-[#66686D] text-[10px]">
                         {new Date(ev.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <span className="text-[#969B9E] text-[10px]">#{eventLog.length - idx}</span>
+                    <span className="text-[#66686D] text-[10px]">#{eventLog.length - idx}</span>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </Panel>
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* 3. FULL EVENT TIMELINE (LOG VIEW) */}
-      {/* ============================================================ */}
-      <div className="pt-2">
-        <EventTimeline eventLog={eventLog} onClearLog={onClearLog} />
-      </div>
+      {/* Diagnostics Slide-Over Drawer */}
+      <DiagnosticsDrawer
+        isOpen={diagnosticsOpen}
+        onClose={() => setDiagnosticsOpen(false)}
+        title="Transaction Coordinator State"
+        data={{
+          transaction,
+          authoritativeState,
+          recentEventsCount: eventLog.length,
+          coordinatorPort: 3000,
+          databasePort: 5435,
+        }}
+      />
     </div>
   );
 }

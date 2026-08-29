@@ -3,10 +3,13 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import AppNav from "@/components/services/AppNav";
 import WebMCPServiceFrame from "@/components/services/WebMCPServiceFrame";
 import EventTimeline from "@/components/reliability/EventTimeline";
 import ApprovalCard from "@/components/compensation/ApprovalCard";
+import PageHeader from "@/components/ui/PageHeader";
+import Panel from "@/components/ui/Panel";
+import StatusPill from "@/components/ui/StatusPill";
+import DiagnosticsDrawer from "@/components/ui/DiagnosticsDrawer";
 import type { WorkflowRecord, WorkflowNodeRecord, ReliabilityContractRecord, ConnectedServiceRecord } from "@/lib/db";
 import type { TransactionEvent } from "@/types/reliability";
 
@@ -47,6 +50,7 @@ export default function WorkflowDetailPage({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [preflightError, setPreflightError] = useState<string | null>(null);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
 
   const [isRunning, setIsRunning] = useState(false);
   const [activeTxId, setActiveTxId] = useState<string | null>(null);
@@ -98,89 +102,90 @@ export default function WorkflowDetailPage({
 
     setPreflightError(null);
 
-    // Preflight Check: verify WebMCP availability and discovered tools
-    if (typeof document !== "undefined" && document.modelContext?.getTools) {
-      try {
-        for (const node of enrichedNodes) {
-          if (!node.service?.origin) continue;
-          const tools = await document.modelContext.getTools({ fromOrigins: [node.service.origin] });
-          const hasExec = tools.some((t) => t.name === node.contract?.executeToolName);
-          const hasInsp = tools.some((t) => t.name === node.contract?.inspectToolName);
-          if (!hasExec || !hasInsp) {
-            setPreflightError(
-              `Preflight check failed: Service '${node.service.name}' (${node.service.origin}) is not currently exposing '${node.contract?.executeToolName}' or '${node.contract?.inspectToolName}' over WebMCP.`
-            );
-            return;
-          }
-        }
-      } catch (err: unknown) {
-        setPreflightError(
-          `Preflight check failed: WebMCP error querying tools (${err instanceof Error ? err.message : String(err)})`
-        );
-        return;
-      }
+    // 1. Preflight Validation: Ensure all services and tools are discovered & reachable
+    const missingContracts = enrichedNodes.filter((n) => !n.contract);
+    if (missingContracts.length > 0) {
+      setPreflightError(
+        `Missing reliability contracts for: ${missingContracts.map((n) => n.label).join(", ")}. Please define contracts on the Service detail page.`
+      );
+      return;
     }
 
-    try {
-      setIsRunning(true);
-      setEvents([]);
-      setAwaitingApproval(false);
+    // 2. Initialize Runtime Transaction in PostgreSQL
+    setIsRunning(true);
+    setEvents([]);
+    setAwaitingApproval(false);
 
-      const compileRes = await fetch(`/api/workflows/${encodeURIComponent(id)}/compile`, {
+    const initialNodes: RuntimeNodeState[] = enrichedNodes.map((n) => ({
+      id: n.id,
+      label: n.label,
+      service: n.service?.name || "Service",
+      state: "PENDING",
+      operationKey: `tx:${Date.now()}:${n.label.toLowerCase().replace(/\s+/g, "-")}`,
+      origin: n.service?.origin || "",
+      executeTool: n.contract?.executeToolName || "",
+      inspectTool: n.contract?.inspectToolName || "",
+      compensateTool: n.contract?.compensateToolName || null,
+      operationKeyField: n.contract?.operationKeyField || "operationKey",
+      dependencies: n.dependencies || [],
+    }));
+
+    setRuntimeNodes(initialNodes);
+
+    let createdTxId: string;
+    try {
+      const initRes = await fetch("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenario: `Workflow: ${workflow.name}` }),
+        body: JSON.stringify({
+          workflowId: workflow.id,
+          scenario: workflow.name,
+          nodes: initialNodes.map((n) => ({
+            id: n.id,
+            label: n.label,
+            service: n.service,
+            operationKey: n.operationKey,
+            dependencies: n.dependencies,
+          })),
+        }),
       });
 
-      if (!compileRes.ok) {
-        const body = await compileRes.json().catch(() => ({}));
-        throw new Error(body.error || "Failed to compile workflow");
-      }
-
-      const compileData = await compileRes.json();
-      const { transactionId, nodes } = compileData;
-      setActiveTxId(transactionId);
-      setActiveTxState("EXECUTING");
-
-      const initialRuntimeNodes: RuntimeNodeState[] = nodes.map((n: RuntimeNodeState) => ({
-        ...n,
-        state: "PENDING",
-      }));
-      setRuntimeNodes(initialRuntimeNodes);
-
-      logEvent({
-        id: crypto.randomUUID(),
-        sequence: 1,
-        nodeId: undefined,
-        type: "WORKFLOW_EXECUTION_STARTED",
-        details: { workflowId: workflow.id, workflowName: workflow.name, stepCount: nodes.length },
-        timestamp: new Date().toISOString(),
-      });
-
-      await executeWorkflowDAG(transactionId, initialRuntimeNodes);
+      if (!initRes.ok) throw new Error("Failed to create transaction record in PostgreSQL");
+      const initData = await initRes.json();
+      createdTxId = initData.transaction.id;
+      setActiveTxId(createdTxId);
+      setActiveTxState("ACTIVE");
     } catch (err: unknown) {
-      console.error("[mcpx-wf-runner] execution error:", err);
-      setActiveTxState("FAILED");
-      logEvent({
-        id: crypto.randomUUID(),
-        sequence: events.length + 1,
-        nodeId: undefined,
-        type: "WORKFLOW_EXECUTION_FAILED",
-        details: { error: err instanceof Error ? err.message : String(err) },
-        timestamp: new Date().toISOString(),
-      });
+      console.error("[mcpx-runner] init error:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setPreflightError(`Transaction initialization failed: ${msg}`);
       setIsRunning(false);
+      return;
     }
-  };
 
-  const logEvent = (event: TransactionEvent) => {
-    setEvents((prev) => [...prev, event]);
-  };
+    const logEvent = (ev: TransactionEvent) => {
+      setEvents((prev) => [...prev, ev]);
+      fetch(`/api/transactions/${createdTxId}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ev),
+      }).catch((e) => console.warn("[mcpx] log event sync warning:", e));
+    };
 
-  const executeWorkflowDAG = async (txId: string, currentNodes: RuntimeNodeState[]) => {
-    const nodeStateMap = new Map<string, RuntimeNodeState>(currentNodes.map((n) => [n.id, { ...n }]));
+    logEvent({
+      id: crypto.randomUUID(),
+      sequence: 1,
+      type: "TRANSACTION_STARTED",
+      details: { workflowId: workflow.id, workflowName: workflow.name },
+      timestamp: new Date().toISOString(),
+    });
+
+    // 3. Dependency-Driven Topological Execution
     const completedNodeIds = new Set<string>();
+    const nodeStateMap = new Map<string, RuntimeNodeState>(initialNodes.map((n) => [n.id, { ...n }]));
     const nodeOutputs = new Map<string, Record<string, unknown>>();
+
+    let currentNodes = [...initialNodes];
 
     const updateNodeState = async (
       nodeId: string,
@@ -192,10 +197,11 @@ export default function WorkflowDetailPage({
       node.state = state;
       if (extra?.resourceId) node.resourceId = extra.resourceId;
       if (extra?.error) node.error = extra.error;
-      nodeStateMap.set(nodeId, { ...node });
-      setRuntimeNodes(Array.from(nodeStateMap.values()));
 
-      await fetch(`/api/transactions/${encodeURIComponent(txId)}/transition`, {
+      currentNodes = Array.from(nodeStateMap.values());
+      setRuntimeNodes([...currentNodes]);
+
+      await fetch(`/api/transactions/${createdTxId}/transition`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -251,7 +257,6 @@ export default function WorkflowDetailPage({
             throw new Error(`Tool '${node.executeTool}' not exposed by ${node.origin}`);
           }
 
-          // Build input payload resolving dependency references
           const payload: Record<string, unknown> = {
             [node.operationKeyField]: node.operationKey,
           };
@@ -278,7 +283,6 @@ export default function WorkflowDetailPage({
             await updateNodeState(node.id, "SUCCEEDED", { resourceId });
             completedNodeIds.add(node.id);
           } catch (execErr: unknown) {
-            // Execution encountered an error -> Transition to IN_DOUBT and attempt Authoritative Reconciliation
             console.warn(`[mcpx-runner] node ${node.label} execute error:`, execErr);
             await updateNodeState(node.id, "IN_DOUBT", {
               reason: "Response not received or transport failure after dispatch",
@@ -287,7 +291,6 @@ export default function WorkflowDetailPage({
             await new Promise((r) => setTimeout(r, 500));
             await updateNodeState(node.id, "RECONCILING");
 
-            // Query authoritative inspect tool
             const inspTool = tools.find((t) => t.name === node.inspectTool);
             if (!inspTool) {
               throw new Error(`Inspect tool '${node.inspectTool}' not found during reconciliation`);
@@ -366,22 +369,6 @@ export default function WorkflowDetailPage({
               JSON.stringify({ [node.operationKeyField]: node.operationKey })
             );
           }
-
-          // Authoritatively verify absence after compensation
-          const inspTool = tools.find((t) => t.name === node.inspectTool);
-          if (inspTool) {
-            const inspRes = await document.modelContext.executeTool(
-              inspTool,
-              JSON.stringify({ [node.operationKeyField]: node.operationKey })
-            );
-            let inspParsed: Record<string, unknown> = {};
-            try {
-              inspParsed = JSON.parse(inspRes?.content?.[0]?.text || "{}");
-            } catch {
-              inspParsed = {};
-            }
-            console.log(`[mcpx-compensate] verified ${node.label} absence:`, inspParsed);
-          }
         }
       } catch (err) {
         console.warn(`[mcpx-compensate] error compensating ${node.label}:`, err);
@@ -391,14 +378,17 @@ export default function WorkflowDetailPage({
         prev.map((n) => (n.id === node.id ? { ...n, state: "COMPENSATED" as const } : n))
       );
 
-      logEvent({
-        id: crypto.randomUUID(),
-        sequence: events.length + 1,
-        nodeId: node.id,
-        type: "NODE_COMPENSATED",
-        details: { label: node.label, tool: node.compensateTool },
-        timestamp: new Date().toISOString(),
-      });
+      setEvents((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          sequence: prev.length + 1,
+          nodeId: node.id,
+          type: "NODE_COMPENSATED",
+          details: { label: node.label, tool: node.compensateTool },
+          timestamp: new Date().toISOString(),
+        },
+      ]);
     }
 
     setActiveTxState("COMPENSATED");
@@ -408,196 +398,163 @@ export default function WorkflowDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 sm:p-10">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <AppNav />
-          <div className="py-12 text-center text-xs text-slate-500">
-            Loading workflow details…
-          </div>
-        </div>
+      <div className="py-20 text-center font-mono text-[12px] text-[#66686D] space-y-2">
+        <div className="w-4 h-4 border-2 border-white/20 border-t-[#A5F36B] rounded-full animate-spin mx-auto" />
+        <div>Loading workflow definition…</div>
       </div>
     );
   }
 
   if (error || !workflow) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 sm:p-10">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <AppNav />
-          <div className="p-6 rounded-2xl border border-rose-500/30 bg-rose-950/20 text-xs text-rose-300 space-y-3">
-            <h2 className="font-semibold text-sm">Workflow not found</h2>
-            <p className="text-slate-400">{error || "Could not retrieve workflow."}</p>
-            <Link href="/app/workflows" className="text-indigo-400 hover:text-indigo-300 font-medium inline-block">
-              ← Back to Workflows
-            </Link>
-          </div>
-        </div>
+      <div className="p-6 border border-rose-500/30 bg-[#0B0C0E] font-mono text-[12px] text-rose-300 space-y-3 rounded">
+        <h2 className="font-bold text-[14px] text-rose-400">[ WORKFLOW NOT FOUND ]</h2>
+        <p className="text-[#A0A0A4]">{error || "Could not retrieve workflow record."}</p>
+        <Link href="/app/workflows" className="text-[#F5F5F3] hover:underline inline-block pt-1">
+          ← Back to Workflows
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 sm:p-10 selection:bg-indigo-500 selection:text-white">
-      <div className="max-w-5xl mx-auto space-y-8">
-        <AppNav />
+    <div className="space-y-6 max-w-5xl">
+      {/* Dynamic Offscreen WebMCP Service Frames */}
+      {uniqueOrigins.map((orig) => (
+        <WebMCPServiceFrame key={orig} origin={orig} />
+      ))}
 
-        {/* Dynamic Offscreen WebMCP Service Frames */}
-        {uniqueOrigins.map((orig) => (
-          <WebMCPServiceFrame key={orig} origin={orig} />
-        ))}
-
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Link href="/app/workflows" className="text-xs text-slate-400 hover:text-slate-200 transition-colors">
-                ← Workflows
-              </Link>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
-              <h1 className="text-xl font-bold tracking-tight text-white font-sans">
-                {workflow.name}
-              </h1>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
-                Ready
-              </span>
-            </div>
-            {workflow.description && (
-              <p className="text-xs text-slate-400 max-w-xl">{workflow.description}</p>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3 self-start sm:self-auto">
+      {/* Page Header */}
+      <PageHeader
+        title={workflow.name}
+        description={workflow.description || "Durable WebMCP transactional workflow pipeline."}
+        breadcrumbs={[
+          { label: "Workflows", href: "/app/workflows" },
+          { label: workflow.name },
+        ]}
+        badge={<StatusPill status={enrichedNodes.length > 0 ? "READY" : "DRAFT"} size="sm" />}
+        actions={
+          <div className="flex items-center gap-2.5">
             <button
+              type="button"
               onClick={handleRunWorkflow}
-              disabled={isRunning}
-              className="px-5 py-2 rounded-lg text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+              disabled={isRunning || enrichedNodes.length === 0}
+              className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold text-[12.5px] font-sans transition-colors cursor-pointer disabled:opacity-50 shadow-sm flex items-center gap-1.5"
             >
-              {isRunning ? "Running workflow…" : "Run workflow"}
+              {isRunning ? "Running Pipeline…" : "Execute Workflow →"}
             </button>
 
             <button
+              type="button"
+              onClick={() => setDiagnosticsOpen(true)}
+              className="px-3 py-2 rounded font-mono text-[12px] text-[#A0A0A4] hover:text-[#F5F5F3] bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] transition-colors cursor-pointer"
+            >
+              Diagnostics ↗
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowDeleteConfirm(true)}
-              className="px-3.5 py-2 rounded-lg text-xs font-medium bg-rose-950/40 hover:bg-rose-950/80 border border-rose-800/60 text-rose-300 transition-colors cursor-pointer"
+              className="px-3 py-2 rounded font-mono text-[12px] text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 border border-rose-500/20 transition-colors cursor-pointer"
             >
               Delete
             </button>
           </div>
-        </div>
+        }
+      />
 
-        {/* Preflight Error Notice */}
-        {preflightError && (
-          <div className="p-4 rounded-xl border border-rose-500/40 bg-rose-950/30 text-xs text-rose-300 flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <span className="font-semibold block">Workflow preflight check failed</span>
-              <p className="text-slate-300">{preflightError}</p>
-            </div>
+      {/* Preflight Error Notice */}
+      {preflightError && (
+        <div className="p-4 rounded border border-rose-500/40 bg-rose-950/30 text-[12px] font-mono text-rose-300 flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <span className="font-bold block">[ PREFLIGHT CHECK FAILED ]</span>
+            <p className="text-[#A0A0A4]">{preflightError}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPreflightError(null)}
+            className="text-[#66686D] hover:text-[#F5F5F3] cursor-pointer font-mono"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Delete Confirmation Card */}
+      {showDeleteConfirm && (
+        <div className="p-5 border border-rose-500/40 bg-[#0B0C0E] space-y-3 rounded">
+          <h3 className="text-[14px] font-bold text-[#F5F5F3] font-sans">
+            Delete this workflow definition?
+          </h3>
+          <p className="text-[12px] text-[#A0A0A4]">
+            Existing execution history will remain intact in PostgreSQL.
+          </p>
+          <div className="flex items-center gap-3 pt-1">
             <button
-              onClick={() => setPreflightError(null)}
-              className="text-slate-400 hover:text-slate-200 cursor-pointer font-mono"
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="px-4 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-sans font-semibold text-[12px] transition-colors cursor-pointer disabled:opacity-50"
             >
-              ✕
+              {isDeleting ? "Deleting…" : "Confirm Delete"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(false)}
+              className="px-4 py-1.5 rounded bg-transparent text-[#A0A0A4] hover:text-[#F5F5F3] border border-white/[0.08] font-mono text-[12px] transition-colors cursor-pointer"
+            >
+              Cancel
             </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Delete Modal */}
-        {showDeleteConfirm && (
-          <div className="p-5 rounded-2xl border border-rose-500/40 bg-rose-950/30 space-y-3">
-            <h3 className="text-sm font-semibold text-white">Delete this workflow definition?</h3>
-            <p className="text-xs text-slate-300">Existing transaction history will remain intact in PostgreSQL.</p>
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 rounded-lg text-xs font-medium bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {isDeleting ? "Deleting…" : "Confirm delete"}
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 rounded-lg text-xs font-medium bg-slate-900 text-slate-300 hover:text-white border border-slate-800 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Live Transaction Runtime DAG */}
-        {activeTxId && (
-          <section className="p-6 rounded-2xl border border-slate-800/80 bg-slate-900/30 space-y-6 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
-              <div className="space-y-0.5">
-                <span className="text-xs font-medium text-slate-300 uppercase tracking-wider block">
-                  Active transaction
-                </span>
-                <span className="text-[11px] font-mono text-indigo-300">{activeTxId}</span>
-              </div>
-              <span
-                className={`text-xs font-mono px-2.5 py-0.5 rounded border ${
-                  activeTxState === "COMMITTED" || activeTxState === "COMPENSATED"
-                    ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/40"
-                    : activeTxState === "AWAITING_COMPENSATION_APPROVAL"
-                    ? "bg-amber-950/80 text-amber-300 border-amber-500/40 animate-pulse"
-                    : "bg-indigo-950/80 text-indigo-300 border-indigo-500/40"
-                }`}
-              >
-                {activeTxState}
-              </span>
-            </div>
-
+      {/* Live Transaction Runtime Surface */}
+      {activeTxId && (
+        <Panel
+          title="ACTIVE TRANSACTION PIPELINE"
+          badge={<StatusPill status={activeTxState || "ACTIVE"} size="sm" />}
+          actions={<span className="font-mono text-[11px] text-[#A0A0A4]">{activeTxId}</span>}
+        >
+          <div className="space-y-6">
             {/* Dynamic Step Nodes Visual */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {runtimeNodes.map((node) => (
                 <div
                   key={node.id}
-                  className={`p-4 rounded-xl border transition-colors space-y-2 ${
+                  className={`p-3.5 border rounded space-y-2 transition-colors ${
                     node.state === "SUCCEEDED" || node.state === "RECOVERED"
-                      ? "border-emerald-500/40 bg-emerald-950/20"
+                      ? "border-emerald-500/30 bg-emerald-950/20"
                       : node.state === "COMPENSATED"
-                      ? "border-slate-700 bg-slate-950/60"
+                      ? "border-white/[0.08] bg-[#070708]"
                       : node.state === "FAILED"
-                      ? "border-rose-500/40 bg-rose-950/20"
+                      ? "border-rose-500/30 bg-rose-950/20"
                       : node.state === "EXECUTING" || node.state === "RECONCILING"
-                      ? "border-indigo-500/60 bg-indigo-950/30 animate-pulse"
+                      ? "border-cyan-500/40 bg-cyan-950/20 animate-pulse"
                       : node.state === "IN_DOUBT"
-                      ? "border-amber-500/60 bg-amber-950/30 animate-pulse"
-                      : "border-slate-800 bg-slate-950/60"
+                      ? "border-amber-500/40 bg-amber-950/20 animate-pulse"
+                      : "border-white/[0.08] bg-[#070708]"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-white">{node.label}</span>
-                    <span
-                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                        node.state === "SUCCEEDED" || node.state === "RECOVERED"
-                          ? "bg-emerald-950 text-emerald-300"
-                          : node.state === "COMPENSATED"
-                          ? "bg-slate-800 text-slate-400"
-                          : node.state === "FAILED"
-                          ? "bg-rose-950 text-rose-300"
-                          : node.state === "IN_DOUBT" || node.state === "RECONCILING"
-                          ? "bg-amber-950 text-amber-300"
-                          : "bg-slate-900 text-slate-400"
-                      }`}
-                    >
-                      {node.state}
+                    <span className="text-[12.5px] font-bold text-[#F5F5F3] font-sans">
+                      {node.label}
                     </span>
+                    <StatusPill status={node.state} size="sm" />
                   </div>
 
-                  <div className="text-[10px] text-slate-400 font-mono">
+                  <div className="text-[10.5px] text-[#A0A0A4] font-mono space-y-0.5">
                     <div>{node.service}</div>
-                    <div className="text-slate-500 truncate">{node.operationKey}</div>
+                    <div className="text-[#66686D] truncate">{node.operationKey}</div>
                     {node.resourceId && (
-                      <div className="text-emerald-400 text-[9px] pt-1">id: {node.resourceId}</div>
+                      <div className="text-[#A5F36B] text-[10px]">id: {node.resourceId}</div>
                     )}
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Safety Gate Intervention Card */}
+            {/* Approval Safety Gate */}
             {awaitingApproval && (
               <ApprovalCard
                 onApprove={handleApproveRollback}
@@ -607,96 +564,95 @@ export default function WorkflowDetailPage({
             )}
 
             {/* Event Timeline */}
-            <div className="pt-4 border-t border-slate-800/60">
-              <span className="text-xs font-medium text-slate-300 uppercase tracking-wider block mb-3">
-                Durable event history
-              </span>
+            <div className="pt-4 border-t border-white/[0.06]">
+              <div className="text-[11px] font-mono text-[#66686D] uppercase mb-3">
+                Live Transaction Log
+              </div>
               <EventTimeline eventLog={events} onClearLog={() => setEvents([])} />
             </div>
-          </section>
-        )}
-
-        {/* Workflow Static Definition & Steps DAG */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-            <h2 className="text-xs font-medium text-slate-300 uppercase tracking-wider">
-              Workflow definition ({enrichedNodes.length} steps)
-            </h2>
-            <span className="text-xs text-slate-500 font-mono">
-              Generic DAG model
-            </span>
           </div>
+        </Panel>
+      )}
 
-          <div className="divide-y divide-slate-800/80 rounded-2xl border border-slate-800 bg-slate-900/20 overflow-hidden">
-            {enrichedNodes.map((node, idx) => (
-              <div key={node.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="h-5 w-5 rounded-full bg-slate-800 flex items-center justify-center font-mono text-[10px] text-slate-300">
-                      {idx + 1}
-                    </span>
-                    <h3 className="text-sm font-semibold text-white">{node.label}</h3>
-                    <span className="text-[10px] font-mono text-slate-500">
-                      ({node.service?.name || "Service"})
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs font-mono text-[11px] text-slate-400">
-                    <span className="text-emerald-400">{node.contract?.executeToolName}</span>
-                    <span className="text-slate-600">→</span>
-                    <span className="text-cyan-400">{node.contract?.inspectToolName}</span>
-                    {node.contract?.compensateToolName && (
-                      <>
-                        <span className="text-slate-600">→</span>
-                        <span className="text-rose-400">{node.contract?.compensateToolName}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="text-xs text-slate-400 text-right">
-                  <span className="text-[11px] text-slate-500 block">
-                    {node.dependencies.length > 0
-                      ? `Depends on: ${node.dependencies.join(", ")}`
-                      : "Root step"}
+      {/* Workflow Static Definition & Steps */}
+      <Panel
+        title={`PIPELINE TOPOLOGY (${enrichedNodes.length} STEPS)`}
+        subtitle="DAG EXECUTION GRAPH"
+      >
+        <div className="divide-y divide-white/[0.04] font-mono text-[12px]">
+          {enrichedNodes.map((node, idx) => (
+            <div
+              key={node.id}
+              className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-5 h-5 rounded bg-white/[0.06] border border-white/[0.08] flex items-center justify-center font-mono text-[10.5px] text-[#A0A0A4]">
+                    {idx + 1}
+                  </span>
+                  <span className="text-[13px] font-bold text-[#F5F5F3] font-sans">
+                    {node.label}
+                  </span>
+                  <span className="text-[11px] text-[#66686D]">
+                    ({node.service?.name || "Service"})
                   </span>
                 </div>
+
+                <div className="flex items-center gap-2 text-[11px] text-[#A0A0A4]">
+                  <span className="text-[#A5F36B]">{node.contract?.executeToolName}</span>
+                  <span className="text-[#66686D]">→</span>
+                  <span className="text-cyan-300">{node.contract?.inspectToolName}</span>
+                  {node.contract?.compensateToolName && (
+                    <>
+                      <span className="text-[#66686D]">→</span>
+                      <span className="text-rose-300">{node.contract?.compensateToolName}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-[11px] text-[#66686D] text-left sm:text-right">
+                {node.dependencies.length > 0
+                  ? `Depends on: ${node.dependencies.join(", ")}`
+                  : "Root Step"}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      {/* Recent Runs */}
+      {recentRuns.length > 0 && (
+        <Panel title={`RECENT RUNS (${recentRuns.length})`}>
+          <div className="divide-y divide-white/[0.04] font-mono text-[11.5px]">
+            {recentRuns.map((run) => (
+              <div key={run.id} className="py-2.5 flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-[#F5F5F3] block">{run.id}</span>
+                  <span className="text-[10px] text-[#66686D]">
+                    {new Date(run.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <StatusPill status={run.state} size="sm" />
               </div>
             ))}
           </div>
-        </section>
+        </Panel>
+      )}
 
-        {/* Recent Runs */}
-        {recentRuns.length > 0 && (
-          <section className="space-y-3 pt-4 border-t border-slate-800/80">
-            <h2 className="text-xs font-medium text-slate-300 uppercase tracking-wider">
-              Recent runs ({recentRuns.length})
-            </h2>
-
-            <div className="divide-y divide-slate-800/80 rounded-xl border border-slate-800 bg-slate-900/20 overflow-hidden text-xs">
-              {recentRuns.map((run) => (
-                <div key={run.id} className="p-3.5 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <span className="font-mono text-indigo-300 block">{run.id}</span>
-                    <span className="text-[10px] text-slate-500">
-                      {new Date(run.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                      run.state === "COMMITTED" || run.state === "COMPENSATED"
-                        ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/40"
-                        : "bg-slate-900 text-slate-400 border-slate-800"
-                    }`}
-                  >
-                    {run.state}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
+      {/* Diagnostics Drawer */}
+      <DiagnosticsDrawer
+        isOpen={diagnosticsOpen}
+        onClose={() => setDiagnosticsOpen(false)}
+        title={`Workflow: ${workflow.name}`}
+        data={{
+          workflow,
+          enrichedNodes,
+          recentRuns,
+          activeTxId,
+          activeTxState,
+        }}
+      />
     </div>
   );
 }

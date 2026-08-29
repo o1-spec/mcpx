@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import PageHeader from "@/components/ui/PageHeader";
+import StatusPill from "@/components/ui/StatusPill";
+import EmptyState from "@/components/ui/EmptyState";
+import DiagnosticsDrawer from "@/components/ui/DiagnosticsDrawer";
 
 interface TransactionRow {
   id: string;
@@ -14,6 +18,9 @@ interface TransactionRow {
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTx, setSelectedTx] = useState<TransactionRow | null>(null);
 
   useEffect(() => {
     fetch("/api/transactions")
@@ -27,96 +34,137 @@ export default function TransactionsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const filteredTransactions = transactions.filter((tx) => {
+    if (statusFilter !== "ALL" && tx.state !== statusFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        tx.id.toLowerCase().includes(q) ||
+        (tx.scenario && tx.scenario.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-[17px] sm:text-[19px] font-bold tracking-tight text-[#F2F3F1] font-display">
-              Transactions
-            </h1>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[#969B9E]">
-              {transactions.length} recorded
-            </span>
-          </div>
-          <p className="text-[12.5px] text-[#969B9E] max-w-xl">
-            Audit history of multi-service transactions durably persisted to PostgreSQL.
-          </p>
+      {/* 1. Page Header */}
+      <PageHeader
+        title="Transaction Audit History"
+        description="Authoritative log of multi-service WebMCP workflows, state transitions, and compensations persisted to PostgreSQL."
+        badge={`${transactions.length} recorded`}
+        actions={
+          <Link
+            href="/app"
+            className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold text-[12.5px] font-sans transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+          >
+            <span>+ Run Transaction</span>
+          </Link>
+        }
+      />
+
+      {/* 2. Status Filters & Search Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
+        <div className="flex flex-wrap items-center gap-1 font-mono text-[12px]">
+          {["ALL", "COMMITTED", "COMPENSATED", "IN_DOUBT", "FAILED"].map((st) => (
+            <button
+              key={st}
+              type="button"
+              onClick={() => setStatusFilter(st)}
+              className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
+                statusFilter === st
+                  ? "bg-white/[0.08] text-[#F5F5F3] font-semibold"
+                  : "text-[#A0A0A4] hover:text-[#F5F5F3]"
+              }`}
+            >
+              {st}
+            </button>
+          ))}
         </div>
 
-        <Link
-          href="/app"
-          className="px-4 py-2 rounded-md font-mono text-[12px] font-medium bg-[#F2F3F1] text-[#080A0B] hover:bg-white transition-colors cursor-pointer self-start sm:self-auto shadow-sm"
-        >
-          Run transaction
-        </Link>
+        <input
+          type="text"
+          placeholder="Search by ID or scenario…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full sm:w-[260px] px-3 py-1.5 rounded bg-[#0B0C0E] border border-white/[0.08] text-[12px] font-mono text-[#F5F5F3] placeholder-[#66686D] focus:outline-none focus:border-white/20"
+        />
       </div>
 
-      {/* Dense Transaction Registry Table */}
-      <div className="border border-white/[0.08] bg-[#0C0E0F]">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse font-mono text-[11.5px]">
-            <thead>
-              <tr className="border-b border-white/[0.06] text-[#65696B] text-[10.5px] uppercase">
-                <th className="py-3 px-4 font-normal">Transaction ID</th>
-                <th className="py-3 px-4 font-normal">Scenario / Workflow</th>
-                <th className="py-3 px-4 font-normal">Created</th>
-                <th className="py-3 px-4 font-normal">State</th>
-                <th className="py-3 px-4 font-normal text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
-              {loading && (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-[#65696B]">
-                    Loading transactions…
-                  </td>
+      {/* 3. Empty State */}
+      {!loading && filteredTransactions.length === 0 && (
+        <EmptyState
+          title="No transactions found"
+          description={
+            statusFilter !== "ALL"
+              ? `No transactions matching filter '${statusFilter}'.`
+              : "No transaction records persisted in PostgreSQL yet. Execute a pipeline from the Overview dashboard."
+          }
+          actionText="Run reference deployment"
+          actionHref="/app"
+        />
+      )}
+
+      {/* 4. Dense Control Plane Transactions Table */}
+      {filteredTransactions.length > 0 && (
+        <div className="border border-white/[0.08] bg-[#0B0C0E] overflow-hidden rounded-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse font-mono text-[12px]">
+              <thead>
+                <tr className="border-b border-white/[0.08] text-[#66686D] text-[10.5px] uppercase bg-[#070708]">
+                  <th className="py-3 px-5 font-normal">Transaction ID</th>
+                  <th className="py-3 px-5 font-normal">Scenario / Workflow</th>
+                  <th className="py-3 px-5 font-normal">Created Timestamp</th>
+                  <th className="py-3 px-5 font-normal">State</th>
+                  <th className="py-3 px-5 font-normal text-right">Inspection</th>
                 </tr>
-              )}
-
-              {!loading && transactions.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-[#65696B]">
-                    No transactions recorded yet. Run a scenario from the Overview page.
-                  </td>
-                </tr>
-              )}
-
-              {transactions.map((tx) => {
-                let badgeStyle = "bg-white/[0.04] text-[#969B9E] border-white/[0.08]";
-                if (tx.state === "COMMITTED" || tx.state === "COMPENSATED") {
-                  badgeStyle = "bg-emerald-950/60 text-[#A5F36B] border-[#A5F36B]/30";
-                } else if (tx.state === "AWAITING_COMPENSATION_APPROVAL" || tx.state === "IN_DOUBT") {
-                  badgeStyle = "bg-amber-950/60 text-amber-300 border-amber-500/40";
-                } else if (tx.state === "FAILED" || tx.state === "ABORTED") {
-                  badgeStyle = "bg-rose-950/60 text-rose-300 border-rose-500/40";
-                }
-
-                return (
-                  <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 px-4 font-semibold text-[#F2F3F1]">{tx.id}</td>
-                    <td className="py-3 px-4 text-[#969B9E]">{tx.scenario || "Reference deployment"}</td>
-                    <td className="py-3 px-4 text-[#65696B]">
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {filteredTransactions.map((tx) => (
+                  <tr
+                    key={tx.id}
+                    className="hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                    onClick={() => setSelectedTx(tx)}
+                  >
+                    <td className="py-3.5 px-5 font-medium text-[#F5F5F3]">
+                      <span className="truncate max-w-[180px] block">{tx.id}</span>
+                    </td>
+                    <td className="py-3.5 px-5 text-[#A0A0A4]">
+                      {tx.scenario || "Reference deployment"}
+                    </td>
+                    <td className="py-3.5 px-5 text-[#66686D]">
                       {new Date(tx.created_at).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 text-[10px] border rounded ${badgeStyle}`}>
-                        {tx.state}
-                      </span>
+                    <td className="py-3.5 px-5">
+                      <StatusPill status={tx.state} size="sm" />
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      <Link href="/app" className="text-[#A5F36B] hover:underline">
-                        Inspect in Overview →
-                      </Link>
+                    <td className="py-3.5 px-5 text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTx(tx);
+                        }}
+                        className="text-[#A5F36B] hover:text-white transition-colors text-[12px] font-medium"
+                      >
+                        Inspect →
+                      </button>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Slide-over Deep Transaction Diagnostics Drawer */}
+      <DiagnosticsDrawer
+        isOpen={Boolean(selectedTx)}
+        onClose={() => setSelectedTx(null)}
+        title={selectedTx ? `Transaction: ${selectedTx.id}` : "Transaction"}
+        data={selectedTx}
+      />
     </div>
   );
 }

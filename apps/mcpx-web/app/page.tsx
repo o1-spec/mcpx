@@ -17,7 +17,6 @@ export default function HomePage() {
   const [scrollyStage, setScrollyStage] = useState<0 | 1 | 2 | 3>(0);
   const [dagCompensating, setDagCompensating] = useState<boolean>(false);
   const [isReducedMotion, setIsReducedMotion] = useState<boolean>(false);
-  const [showLoader, setShowLoader] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Hero auto-cycling trace timer (controlled 3.2s interval)
@@ -38,18 +37,8 @@ export default function HomePage() {
     const prefersReduced = mediaQuery.matches;
     setIsReducedMotion(prefersReduced);
 
-    // Check sessionStorage for first visit loader
-    const hasSeenIntro = sessionStorage.getItem("mcpx_intro_seen");
-    const shouldPlayLoader = !hasSeenIntro && !prefersReduced;
-
-    if (shouldPlayLoader) {
-      setShowLoader(true);
-      sessionStorage.setItem("mcpx_intro_seen", "true");
-    }
-
-    if (prefersReduced) {
-      return;
-    }
+    // Loader always runs on page load unless prefers-reduced-motion
+    const shouldPlayLoader = !prefersReduced;
 
     // 1. Initialize Lenis Smooth Scroll on desktop
     const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
@@ -160,17 +149,19 @@ export default function HomePage() {
         );
 
       // ============================================================
-      // 4. INITIAL RUNTIME BOOT LOADER TIMELINE (~1.6s)
+      // 4. MINIMAL GEOMETRIC STATE RESOLUTION LOADER (~1.3s)
       // ============================================================
       if (shouldPlayLoader && loaderRef.current) {
         const loaderTl = gsap.timeline({
           onComplete: () => {
             gsap.to(loaderRef.current, {
               opacity: 0,
-              duration: 0.35,
+              duration: 0.3,
               ease: "power2.inOut",
               onComplete: () => {
-                setShowLoader(false);
+                if (loaderRef.current) {
+                  loaderRef.current.style.display = "none";
+                }
               },
             });
             heroTl.play();
@@ -178,107 +169,119 @@ export default function HomePage() {
         });
 
         loaderTl
-          // 0.10s: Center node crosshairs appear
+          // 0.05s: Faint construction grid & central axes draw in
           .fromTo(
-            ".loader-center-node",
-            { scale: 0, opacity: 0 },
-            { scale: 1, opacity: 1, duration: 0.2, ease: "power2.out" },
+            ".loader-grid",
+            { opacity: 0 },
+            { opacity: 0.35, duration: 0.25, ease: "power2.out" },
             0.05
           )
-          // 0.25s: Grid coordinate lines draw outward
           .fromTo(
             ".loader-axis-h",
             { scaleX: 0, transformOrigin: "center center" },
             { scaleX: 1, duration: 0.3, ease: "power2.out" },
-            0.15
+            0.1
           )
           .fromTo(
             ".loader-axis-v",
             { scaleY: 0, transformOrigin: "center center" },
             { scaleY: 1, duration: 0.3, ease: "power2.out" },
-            0.15
+            0.1
           )
-          // 0.40s: MCPx geometric mark & wordmark assemble
+          // 0.25s: MCPx 4 geometric tiles assemble (neutral first, lime last)
           .fromTo(
-            ".loader-brand-mark",
-            { scale: 0.88, opacity: 0 },
-            { scale: 1, opacity: 1, duration: 0.25, ease: "back.out(1.4)" },
+            [".loader-tile-1", ".loader-tile-2", ".loader-tile-3"],
+            { scale: 0, opacity: 0 },
+            { scale: 1, opacity: 1, stagger: 0.04, duration: 0.18, ease: "back.out(1.5)" },
+            0.25
+          )
+          .fromTo(
+            ".loader-tile-lime",
+            { scale: 0, opacity: 0 },
+            { scale: 1, opacity: 1, duration: 0.2, ease: "back.out(2)" },
             0.35
           )
           .fromTo(
-            ".loader-wordmark",
-            { opacity: 0, y: 4 },
-            { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" },
-            0.45
+            ".loader-brand-text",
+            { opacity: 0, y: 3 },
+            { opacity: 0.9, y: 0, duration: 0.2, ease: "power2.out" },
+            0.4
           )
-          // 0.60s: Phase 1 — EXECUTE
+          // 0.50s: 4 outbound graph lines draw outward to endpoints
           .fromTo(
-            ".loader-stage-1",
-            { opacity: 0, x: -6 },
-            { opacity: 1, x: 0, duration: 0.18, ease: "power2.out" },
-            0.6
-          )
-          .fromTo(
-            ".loader-trace-line-1",
-            { scaleX: 0, transformOrigin: "left center" },
-            { scaleX: 1, duration: 0.18, ease: "power1.inOut" },
-            0.62
-          )
-          // 0.80s: Phase 2 — UNCERTAINTY (IN_DOUBT)
-          .fromTo(
-            ".loader-stage-2",
-            { opacity: 0, x: -6 },
-            { opacity: 1, x: 0, duration: 0.18, ease: "power2.out" },
-            0.8
+            [".loader-line-top", ".loader-line-bottom", ".loader-line-left", ".loader-line-right"],
+            { strokeDasharray: 120, strokeDashoffset: 120 },
+            { strokeDashoffset: 0, duration: 0.28, stagger: 0.03, ease: "power2.out" },
+            0.5
           )
           .fromTo(
-            ".loader-trace-line-2",
-            { scaleX: 0, transformOrigin: "left center" },
-            { scaleX: 0.65, duration: 0.15, ease: "power1.inOut" },
-            0.82
+            [".loader-node-top", ".loader-node-bottom", ".loader-node-left", ".loader-node-right"],
+            { scale: 0, transformOrigin: "center center" },
+            { scale: 1, duration: 0.2, stagger: 0.03, ease: "back.out(1.7)" },
+            0.65
           )
-          // 1.00s: Phase 3 — INSPECT
-          .fromTo(
-            ".loader-stage-3",
-            { opacity: 0, x: -6 },
-            { opacity: 1, x: 0, duration: 0.18, ease: "power2.out" },
-            1.0
+          // 0.75s: Uncertainty moment — Right branch fragments & turns subtle amber
+          .to(
+            ".loader-line-right",
+            { stroke: "#F59E0B", strokeDasharray: "4 3", opacity: 0.75, duration: 0.15, ease: "power1.inOut" },
+            0.75
           )
-          .fromTo(
-            ".loader-trace-line-3",
-            { scaleX: 0, transformOrigin: "left center" },
-            { scaleX: 1, duration: 0.18, ease: "power1.inOut" },
-            1.02
+          .to(
+            ".loader-node-right-outer",
+            { stroke: "#F59E0B", duration: 0.15 },
+            0.75
           )
-          // 1.20s: Phase 4 — RECOVERED
+          .to(
+            ".loader-node-right-inner",
+            { fill: "#F59E0B", duration: 0.15 },
+            0.75
+          )
+          // 0.92s: Resolution moment — Inspection ray shoots outward and resolves connection
           .fromTo(
-            ".loader-stage-4",
-            { opacity: 0, x: -6 },
-            { opacity: 1, x: 0, duration: 0.18, ease: "power2.out" },
+            ".loader-line-inspect",
+            { opacity: 0, strokeDashoffset: 120, strokeDasharray: 120 },
+            { opacity: 1, strokeDashoffset: 0, duration: 0.2, ease: "power2.inOut" },
+            0.92
+          )
+          .to(
+            ".loader-line-right",
+            { stroke: "#A5F36B", strokeDasharray: "none", opacity: 1, duration: 0.15, ease: "power2.out" },
+            1.05
+          )
+          .to(
+            ".loader-node-right-outer",
+            { stroke: "#A5F36B", scale: 1.25, transformOrigin: "center center", duration: 0.15, ease: "back.out(2)" },
+            1.05
+          )
+          .to(
+            ".loader-node-right-inner",
+            { fill: "#A5F36B", duration: 0.15 },
+            1.05
+          )
+          .to(
+            ".loader-line-inspect",
+            { opacity: 0, duration: 0.1 },
+            1.15
+          )
+          // 1.15s: Graph locks in solid with micro-pulse & grid expands into homepage
+          .to(
+            ".loader-node-right-outer",
+            { scale: 1, duration: 0.15, ease: "power2.out" },
+            1.15
+          )
+          .to(
+            ".loader-graph-container",
+            { scale: 0.94, opacity: 0.85, duration: 0.2, ease: "power2.inOut" },
             1.2
           )
-          .fromTo(
-            ".loader-trace-line-4",
-            { scaleX: 0, transformOrigin: "left center" },
-            { scaleX: 1, duration: 0.18, ease: "power1.inOut" },
-            1.22
-          )
-          // 1.40s: Grid expansion into homepage
           .to(
-            ".loader-trace-container",
-            { opacity: 0, y: -6, duration: 0.2, ease: "power2.in" },
-            1.4
-          )
-          .to(
-            ".loader-axis-h, .loader-axis-v",
+            [".loader-axis-h", ".loader-axis-v"],
             { opacity: 0.05, duration: 0.25, ease: "power2.out" },
-            1.42
-          )
-          .to(
-            ".loader-brand-container",
-            { opacity: 0, scale: 0.94, duration: 0.2, ease: "power2.in" },
-            1.45
+            1.22
           );
+      } else {
+        if (loaderRef.current) loaderRef.current.style.display = "none";
+        heroTl.play();
       }
 
       // 5. GSAP matchMedia Choreography
@@ -434,7 +437,7 @@ export default function HomePage() {
       if (lenis) lenis.destroy();
       ctx.revert();
     };
-  }, [showLoader]);
+  }, []);
 
   return (
     <div
@@ -453,107 +456,117 @@ export default function HomePage() {
       />
 
       {/* ============================================================ */}
-      {/* INITIAL RUNTIME BOOT LOADER — VERCEL/QUEUEWATCH DIRECTION */}
+      {/* MINIMAL GEOMETRIC STATE RESOLUTION LOADER */}
       {/* ============================================================ */}
-      {showLoader && (
-        <div
-          ref={loaderRef}
-          onClick={() => setShowLoader(false)}
-          className="fixed inset-0 z-[100] bg-[#070708] flex flex-col items-center justify-center select-none cursor-pointer p-4 overflow-hidden"
-        >
-          {/* Faint Background Coordinate Grid */}
-          <div className="absolute inset-0 pointer-events-none opacity-20">
-            <div className="w-full h-full max-w-[1320px] mx-auto border-x border-white/[0.1] grid grid-cols-4 md:grid-cols-8 divide-x divide-white/[0.08]" />
+      <div
+        ref={loaderRef}
+        onClick={() => {
+          if (loaderRef.current) {
+            gsap.to(loaderRef.current, {
+              opacity: 0,
+              duration: 0.2,
+              onComplete: () => {
+                if (loaderRef.current) loaderRef.current.style.display = "none";
+              },
+            });
+          }
+        }}
+        className="fixed inset-0 z-[100] bg-[#070708] flex items-center justify-center select-none cursor-pointer p-4 overflow-hidden"
+      >
+          {/* Faint Architectural Background Construction Grid */}
+          <div className="loader-grid absolute inset-0 pointer-events-none opacity-30">
+            <div className="w-full h-full max-w-[1320px] mx-auto border-x border-white/[0.08] grid grid-cols-4 md:grid-cols-8 divide-x divide-white/[0.06]" />
           </div>
 
-          {/* Central Expanding Axis Lines */}
-          <div className="loader-axis-h absolute w-full h-[1px] bg-white/20 pointer-events-none"></div>
-          <div className="loader-axis-v absolute h-full w-[1px] bg-white/20 pointer-events-none"></div>
+          {/* Central Axis Construction Lines */}
+          <div className="loader-axis-h absolute w-full h-[1px] bg-white/[0.12] pointer-events-none" />
+          <div className="loader-axis-v absolute h-full w-[1px] bg-white/[0.12] pointer-events-none" />
 
-          {/* Center Intersection Node */}
-          <div className="loader-center-node absolute w-3.5 h-3.5 bg-[#070708] border border-white/40 flex items-center justify-center z-10">
-            <span className="w-1 h-1 bg-[#A5F36B]"></span>
-          </div>
+          {/* Center Transaction Graph Canvas */}
+          <div className="loader-graph-container relative z-20 flex flex-col items-center justify-center pointer-events-none">
+            <svg
+              viewBox="0 0 360 360"
+              className="w-[260px] h-[260px] sm:w-[320px] sm:h-[320px] overflow-visible"
+            >
+              {/* Branch Lines from center (180, 180) */}
+              {/* Top Branch */}
+              <line
+                x1="180"
+                y1="180"
+                x2="180"
+                y2="75"
+                className="loader-line-top stroke-white/25 stroke-[1.5]"
+              />
+              {/* Bottom Branch */}
+              <line
+                x1="180"
+                y1="180"
+                x2="180"
+                y2="285"
+                className="loader-line-bottom stroke-white/25 stroke-[1.5]"
+              />
+              {/* Left Branch */}
+              <line
+                x1="180"
+                y1="180"
+                x2="75"
+                y2="180"
+                className="loader-line-left stroke-white/25 stroke-[1.5]"
+              />
+              {/* Right Branch (experiences uncertainty -> resolution) */}
+              <line
+                x1="180"
+                y1="180"
+                x2="285"
+                y2="180"
+                className="loader-line-right stroke-white/25 stroke-[1.5]"
+              />
+              {/* Active Inspection Pulse on Right Branch */}
+              <line
+                x1="180"
+                y1="180"
+                x2="285"
+                y2="180"
+                className="loader-line-inspect stroke-[#A5F36B] stroke-[2] opacity-0"
+              />
 
-          {/* Brand Mark & Title Container */}
-          <div className="loader-brand-container relative z-20 flex flex-col items-center space-y-3 pb-8">
-            <div className="loader-brand-mark flex items-center gap-2.5">
-              <div className="grid grid-cols-2 gap-0.5 w-4 h-4 items-center justify-center">
-                <span className="w-1.5 h-1.5 bg-[#A5F36B]"></span>
-                <span className="w-1.5 h-1.5 bg-[#F5F5F3] opacity-90"></span>
-                <span className="w-1.5 h-1.5 bg-[#F5F5F3] opacity-35"></span>
-                <span className="w-1.5 h-1.5 bg-[#F5F5F3] opacity-80"></span>
+              {/* Endpoint Nodes */}
+              {/* Top Node */}
+              <g className="loader-node-top" transform="translate(180, 75)">
+                <circle r="4" className="fill-[#070708] stroke-white/40 stroke-[1.5]" />
+                <circle r="1.5" className="fill-white/80" />
+              </g>
+              {/* Bottom Node */}
+              <g className="loader-node-bottom" transform="translate(180, 285)">
+                <circle r="4" className="fill-[#070708] stroke-white/40 stroke-[1.5]" />
+                <circle r="1.5" className="fill-white/80" />
+              </g>
+              {/* Left Node */}
+              <g className="loader-node-left" transform="translate(75, 180)">
+                <circle r="4" className="fill-[#070708] stroke-white/40 stroke-[1.5]" />
+                <circle r="1.5" className="fill-white/80" />
+              </g>
+              {/* Right Node (Uncertain -> Resolved) */}
+              <g className="loader-node-right" transform="translate(285, 180)">
+                <circle r="5" className="loader-node-right-outer fill-[#070708] stroke-white/40 stroke-[1.5]" />
+                <circle r="2" className="loader-node-right-inner fill-white/80" />
+              </g>
+            </svg>
+
+            {/* Central MCPx Geometric Mark */}
+            <div className="loader-brand absolute inset-0 flex flex-col items-center justify-center space-y-1.5 pointer-events-none">
+              <div className="grid grid-cols-2 gap-1 w-6 h-6 items-center justify-center p-1 bg-[#070708] border border-white/20 rounded-sm">
+                <span className="loader-tile-lime w-2 h-2 bg-[#A5F36B] rounded-[0.5px]"></span>
+                <span className="loader-tile-1 w-2 h-2 bg-[#F5F5F3] opacity-90 rounded-[0.5px]"></span>
+                <span className="loader-tile-2 w-2 h-2 bg-[#F5F5F3] opacity-35 rounded-[0.5px]"></span>
+                <span className="loader-tile-3 w-2 h-2 bg-[#F5F5F3] opacity-80 rounded-[0.5px]"></span>
               </div>
-              <span className="font-bold text-[18px] tracking-tight text-[#F5F5F3] font-sans">
+              <span className="loader-brand-text text-[13px] font-medium tracking-tight text-[#F5F5F3] font-sans opacity-90">
                 MCPx
               </span>
             </div>
-
-            <div className="loader-wordmark font-mono text-[10.5px] tracking-wider text-[#A0A0A4] uppercase flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#A5F36B] animate-pulse"></span>
-              <span>WEBMCP RELIABILITY RUNTIME</span>
-            </div>
-          </div>
-
-          {/* Transaction Trace Sequence Container */}
-          <div className="loader-trace-container relative z-20 w-full max-w-sm sm:max-w-md border border-white/[0.09] bg-[#0B0C0E]/95 p-4 sm:p-5 font-mono text-[11.5px] space-y-3 shadow-2xl backdrop-blur-md">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2 text-[10px] text-[#66686D]">
-              <span>RUNTIME INITIALIZING</span>
-              <span>BOOT TRACE</span>
-            </div>
-
-            <div className="space-y-2.5">
-              {/* Phase 1: 01 / EXECUTE */}
-              <div className="loader-stage-1 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#66686D]">[ 01 ]</span>
-                  <span className="text-[#F5F5F3] font-semibold">EXECUTE</span>
-                  <span className="text-[#A0A0A4] text-[10.5px]">create_route()</span>
-                </div>
-                <div className="w-20 h-[1.5px] bg-white/10 relative overflow-hidden">
-                  <div className="loader-trace-line-1 absolute inset-0 bg-[#F5F5F3]"></div>
-                </div>
-              </div>
-
-              {/* Phase 2: 02 / OUTCOME UNKNOWN (IN_DOUBT) */}
-              <div className="loader-stage-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#66686D]">[ 02 ]</span>
-                  <span className="text-amber-300 font-semibold">IN_DOUBT</span>
-                  <span className="text-amber-400 text-[10px]">ACK LOST</span>
-                </div>
-                <div className="w-20 h-[1.5px] bg-white/10 relative overflow-hidden">
-                  <div className="loader-trace-line-2 absolute inset-0 bg-amber-400"></div>
-                </div>
-              </div>
-
-              {/* Phase 3: 03 / INSPECT */}
-              <div className="loader-stage-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#66686D]">[ 03 ]</span>
-                  <span className="text-cyan-300 font-semibold">INSPECT</span>
-                  <span className="text-cyan-400 text-[10.5px]">get_route(opKey)</span>
-                </div>
-                <div className="w-20 h-[1.5px] bg-white/10 relative overflow-hidden">
-                  <div className="loader-trace-line-3 absolute inset-0 bg-cyan-400"></div>
-                </div>
-              </div>
-
-              {/* Phase 4: 04 / RECOVER */}
-              <div className="loader-stage-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#66686D]">[ 04 ]</span>
-                  <span className="text-[#A5F36B] font-semibold">RECOVERED</span>
-                  <span className="text-[#A5F36B] text-[10px]">exists: true</span>
-                </div>
-                <div className="w-20 h-[1.5px] bg-white/10 relative overflow-hidden">
-                  <div className="loader-trace-line-4 absolute inset-0 bg-[#A5F36B]"></div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
-      )}
 
       {/* ============================================================ */}
       {/* 1. TOP NAVBAR — STRAIGHT, CLEAN, VERCEL-STRUCTURED */}
