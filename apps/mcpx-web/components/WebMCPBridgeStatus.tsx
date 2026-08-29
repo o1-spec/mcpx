@@ -110,7 +110,7 @@ export default function WebMCPBridgeStatus({
           <div className="font-bold flex items-center gap-1.5 text-rose-400">
             <span>✕</span> getTools() Exception:
           </div>
-          <div className="break-all text-[11px]">{discoveryError}</div>
+          <div className="break-all text-xs">{discoveryError}</div>
         </div>
       )}
 
@@ -129,7 +129,7 @@ export default function WebMCPBridgeStatus({
                   }`}
                 />
                 <span className="font-bold text-xs text-slate-200">{svc.name}</span>
-                <span className="text-[10px] text-slate-500 font-mono">{svc.port}</span>
+                <span className="text-xs text-slate-500 font-mono">{svc.port}</span>
               </div>
               <span
                 className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
@@ -142,7 +142,7 @@ export default function WebMCPBridgeStatus({
               </span>
             </div>
 
-            <div className="grid grid-cols-1 gap-1.5 font-mono text-[11px]">
+            <div className="grid grid-cols-1 gap-1.5 font-mono text-xs">
               {svc.tools.map((expectedName) => {
                 const isDiscovered = svc.discovered.some((t) => t.name === expectedName);
                 return (

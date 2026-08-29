@@ -398,8 +398,8 @@ export default function WorkflowDetailPage({
 
   if (loading) {
     return (
-      <div className="py-20 text-center font-mono text-[12px] text-[#66686D] space-y-2">
-        <div className="w-4 h-4 border-2 border-white/20 border-t-[#A5F36B] rounded-full animate-spin mx-auto" />
+      <div className="py-20 text-center font-mono text-xs text-subtle space-y-2">
+        <div className="w-4 h-4 border-2 border-white/20 border-t-accent-lime rounded-full animate-spin mx-auto" />
         <div>Loading workflow definition…</div>
       </div>
     );
@@ -407,10 +407,10 @@ export default function WorkflowDetailPage({
 
   if (error || !workflow) {
     return (
-      <div className="p-6 border border-rose-500/30 bg-[#0B0C0E] font-mono text-[12px] text-rose-300 space-y-3 rounded">
-        <h2 className="font-bold text-[14px] text-rose-400">[ WORKFLOW NOT FOUND ]</h2>
-        <p className="text-[#A0A0A4]">{error || "Could not retrieve workflow record."}</p>
-        <Link href="/app/workflows" className="text-[#F5F5F3] hover:underline inline-block pt-1">
+      <div className="p-6 border border-rose-500/30 bg-panel font-mono text-xs text-rose-300 space-y-3 rounded">
+        <h2 className="font-bold text-sm text-rose-400">[ WORKFLOW NOT FOUND ]</h2>
+        <p className="text-muted">{error || "Could not retrieve workflow record."}</p>
+        <Link href="/app/workflows" className="text-foreground hover:underline inline-block pt-1">
           ← Back to Workflows
         </Link>
       </div>
@@ -439,7 +439,7 @@ export default function WorkflowDetailPage({
               type="button"
               onClick={handleRunWorkflow}
               disabled={isRunning || enrichedNodes.length === 0}
-              className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold text-[12.5px] font-sans transition-colors cursor-pointer disabled:opacity-50 shadow-sm flex items-center gap-1.5"
+              className="px-4 py-2 rounded bg-foreground text-background hover:bg-white font-semibold text-xs font-sans transition-colors cursor-pointer disabled:opacity-50 shadow-sm flex items-center gap-1.5"
             >
               {isRunning ? "Running Pipeline…" : "Execute Workflow →"}
             </button>
@@ -447,7 +447,7 @@ export default function WorkflowDetailPage({
             <button
               type="button"
               onClick={() => setDiagnosticsOpen(true)}
-              className="px-3 py-2 rounded font-mono text-[12px] text-[#A0A0A4] hover:text-[#F5F5F3] bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] transition-colors cursor-pointer"
+              className="px-3 py-2 rounded font-mono text-xs text-muted hover:text-foreground bg-white/3 hover:bg-white/6 border border-white/8 transition-colors cursor-pointer"
             >
               Diagnostics ↗
             </button>
@@ -455,7 +455,7 @@ export default function WorkflowDetailPage({
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(true)}
-              className="px-3 py-2 rounded font-mono text-[12px] text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 border border-rose-500/20 transition-colors cursor-pointer"
+              className="px-3 py-2 rounded font-mono text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 border border-rose-500/20 transition-colors cursor-pointer"
             >
               Delete
             </button>
@@ -465,15 +465,15 @@ export default function WorkflowDetailPage({
 
       {/* Preflight Error Notice */}
       {preflightError && (
-        <div className="p-4 rounded border border-rose-500/40 bg-rose-950/30 text-[12px] font-mono text-rose-300 flex items-start justify-between gap-4">
+        <div className="p-4 rounded border border-rose-500/40 bg-rose-950/30 text-xs font-mono text-rose-300 flex items-start justify-between gap-4">
           <div className="space-y-1">
             <span className="font-bold block">[ PREFLIGHT CHECK FAILED ]</span>
-            <p className="text-[#A0A0A4]">{preflightError}</p>
+            <p className="text-muted">{preflightError}</p>
           </div>
           <button
             type="button"
             onClick={() => setPreflightError(null)}
-            className="text-[#66686D] hover:text-[#F5F5F3] cursor-pointer font-mono"
+            className="text-subtle hover:text-foreground cursor-pointer font-mono"
           >
             ✕
           </button>
@@ -482,11 +482,11 @@ export default function WorkflowDetailPage({
 
       {/* Delete Confirmation Card */}
       {showDeleteConfirm && (
-        <div className="p-5 border border-rose-500/40 bg-[#0B0C0E] space-y-3 rounded">
-          <h3 className="text-[14px] font-bold text-[#F5F5F3] font-sans">
+        <div className="p-5 border border-rose-500/40 bg-panel space-y-3 rounded">
+          <h3 className="text-sm font-bold text-foreground font-sans">
             Delete this workflow definition?
           </h3>
-          <p className="text-[12px] text-[#A0A0A4]">
+          <p className="text-xs text-muted">
             Existing execution history will remain intact in PostgreSQL.
           </p>
           <div className="flex items-center gap-3 pt-1">
@@ -494,14 +494,14 @@ export default function WorkflowDetailPage({
               type="button"
               onClick={handleDelete}
               disabled={isDeleting}
-              className="px-4 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-sans font-semibold text-[12px] transition-colors cursor-pointer disabled:opacity-50"
+              className="px-4 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-sans font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
             >
               {isDeleting ? "Deleting…" : "Confirm Delete"}
             </button>
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(false)}
-              className="px-4 py-1.5 rounded bg-transparent text-[#A0A0A4] hover:text-[#F5F5F3] border border-white/[0.08] font-mono text-[12px] transition-colors cursor-pointer"
+              className="px-4 py-1.5 rounded bg-transparent text-muted hover:text-foreground border border-white/8 font-mono text-xs transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -514,7 +514,7 @@ export default function WorkflowDetailPage({
         <Panel
           title="ACTIVE TRANSACTION PIPELINE"
           badge={<StatusPill status={activeTxState || "ACTIVE"} size="sm" />}
-          actions={<span className="font-mono text-[11px] text-[#A0A0A4]">{activeTxId}</span>}
+          actions={<span className="font-mono text-xs text-muted">{activeTxId}</span>}
         >
           <div className="space-y-6">
             {/* Dynamic Step Nodes Visual */}
@@ -522,32 +522,31 @@ export default function WorkflowDetailPage({
               {runtimeNodes.map((node) => (
                 <div
                   key={node.id}
-                  className={`p-3.5 border rounded space-y-2 transition-colors ${
-                    node.state === "SUCCEEDED" || node.state === "RECOVERED"
-                      ? "border-emerald-500/30 bg-emerald-950/20"
-                      : node.state === "COMPENSATED"
-                      ? "border-white/[0.08] bg-[#070708]"
+                  className={`p-3.5 border rounded space-y-2 transition-colors ${node.state === "SUCCEEDED" || node.state === "RECOVERED"
+                    ? "border-emerald-500/30 bg-emerald-950/20"
+                    : node.state === "COMPENSATED"
+                      ? "border-white/8 bg-background"
                       : node.state === "FAILED"
-                      ? "border-rose-500/30 bg-rose-950/20"
-                      : node.state === "EXECUTING" || node.state === "RECONCILING"
-                      ? "border-cyan-500/40 bg-cyan-950/20 animate-pulse"
-                      : node.state === "IN_DOUBT"
-                      ? "border-amber-500/40 bg-amber-950/20 animate-pulse"
-                      : "border-white/[0.08] bg-[#070708]"
-                  }`}
+                        ? "border-rose-500/30 bg-rose-950/20"
+                        : node.state === "EXECUTING" || node.state === "RECONCILING"
+                          ? "border-cyan-500/40 bg-cyan-950/20 animate-pulse"
+                          : node.state === "IN_DOUBT"
+                            ? "border-amber-500/40 bg-amber-950/20 animate-pulse"
+                            : "border-white/8 bg-background"
+                    }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[12.5px] font-bold text-[#F5F5F3] font-sans">
+                    <span className="text-xs font-bold text-foreground font-sans">
                       {node.label}
                     </span>
                     <StatusPill status={node.state} size="sm" />
                   </div>
 
-                  <div className="text-[10.5px] text-[#A0A0A4] font-mono space-y-0.5">
+                  <div className="text-xs text-muted font-mono space-y-0.5">
                     <div>{node.service}</div>
-                    <div className="text-[#66686D] truncate">{node.operationKey}</div>
+                    <div className="text-subtle truncate">{node.operationKey}</div>
                     {node.resourceId && (
-                      <div className="text-[#A5F36B] text-[10px]">id: {node.resourceId}</div>
+                      <div className="text-accent-lime text-xs">id: {node.resourceId}</div>
                     )}
                   </div>
                 </div>
@@ -564,8 +563,8 @@ export default function WorkflowDetailPage({
             )}
 
             {/* Event Timeline */}
-            <div className="pt-4 border-t border-white/[0.06]">
-              <div className="text-[11px] font-mono text-[#66686D] uppercase mb-3">
+            <div className="pt-4 border-t border-white/6">
+              <div className="text-xs font-mono text-subtle uppercase mb-3">
                 Live Transaction Log
               </div>
               <EventTimeline eventLog={events} onClearLog={() => setEvents([])} />
@@ -579,7 +578,7 @@ export default function WorkflowDetailPage({
         title={`PIPELINE TOPOLOGY (${enrichedNodes.length} STEPS)`}
         subtitle="DAG EXECUTION GRAPH"
       >
-        <div className="divide-y divide-white/[0.04] font-mono text-[12px]">
+        <div className="divide-y divide-white/4 font-mono text-xs">
           {enrichedNodes.map((node, idx) => (
             <div
               key={node.id}
@@ -587,31 +586,31 @@ export default function WorkflowDetailPage({
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-5 h-5 rounded bg-white/[0.06] border border-white/[0.08] flex items-center justify-center font-mono text-[10.5px] text-[#A0A0A4]">
+                  <span className="w-5 h-5 rounded bg-white/6 border border-white/8 flex items-center justify-center font-mono text-xs text-muted">
                     {idx + 1}
                   </span>
-                  <span className="text-[13px] font-bold text-[#F5F5F3] font-sans">
+                  <span className="text-xs font-bold text-foreground font-sans">
                     {node.label}
                   </span>
-                  <span className="text-[11px] text-[#66686D]">
+                  <span className="text-xs text-subtle">
                     ({node.service?.name || "Service"})
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 text-[11px] text-[#A0A0A4]">
-                  <span className="text-[#A5F36B]">{node.contract?.executeToolName}</span>
-                  <span className="text-[#66686D]">→</span>
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <span className="text-accent-lime">{node.contract?.executeToolName}</span>
+                  <span className="text-subtle">→</span>
                   <span className="text-cyan-300">{node.contract?.inspectToolName}</span>
                   {node.contract?.compensateToolName && (
                     <>
-                      <span className="text-[#66686D]">→</span>
+                      <span className="text-subtle">→</span>
                       <span className="text-rose-300">{node.contract?.compensateToolName}</span>
                     </>
                   )}
                 </div>
               </div>
 
-              <div className="text-[11px] text-[#66686D] text-left sm:text-right">
+              <div className="text-xs text-subtle text-left sm:text-right">
                 {node.dependencies.length > 0
                   ? `Depends on: ${node.dependencies.join(", ")}`
                   : "Root Step"}
@@ -624,12 +623,12 @@ export default function WorkflowDetailPage({
       {/* Recent Runs */}
       {recentRuns.length > 0 && (
         <Panel title={`RECENT RUNS (${recentRuns.length})`}>
-          <div className="divide-y divide-white/[0.04] font-mono text-[11.5px]">
+          <div className="divide-y divide-white/4 font-mono text-xs">
             {recentRuns.map((run) => (
               <div key={run.id} className="py-2.5 flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <span className="text-[#F5F5F3] block">{run.id}</span>
-                  <span className="text-[10px] text-[#66686D]">
+                  <span className="text-foreground block">{run.id}</span>
+                  <span className="text-xs text-subtle">
                     {new Date(run.createdAt).toLocaleString()}
                   </span>
                 </div>

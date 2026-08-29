@@ -150,7 +150,7 @@ export default function WebMCPProof() {
             <span>{showDevDetails ? "▾" : "▸"}</span>
             <span>Developer details & diagnostics</span>
           </span>
-          <span className="text-[11px] text-slate-500 font-normal">
+          <span className="text-xs text-slate-500 font-normal">
             {showDevDetails ? "Collapse" : "Low-level tools, microservice iframes, and test controls"}
           </span>
         </button>
@@ -178,7 +178,7 @@ export default function WebMCPProof() {
               <span className="font-sans font-semibold text-slate-300 block">
                 Microservice host ports
               </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 <div>Database: <span className="text-slate-300">:3002</span></div>
                 <div>Compute: <span className="text-slate-300">:3003</span></div>
                 <div>Routing: <span className="text-slate-300">:3001</span></div>

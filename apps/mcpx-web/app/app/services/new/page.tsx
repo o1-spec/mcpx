@@ -129,10 +129,10 @@ export default function NewServicePage() {
         {/* Left Column: Form (~60%) */}
         <div className="lg:col-span-7 space-y-6">
           <Panel title="SERVICE ORIGIN & IDENTITY">
-            <form onSubmit={handleConnect} className="space-y-4 font-mono text-[12px]">
+            <form onSubmit={handleConnect} className="space-y-4 font-mono text-xs">
               <div className="space-y-1.5">
-                <label htmlFor="origin-url" className="text-[11px] text-[#66686D] uppercase block">
-                  Origin URL <span className="text-[#A5F36B]">*</span>
+                <label htmlFor="origin-url" className="text-xs text-subtle uppercase block">
+                  Origin URL <span className="text-accent-lime">*</span>
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -142,25 +142,25 @@ export default function NewServicePage() {
                     value={originInput}
                     onChange={(e) => setOriginInput(e.target.value)}
                     disabled={phase === "connecting" || phase === "discovering"}
-                    className="flex-1 px-3.5 py-2 rounded bg-[#070708] border border-white/[0.08] text-[12.5px] font-mono text-[#F5F5F3] placeholder-[#66686D] focus:outline-none focus:border-white/25"
+                    className="flex-1 px-3.5 py-2 rounded bg-background border border-white/8 text-xs font-mono text-foreground placeholder-subtle focus:outline-none focus:border-white/25"
                     required
                   />
                   <button
                     type="submit"
                     disabled={phase === "connecting" || phase === "discovering"}
-                    className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-sans font-semibold text-[12px] transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                    className="px-4 py-2 rounded bg-foreground text-background hover:bg-white font-sans font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50 shrink-0"
                   >
                     {phase === "connecting" || phase === "discovering" ? "Connecting…" : "Discover Tools →"}
                   </button>
                 </div>
-                <p className="text-[11px] text-[#66686D]">
-                  Must be a reachable URL serving WebMCP tools via <code className="text-[#A0A0A4]">document.modelContext</code>.
+                <p className="text-xs text-subtle">
+                  Must be a reachable URL serving WebMCP tools via <code className="text-muted">document.modelContext</code>.
                 </p>
               </div>
 
               {phase !== "idle" && (
                 <div className="space-y-1.5 pt-2">
-                  <label htmlFor="service-name" className="text-[11px] text-[#66686D] uppercase block">
+                  <label htmlFor="service-name" className="text-xs text-subtle uppercase block">
                     Service Name (Optional)
                   </label>
                   <input
@@ -169,7 +169,7 @@ export default function NewServicePage() {
                     placeholder="e.g. Billing Service"
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded bg-[#070708] border border-white/[0.08] text-[12.5px] font-mono text-[#F5F5F3] placeholder-[#66686D] focus:outline-none focus:border-white/25"
+                    className="w-full px-3.5 py-2 rounded bg-background border border-white/8 text-xs font-mono text-foreground placeholder-subtle focus:outline-none focus:border-white/25"
                   />
                 </div>
               )}
@@ -179,13 +179,12 @@ export default function NewServicePage() {
           {/* Discovery Status Message */}
           {statusMessage && (
             <div
-              className={`p-4 border font-mono text-[12px] rounded ${
-                phase === "connected"
-                  ? "bg-emerald-950/30 border-[#A5F36B]/30 text-[#A5F36B]"
+              className={`p-4 border font-mono text-xs rounded ${phase === "connected"
+                  ? "bg-emerald-950/30 border-accent-lime/30 text-accent-lime"
                   : phase === "failed" || phase === "no_tools"
-                  ? "bg-rose-950/30 border-rose-500/30 text-rose-300"
-                  : "bg-cyan-950/30 border-cyan-500/30 text-cyan-300"
-              }`}
+                    ? "bg-rose-950/30 border-rose-500/30 text-rose-300"
+                    : "bg-cyan-950/30 border-cyan-500/30 text-cyan-300"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <span className="font-bold uppercase">[{phase}]</span>
@@ -199,41 +198,41 @@ export default function NewServicePage() {
             <Panel
               title="DISCOVERED WEBMCP TOOLS"
               badge={
-                <span className="text-[11px] font-mono text-[#A5F36B]">
+                <span className="text-xs font-mono text-accent-lime">
                   {discoveredTools.length} found
                 </span>
               }
             >
-              <div className="space-y-3 font-mono text-[12px]">
+              <div className="space-y-3 font-mono text-xs">
                 {discoveredTools.map((tool, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-[#070708] border border-white/[0.06] rounded space-y-2"
+                    className="p-3 bg-background border border-white/6 rounded space-y-2"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#A5F36B]" />
-                        <span className="text-[#F5F5F3] font-bold">{tool.name}</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-lime" />
+                        <span className="text-foreground font-bold">{tool.name}</span>
                       </div>
                       <button
                         type="button"
                         onClick={() =>
                           setExpandedSchemaIndex(expandedSchemaIndex === idx ? null : idx)
                         }
-                        className="text-[10.5px] text-[#66686D] hover:text-[#F5F5F3]"
+                        className="text-xs text-subtle hover:text-foreground"
                       >
                         {expandedSchemaIndex === idx ? "Hide Schema" : "View Schema"}
                       </button>
                     </div>
 
                     {tool.description && (
-                      <p className="text-[11.5px] text-[#A0A0A4] font-sans">
+                      <p className="text-xs text-muted font-sans">
                         {tool.description}
                       </p>
                     )}
 
                     {expandedSchemaIndex === idx && tool.inputSchema && (
-                      <pre className="p-2.5 bg-[#0B0C0E] border border-white/[0.04] rounded text-[10.5px] text-[#A0A0A4] overflow-x-auto">
+                      <pre className="p-2.5 bg-panel border border-white/4 rounded text-xs text-muted overflow-x-auto">
                         {JSON.stringify(tool.inputSchema, null, 2)}
                       </pre>
                     )}
@@ -244,7 +243,7 @@ export default function NewServicePage() {
                   type="button"
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="w-full py-2.5 px-4 rounded bg-[#A5F36B] text-[#070708] hover:bg-[#b5f883] font-sans font-bold text-[12.5px] transition-colors cursor-pointer disabled:opacity-50 shadow-sm mt-4 flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 rounded bg-accent-lime text-background hover:bg-accent-lime/90 font-sans font-bold text-xs transition-colors cursor-pointer disabled:opacity-50 shadow-sm mt-4 flex items-center justify-center gap-2"
                 >
                   {isSaving ? "Saving Service…" : "Save Service & Register Tools →"}
                 </button>
@@ -256,12 +255,12 @@ export default function NewServicePage() {
         {/* Right Column: Guidance Rail (~40%) */}
         <div className="lg:col-span-5 space-y-6">
           <Panel title="WEBMCP DISCOVERY PROTOCOL">
-            <div className="space-y-3 text-[12.5px] text-[#A0A0A4] font-sans leading-relaxed">
+            <div className="space-y-3 text-xs text-muted font-sans leading-relaxed">
               <p>
                 MCPx connects to WebMCP services via secure iframe bridge, querying{" "}
-                <code className="font-mono text-[#F5F5F3] text-[11px]">document.modelContext.listTools()</code>.
+                <code className="font-mono text-foreground text-xs">document.modelContext.listTools()</code>.
               </p>
-              <div className="p-3 bg-[#070708] border border-white/[0.06] rounded font-mono text-[11px] space-y-1 text-[#66686D]">
+              <div className="p-3 bg-background border border-white/6 rounded font-mono text-xs space-y-1 text-subtle">
                 <div>1. Service loads in host bridge</div>
                 <div>2. Tools enumerate across boundary</div>
                 <div>3. Reliability contracts bind to tools</div>
@@ -270,16 +269,16 @@ export default function NewServicePage() {
           </Panel>
 
           <Panel title="EXAMPLE LOCAL FIXTURE">
-            <div className="space-y-2 text-[12px] font-mono text-[#A0A0A4]">
-              <p className="text-[11.5px] text-[#66686D] font-sans">
+            <div className="space-y-2 text-xs font-mono text-muted">
+              <p className="text-xs text-subtle font-sans">
                 You can connect the built-in generic external service fixture:
               </p>
-              <div className="p-2.5 bg-[#070708] border border-white/[0.06] rounded text-[#A5F36B] flex items-center justify-between">
+              <div className="p-2.5 bg-background border border-white/6 rounded text-accent-lime flex items-center justify-between">
                 <span>http://localhost:3010</span>
                 <button
                   type="button"
                   onClick={() => setOriginInput("http://localhost:3010")}
-                  className="text-[#F5F5F3] hover:underline text-[11px]"
+                  className="text-foreground hover:underline text-xs"
                 >
                   Use URL
                 </button>

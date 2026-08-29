@@ -56,7 +56,7 @@ export default function TransactionsPage() {
         actions={
           <Link
             href="/app"
-            className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold text-[12.5px] font-sans transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+            className="px-4 py-2 rounded bg-foreground text-background hover:bg-white font-semibold text-xs font-sans transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
           >
             <span>+ Run Transaction</span>
           </Link>
@@ -64,18 +64,17 @@ export default function TransactionsPage() {
       />
 
       {/* 2. Status Filters & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
-        <div className="flex flex-wrap items-center gap-1 font-mono text-[12px]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/8 pb-3">
+        <div className="flex flex-wrap items-center gap-1 font-mono text-xs">
           {["ALL", "COMMITTED", "COMPENSATED", "IN_DOUBT", "FAILED"].map((st) => (
             <button
               key={st}
               type="button"
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
-                statusFilter === st
-                  ? "bg-white/[0.08] text-[#F5F5F3] font-semibold"
-                  : "text-[#A0A0A4] hover:text-[#F5F5F3]"
-              }`}
+              className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${statusFilter === st
+                ? "bg-white/8 text-foreground font-semibold"
+                : "text-muted hover:text-foreground"
+                }`}
             >
               {st}
             </button>
@@ -87,7 +86,7 @@ export default function TransactionsPage() {
           placeholder="Search by ID or scenario…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full sm:w-[260px] px-3 py-1.5 rounded bg-[#0B0C0E] border border-white/[0.08] text-[12px] font-mono text-[#F5F5F3] placeholder-[#66686D] focus:outline-none focus:border-white/20"
+          className="w-full sm:w-65 px-3 py-1.5 rounded bg-panel border border-white/8 text-xs font-mono text-foreground placeholder-subtle focus:outline-none focus:border-white/20"
         />
       </div>
 
@@ -107,11 +106,11 @@ export default function TransactionsPage() {
 
       {/* 4. Dense Control Plane Transactions Table */}
       {filteredTransactions.length > 0 && (
-        <div className="border border-white/[0.08] bg-[#0B0C0E] overflow-hidden rounded-sm">
+        <div className="border border-white/8 bg-panel overflow-hidden rounded-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse font-mono text-[12px]">
+            <table className="w-full text-left border-collapse font-mono text-xs">
               <thead>
-                <tr className="border-b border-white/[0.08] text-[#66686D] text-[10.5px] uppercase bg-[#070708]">
+                <tr className="border-b border-white/8 text-subtle text-xs uppercase bg-background">
                   <th className="py-3 px-5 font-normal">Transaction ID</th>
                   <th className="py-3 px-5 font-normal">Scenario / Workflow</th>
                   <th className="py-3 px-5 font-normal">Created Timestamp</th>
@@ -119,20 +118,20 @@ export default function TransactionsPage() {
                   <th className="py-3 px-5 font-normal text-right">Inspection</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.04]">
+              <tbody className="divide-y divide-white/4">
                 {filteredTransactions.map((tx) => (
                   <tr
                     key={tx.id}
-                    className="hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                    className="hover:bg-white/2 transition-colors group cursor-pointer"
                     onClick={() => setSelectedTx(tx)}
                   >
-                    <td className="py-3.5 px-5 font-medium text-[#F5F5F3]">
-                      <span className="truncate max-w-[180px] block">{tx.id}</span>
+                    <td className="py-3.5 px-5 font-medium text-foreground">
+                      <span className="truncate max-w-45 block">{tx.id}</span>
                     </td>
-                    <td className="py-3.5 px-5 text-[#A0A0A4]">
+                    <td className="py-3.5 px-5 text-muted">
                       {tx.scenario || "Reference deployment"}
                     </td>
-                    <td className="py-3.5 px-5 text-[#66686D]">
+                    <td className="py-3.5 px-5 text-subtle">
                       {new Date(tx.created_at).toLocaleString()}
                     </td>
                     <td className="py-3.5 px-5">
@@ -145,7 +144,7 @@ export default function TransactionsPage() {
                           e.stopPropagation();
                           setSelectedTx(tx);
                         }}
-                        className="text-[#A5F36B] hover:text-white transition-colors text-[12px] font-medium"
+                        className="text-accent-lime hover:text-foreground transition-colors text-xs font-medium"
                       >
                         Inspect →
                       </button>

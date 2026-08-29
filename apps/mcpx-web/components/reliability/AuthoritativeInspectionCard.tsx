@@ -19,7 +19,7 @@ export default function AuthoritativeInspectionCard({
         </span>
         {authoritativeState.inspected && (
           <span
-            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${authoritativeState.exists
+            className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${authoritativeState.exists
                 ? "bg-emerald-950 text-emerald-300 border border-emerald-500/40"
                 : "bg-rose-950 text-rose-300 border border-rose-500/40"
               }`}
@@ -49,7 +49,7 @@ export default function AuthoritativeInspectionCard({
           </span>
         </div>
         {transactionNode.lastError && (
-          <div className="pt-1 text-rose-300 text-[11px]">
+          <div className="pt-1 text-rose-300 text-xs">
             <span className="font-bold">Last Error:</span> {transactionNode.lastError}
           </div>
         )}

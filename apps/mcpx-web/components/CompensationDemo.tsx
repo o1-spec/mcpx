@@ -128,7 +128,7 @@ export default function CompensationDemo({
               <span className="font-semibold uppercase tracking-wider text-slate-300 font-sans">
                 Authoritative Resource Inspection
               </span>
-              <span className="text-[10px] text-slate-400">Live Services</span>
+              <span className="text-xs text-slate-400">Live Services</span>
             </div>
 
             <div className="space-y-2 text-slate-300">
@@ -160,7 +160,7 @@ export default function CompensationDemo({
               </div>
 
               {transaction.lastError && (
-                <div className="pt-1 text-rose-300 text-[11px]">
+                <div className="pt-1 text-rose-300 text-xs">
                   <span className="font-bold">Last Error:</span> {transaction.lastError}
                 </div>
               )}

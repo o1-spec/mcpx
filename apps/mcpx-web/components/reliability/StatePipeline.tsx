@@ -74,7 +74,7 @@ export default function StatePipeline({ currentState }: StatePipelineProps) {
 
   return (
     <div className="p-5 rounded-xl border border-slate-800/80 bg-slate-950/70 space-y-3">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">
+      <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 block">
         Node State Transition Pipeline
       </span>
 
@@ -98,7 +98,7 @@ export default function StatePipeline({ currentState }: StatePipelineProps) {
                     : "bg-slate-900/40 text-slate-600 border-slate-800"
                 }`}
               >
-                {isCurrent && <span className="mr-1.5 inline-block animate-ping text-[10px]">●</span>}
+                {isCurrent && <span className="mr-1.5 inline-block animate-ping text-xs">●</span>}
                 {step}
               </div>
               {idx < steps.length - 1 && <span className="text-slate-600 font-bold">↓</span>}

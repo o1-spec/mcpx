@@ -53,7 +53,7 @@ export default function WorkflowsPage() {
         actions={
           <Link
             href="/app/workflows/new"
-            className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold text-[12.5px] font-sans transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+            className="px-4 py-2 rounded bg-foreground text-background hover:bg-white font-semibold text-xs font-sans transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
           >
             <span>+ Create Workflow</span>
           </Link>
@@ -61,37 +61,34 @@ export default function WorkflowsPage() {
       />
 
       {/* 2. Filter Tabs */}
-      <div className="flex items-center gap-1 border-b border-white/[0.08] pb-3 font-mono text-[12px]">
+      <div className="flex items-center gap-1 border-b border-white/8 pb-3 font-mono text-xs">
         <button
           type="button"
           onClick={() => setFilterTab("all")}
-          className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
-            filterTab === "all"
-              ? "bg-white/[0.08] text-[#F5F5F3] font-semibold"
-              : "text-[#A0A0A4] hover:text-[#F5F5F3]"
-          }`}
+          className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${filterTab === "all"
+              ? "bg-white/8 text-foreground font-semibold"
+              : "text-muted hover:text-foreground"
+            }`}
         >
           All ({workflows.length + 1})
         </button>
         <button
           type="button"
           onClick={() => setFilterTab("ready")}
-          className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
-            filterTab === "ready"
-              ? "bg-white/[0.08] text-[#F5F5F3] font-semibold"
-              : "text-[#A0A0A4] hover:text-[#F5F5F3]"
-          }`}
+          className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${filterTab === "ready"
+              ? "bg-white/8 text-foreground font-semibold"
+              : "text-muted hover:text-foreground"
+            }`}
         >
           Ready ({workflows.filter((w) => (w.nodes?.length || 0) > 0).length + 1})
         </button>
         <button
           type="button"
           onClick={() => setFilterTab("draft")}
-          className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
-            filterTab === "draft"
-              ? "bg-white/[0.08] text-[#F5F5F3] font-semibold"
-              : "text-[#A0A0A4] hover:text-[#F5F5F3]"
-          }`}
+          className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${filterTab === "draft"
+              ? "bg-white/8 text-foreground font-semibold"
+              : "text-muted hover:text-foreground"
+            }`}
         >
           Drafts ({workflows.filter((w) => (w.nodes?.length || 0) === 0).length})
         </button>
@@ -108,11 +105,11 @@ export default function WorkflowsPage() {
       )}
 
       {/* 4. Dense Control Plane Workflows Table */}
-      <div className="border border-white/[0.08] bg-[#0B0C0E] overflow-hidden rounded-sm">
+      <div className="border border-white/8 bg-panel overflow-hidden rounded-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse font-mono text-[12px]">
+          <table className="w-full text-left border-collapse font-mono text-xs">
             <thead>
-              <tr className="border-b border-white/[0.08] text-[#66686D] text-[10.5px] uppercase bg-[#070708]">
+              <tr className="border-b border-white/8 text-subtle text-xs uppercase bg-background">
                 <th className="py-3 px-5 font-normal">Workflow Name</th>
                 <th className="py-3 px-5 font-normal">Pipeline Steps</th>
                 <th className="py-3 px-5 font-normal">Topology Flow</th>
@@ -120,26 +117,26 @@ export default function WorkflowsPage() {
                 <th className="py-3 px-5 font-normal text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody className="divide-y divide-white/4">
               {/* Built-in Reference Deployment Workflow */}
               {(filterTab === "all" || filterTab === "ready") && (
-                <tr className="hover:bg-white/[0.02] transition-colors group">
+                <tr className="hover:bg-white/2 transition-colors group">
                   <td className="py-3.5 px-5">
-                    <div className="text-[#F5F5F3] font-bold font-sans text-[13px]">
+                    <div className="text-foreground font-bold font-sans text-xs">
                       Application Deployment DAG
                     </div>
-                    <div className="text-[10.5px] text-[#66686D]">
+                    <div className="text-xs text-subtle">
                       Built-in 4-service reference pipeline
                     </div>
                   </td>
-                  <td className="py-3.5 px-5 text-[#F5F5F3]">
-                    <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[11px]">
+                  <td className="py-3.5 px-5 text-foreground">
+                    <span className="px-2 py-0.5 rounded bg-white/4 border border-white/8 text-xs">
                       4 steps
                     </span>
                   </td>
-                  <td className="py-3.5 px-5 text-[#A0A0A4] text-[11.5px]">
-                    <span className="text-[#A5F36B]">Database</span> →{" "}
-                    <span className="text-[#A5F36B]">Backend</span> → (
+                  <td className="py-3.5 px-5 text-muted text-xs">
+                    <span className="text-accent-lime">Database</span> →{" "}
+                    <span className="text-accent-lime">Backend</span> → (
                     <span className="text-amber-300">Routing</span> |{" "}
                     <span className="text-cyan-300">Frontend</span>)
                   </td>
@@ -149,7 +146,7 @@ export default function WorkflowsPage() {
                   <td className="py-3.5 px-5 text-right">
                     <Link
                       href="/app"
-                      className="text-[#A5F36B] hover:text-white transition-colors text-[12px] font-medium"
+                      className="text-accent-lime hover:text-foreground transition-colors text-xs font-medium"
                     >
                       Run in Overview →
                     </Link>
@@ -159,7 +156,7 @@ export default function WorkflowsPage() {
 
               {loading && (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-[#66686D]">
+                  <td colSpan={5} className="py-10 text-center text-subtle">
                     Loading custom workflows…
                   </td>
                 </tr>
@@ -173,28 +170,28 @@ export default function WorkflowsPage() {
                 return (
                   <tr
                     key={wf.id}
-                    className="hover:bg-white/[0.02] transition-colors group"
+                    className="hover:bg-white/2 transition-colors group"
                   >
                     <td className="py-3.5 px-5">
-                      <div className="text-[#F5F5F3] font-bold font-sans text-[13px]">
+                      <div className="text-foreground font-bold font-sans text-xs">
                         {wf.name}
                       </div>
-                      <div className="text-[10.5px] text-[#66686D]">
+                      <div className="text-xs text-subtle">
                         {wf.createdAt
                           ? `Created ${new Date(wf.createdAt).toLocaleDateString()}`
                           : "Custom workflow"}
                       </div>
                     </td>
-                    <td className="py-3.5 px-5 text-[#F5F5F3]">
-                      <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[11px]">
+                    <td className="py-3.5 px-5 text-foreground">
+                      <span className="px-2 py-0.5 rounded bg-white/4 border border-white/8 text-xs">
                         {stepCount} steps
                       </span>
                     </td>
-                    <td className="py-3.5 px-5 text-[#A0A0A4] text-[11.5px]">
+                    <td className="py-3.5 px-5 text-muted text-xs">
                       {stepCount > 0 ? (
                         wf.nodes.map((n) => n.label).join(" → ")
                       ) : (
-                        <span className="text-[#66686D] italic">No steps defined</span>
+                        <span className="text-subtle italic">No steps defined</span>
                       )}
                     </td>
                     <td className="py-3.5 px-5">
@@ -203,7 +200,7 @@ export default function WorkflowsPage() {
                     <td className="py-3.5 px-5 text-right space-x-3">
                       <Link
                         href={`/app/workflows/${wf.id}`}
-                        className="text-[#A5F36B] hover:text-white transition-colors text-[12px] font-medium"
+                        className="text-accent-lime hover:text-foreground transition-colors text-xs font-medium"
                       >
                         Inspect →
                       </Link>
@@ -211,7 +208,7 @@ export default function WorkflowsPage() {
                         type="button"
                         onClick={(e) => handleDeleteWorkflow(wf.id, e)}
                         disabled={deletingId === wf.id}
-                        className="text-[#66686D] hover:text-rose-400 transition-colors cursor-pointer text-[11px]"
+                        className="text-subtle hover:text-rose-400 transition-colors cursor-pointer text-xs"
                         title="Delete workflow"
                       >
                         {deletingId === wf.id ? "…" : "Delete"}

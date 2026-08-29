@@ -41,21 +41,21 @@ export default function DiagnosticsDrawer({
       />
 
       {/* Drawer Container */}
-      <div className="relative z-10 w-full max-w-xl bg-[#0B0C0E] border-l border-white/[0.08] flex flex-col h-full shadow-2xl animate-in slide-in-from-right duration-200">
+      <div className="relative z-10 w-full max-w-xl bg-panel border-l border-white/8 flex flex-col h-full shadow-2xl animate-in slide-in-from-right duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#070708]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 bg-background">
           <div className="space-y-0.5">
-            <div className="text-[11px] font-mono uppercase tracking-wider text-[#A5F36B]">
+            <div className="text-xs font-mono uppercase tracking-wider text-accent-lime">
               [ DIAGNOSTICS ]
             </div>
-            <h2 className="text-[15px] font-bold text-[#F5F5F3] font-sans">
+            <h2 className="text-sm font-bold text-foreground font-sans">
               {title}
             </h2>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded hover:bg-white/[0.06] text-[#A0A0A4] hover:text-[#F5F5F3] transition-colors cursor-pointer"
+            className="p-1.5 rounded hover:bg-white/6 text-muted hover:text-foreground transition-colors cursor-pointer"
             aria-label="Close drawer"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -65,24 +65,24 @@ export default function DiagnosticsDrawer({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 p-6 overflow-y-auto font-mono text-[11.5px] space-y-4">
-          <div className="flex items-center justify-between text-[11px] text-[#66686D]">
+        <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-4">
+          <div className="flex items-center justify-between text-xs text-subtle">
             <span>PAYLOAD SNAPSHOT</span>
             <button
               onClick={() => navigator.clipboard.writeText(formattedJson)}
-              className="text-[#A0A0A4] hover:text-[#A5F36B] transition-colors cursor-pointer"
+              className="text-muted hover:text-accent-lime transition-colors cursor-pointer"
             >
               Copy JSON
             </button>
           </div>
 
-          <pre className="p-4 bg-[#070708] border border-white/[0.06] rounded text-[#A0A0A4] overflow-x-auto whitespace-pre leading-relaxed text-[11px]">
+          <pre className="p-4 bg-background border border-white/6 rounded text-muted overflow-x-auto whitespace-pre leading-relaxed text-xs">
             {formattedJson}
           </pre>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-white/[0.06] bg-[#070708] flex items-center justify-between text-[11px] font-mono text-[#66686D]">
+        <div className="px-6 py-3 border-t border-white/6 bg-background flex items-center justify-between text-xs font-mono text-subtle">
           <span>WEBMCP COORDINATOR TRACE</span>
           <span>PRESS ESC TO CLOSE</span>
         </div>

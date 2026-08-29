@@ -25,15 +25,15 @@ export default function Panel({
 
   return (
     <div
-      className={`border border-white/[0.08] bg-[#0B0C0E] transition-colors rounded-sm overflow-hidden ${className}`}
+      className={`border border-white/8 bg-panel transition-colors rounded-sm overflow-hidden ${className}`}
     >
       {hasHeader && (
         <div
-          className={`flex items-center justify-between border-b border-white/[0.06] px-5 py-3 bg-[#0B0C0E] ${headerClassName}`}
+          className={`flex items-center justify-between border-b border-white/6 px-5 py-3 bg-panel ${headerClassName}`}
         >
           <div className="flex items-center gap-2.5">
             {typeof title === "string" ? (
-              <span className="text-[11.5px] font-mono font-bold text-[#F5F5F3] uppercase tracking-wider">
+              <span className="text-xs font-mono font-bold text-foreground uppercase tracking-wider">
                 {title}
               </span>
             ) : (
@@ -41,7 +41,7 @@ export default function Panel({
             )}
             {badge}
             {subtitle && (
-              <span className="text-[11px] font-sans text-[#66686D]">
+              <span className="text-xs font-sans text-subtle">
                 {subtitle}
               </span>
             )}

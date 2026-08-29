@@ -101,7 +101,7 @@ export default function EmbeddedServices({
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                   {svc.name} <span className={svc.color}>({svc.port})</span>
                 </h4>
-                <span className="text-[10px] font-mono text-slate-400">
+                <span className="text-xs font-mono text-slate-400">
                   &lt;iframe src=&quot;{svc.url}&quot; allow=&quot;tools&quot; /&gt;
                 </span>
               </div>

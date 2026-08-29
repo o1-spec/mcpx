@@ -149,8 +149,8 @@ export default function NewContractPage({
 
   if (loadingService) {
     return (
-      <div className="py-20 text-center font-mono text-xs text-[#66686D] space-y-2">
-        <div className="w-4 h-4 border-2 border-white/20 border-t-[#A5F36B] rounded-full animate-spin mx-auto"></div>
+      <div className="py-20 text-center font-mono text-xs text-subtle space-y-2">
+        <div className="w-4 h-4 border-2 border-white/20 border-t-accent-lime rounded-full animate-spin mx-auto"></div>
         <div>Loading service tools…</div>
       </div>
     );
@@ -159,34 +159,34 @@ export default function NewContractPage({
   return (
     <div className="space-y-8 pb-16 font-sans">
       {/* Header */}
-      <div className="space-y-2 border-b border-white/[0.08] pb-5">
-        <div className="flex items-center gap-2 text-[12px] font-mono text-[#66686D]">
-          <Link href="/app/services" className="hover:text-[#F5F5F3] transition-colors">
+      <div className="space-y-2 border-b border-white/8 pb-5">
+        <div className="flex items-center gap-2 text-xs font-mono text-subtle">
+          <Link href="/app/services" className="hover:text-foreground transition-colors">
             Services
           </Link>
           <span>/</span>
           <Link
             href={`/app/services/${id}`}
-            className="hover:text-[#F5F5F3] transition-colors"
+            className="hover:text-foreground transition-colors"
           >
             {service?.name || "Service"}
           </Link>
           <span>/</span>
-          <span className="text-[#A0A0A4]">New Contract</span>
+          <span className="text-muted">New Contract</span>
         </div>
 
         <div>
-          <h1 className="text-[22px] sm:text-[24px] font-bold text-[#F5F5F3] tracking-tight font-sans">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight font-sans">
             New Reliability Contract
           </h1>
-          <p className="text-[13px] text-[#A0A0A4] font-sans mt-0.5">
+          <p className="text-xs text-muted font-sans mt-0.5">
             Define how MCPx should execute, inspect, and compensate one logical operation.
           </p>
         </div>
       </div>
 
       {errorMessage && (
-        <div className="p-3 border border-rose-500/40 bg-rose-950/20 font-mono text-[12px] text-rose-300">
+        <div className="p-3 border border-rose-500/40 bg-rose-950/20 font-mono text-xs text-rose-300">
           ✕ {errorMessage}
         </div>
       )}
@@ -195,13 +195,13 @@ export default function NewContractPage({
         {/* LEFT / MAIN COLUMN (~68%) */}
         <div className="lg:col-span-8 space-y-6">
           {/* Contract Name */}
-          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-3 font-mono text-[12px]">
-            <div className="text-[11px] text-[#66686D] uppercase tracking-wider">
+          <div className="p-5 border border-white/9 bg-panel space-y-3 font-mono text-xs">
+            <div className="text-xs text-subtle uppercase tracking-wider">
               CONTRACT IDENTITY
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="contract-name" className="text-[12px] font-medium text-[#F5F5F3] block font-sans">
-                Contract name <span className="text-[#A5F36B]">*</span>
+              <label htmlFor="contract-name" className="text-xs font-medium text-foreground block font-sans">
+                Contract name <span className="text-accent-lime">*</span>
               </label>
               <input
                 id="contract-name"
@@ -209,37 +209,37 @@ export default function NewContractPage({
                 placeholder="e.g. Create Widget, Provision Database, Deploy Routing"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 rounded bg-[#070708] border border-white/[0.09] text-[13px] font-sans text-[#F5F5F3] placeholder-[#66686D] focus:outline-none focus:border-white/30"
+                className="w-full px-3 py-2 rounded bg-background border border-white/9 text-xs font-sans text-foreground placeholder-subtle focus:outline-none focus:border-white/30"
                 required
               />
             </div>
           </div>
 
           {/* Step 01: Execute Mapping */}
-          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+          <div className="p-5 border border-white/9 bg-panel space-y-4 font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-white/6 pb-2">
               <div className="flex items-center gap-2">
-                <span className="px-1.5 py-0.5 rounded bg-emerald-950/60 text-[#A5F36B] border border-[#A5F36B]/30 text-[10px]">
+                <span className="px-1.5 py-0.5 rounded bg-emerald-950/60 text-accent-lime border border-accent-lime/30 text-xs">
                   01
                 </span>
-                <span className="font-bold text-[#F5F5F3]">EXECUTE</span>
+                <span className="font-bold text-foreground">EXECUTE</span>
               </div>
-              <span className="text-[11px] text-[#66686D]">CONSEQUENTIAL ACTION</span>
+              <span className="text-xs text-subtle">CONSEQUENTIAL ACTION</span>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="exec-select" className="text-[12px] text-[#A0A0A4] font-sans block">
+              <label htmlFor="exec-select" className="text-xs text-muted font-sans block">
                 Which WebMCP tool performs the consequential mutation?
               </label>
               <select
                 id="exec-select"
                 value={executeToolName}
                 onChange={(e) => setExecuteToolName(e.target.value)}
-                className="w-full px-3 py-2 rounded bg-[#070708] border border-white/[0.09] text-[#F5F5F3] font-mono text-[12px] focus:outline-none focus:border-white/30"
+                className="w-full px-3 py-2 rounded bg-background border border-white/9 text-foreground font-mono text-xs focus:outline-none focus:border-white/30"
                 required
               >
                 {tools.map((t) => (
-                  <option key={t.name} value={t.name} className="bg-[#0B0C0E] text-[#F5F5F3]">
+                  <option key={t.name} value={t.name} className="bg-panel text-foreground">
                     {t.name}
                   </option>
                 ))}
@@ -248,16 +248,16 @@ export default function NewContractPage({
 
             {/* Selected Tool Schema Preview */}
             {execTool && (
-              <div className="pt-2 border-t border-white/[0.04] space-y-1.5 text-[11px]">
-                <span className="text-[#66686D] block">Declared parameters:</span>
+              <div className="pt-2 border-t border-white/4 space-y-1.5 text-xs">
+                <span className="text-subtle block">Declared parameters:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {Object.keys(execProps).map((k) => (
-                    <span key={k} className="px-2 py-0.5 rounded bg-[#070708] border border-white/[0.06] text-[#A0A0A4]">
+                    <span key={k} className="px-2 py-0.5 rounded bg-background border border-white/6 text-muted">
                       {k}: <span className="text-cyan-300">{execProps[k]?.type || "any"}</span>
                     </span>
                   ))}
                   {Object.keys(execProps).length === 0 && (
-                    <span className="text-[#66686D]">No parameters declared in schema</span>
+                    <span className="text-subtle">No parameters declared in schema</span>
                   )}
                 </div>
               </div>
@@ -265,30 +265,30 @@ export default function NewContractPage({
           </div>
 
           {/* Step 02: Inspect Mapping */}
-          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+          <div className="p-5 border border-white/9 bg-panel space-y-4 font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-white/6 pb-2">
               <div className="flex items-center gap-2">
-                <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 text-[10px]">
+                <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 text-xs">
                   02
                 </span>
-                <span className="font-bold text-[#F5F5F3]">INSPECT</span>
+                <span className="font-bold text-foreground">INSPECT</span>
               </div>
-              <span className="text-[11px] text-[#66686D]">AUTHORITATIVE GROUND TRUTH</span>
+              <span className="text-xs text-subtle">AUTHORITATIVE GROUND TRUTH</span>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="insp-select" className="text-[12px] text-[#A0A0A4] font-sans block">
+              <label htmlFor="insp-select" className="text-xs text-muted font-sans block">
                 Which tool tells MCPx what authoritative state currently exists?
               </label>
               <select
                 id="insp-select"
                 value={inspectToolName}
                 onChange={(e) => setInspectToolName(e.target.value)}
-                className="w-full px-3 py-2 rounded bg-[#070708] border border-white/[0.09] text-[#F5F5F3] font-mono text-[12px] focus:outline-none focus:border-white/30"
+                className="w-full px-3 py-2 rounded bg-background border border-white/9 text-foreground font-mono text-xs focus:outline-none focus:border-white/30"
                 required
               >
                 {tools.map((t) => (
-                  <option key={t.name} value={t.name} className="bg-[#0B0C0E] text-[#F5F5F3]">
+                  <option key={t.name} value={t.name} className="bg-panel text-foreground">
                     {t.name}
                   </option>
                 ))}
@@ -296,16 +296,16 @@ export default function NewContractPage({
             </div>
 
             {inspTool && (
-              <div className="pt-2 border-t border-white/[0.04] space-y-1.5 text-[11px]">
-                <span className="text-[#66686D] block">Declared parameters:</span>
+              <div className="pt-2 border-t border-white/4 space-y-1.5 text-xs">
+                <span className="text-subtle block">Declared parameters:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {Object.keys(inspProps).map((k) => (
-                    <span key={k} className="px-2 py-0.5 rounded bg-[#070708] border border-white/[0.06] text-[#A0A0A4]">
+                    <span key={k} className="px-2 py-0.5 rounded bg-background border border-white/6 text-muted">
                       {k}: <span className="text-cyan-300">{inspProps[k]?.type || "any"}</span>
                     </span>
                   ))}
                   {Object.keys(inspProps).length === 0 && (
-                    <span className="text-[#66686D]">No parameters declared in schema</span>
+                    <span className="text-subtle">No parameters declared in schema</span>
                   )}
                 </div>
               </div>
@@ -313,32 +313,32 @@ export default function NewContractPage({
           </div>
 
           {/* Step 03: Compensate Mapping */}
-          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+          <div className="p-5 border border-white/9 bg-panel space-y-4 font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-white/6 pb-2">
               <div className="flex items-center gap-2">
-                <span className="px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/30 text-[10px]">
+                <span className="px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/30 text-xs">
                   03
                 </span>
-                <span className="font-bold text-[#F5F5F3]">COMPENSATE</span>
+                <span className="font-bold text-foreground">COMPENSATE</span>
               </div>
-              <span className="text-[11px] text-[#66686D]">REVERSE ROLLBACK HANDLER</span>
+              <span className="text-xs text-subtle">REVERSE ROLLBACK HANDLER</span>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="comp-select" className="text-[12px] text-[#A0A0A4] font-sans block">
+              <label htmlFor="comp-select" className="text-xs text-muted font-sans block">
                 Which tool reverses the completed action? (Optional)
               </label>
               <select
                 id="comp-select"
                 value={compensateToolName}
                 onChange={(e) => setCompensateToolName(e.target.value)}
-                className="w-full px-3 py-2 rounded bg-[#070708] border border-white/[0.09] text-[#F5F5F3] font-mono text-[12px] focus:outline-none focus:border-white/30"
+                className="w-full px-3 py-2 rounded bg-background border border-white/9 text-foreground font-mono text-xs focus:outline-none focus:border-white/30"
               >
-                <option value="" className="bg-[#0B0C0E] text-[#66686D]">
+                <option value="" className="bg-panel text-subtle">
                   No automatic compensation (Workflows will require manual attention on rollback)
                 </option>
                 {tools.map((t) => (
-                  <option key={t.name} value={t.name} className="bg-[#0B0C0E] text-[#F5F5F3]">
+                  <option key={t.name} value={t.name} className="bg-panel text-foreground">
                     {t.name}
                   </option>
                 ))}
@@ -347,19 +347,19 @@ export default function NewContractPage({
           </div>
 
           {/* Step 04: Operation Identity & Compatibility Matrix */}
-          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+          <div className="p-5 border border-white/9 bg-panel space-y-4 font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-white/6 pb-2">
               <div className="flex items-center gap-2">
-                <span className="px-1.5 py-0.5 rounded bg-white/10 text-[#F5F5F3] border border-white/20 text-[10px]">
+                <span className="px-1.5 py-0.5 rounded bg-white/10 text-foreground border border-white/20 text-xs">
                   04
                 </span>
-                <span className="font-bold text-[#F5F5F3]">OPERATION IDENTITY</span>
+                <span className="font-bold text-foreground">OPERATION IDENTITY</span>
               </div>
-              <span className="text-[11px] text-[#66686D]">CORRELATION PARAMETER</span>
+              <span className="text-xs text-subtle">CORRELATION PARAMETER</span>
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="op-field" className="text-[12px] text-[#A0A0A4] font-sans block">
+              <label htmlFor="op-field" className="text-xs text-muted font-sans block">
                 Shared identity parameter
               </label>
               <input
@@ -368,30 +368,30 @@ export default function NewContractPage({
                 value={operationKeyField}
                 onChange={(e) => setOperationKeyField(e.target.value)}
                 placeholder="operationKey, idempotencyKey"
-                className="w-full max-w-xs px-3 py-1.5 rounded bg-[#070708] border border-white/[0.09] text-amber-300 font-mono text-[12px] focus:outline-none focus:border-white/30"
+                className="w-full max-w-xs px-3 py-1.5 rounded bg-background border border-white/9 text-amber-300 font-mono text-xs focus:outline-none focus:border-white/30"
                 required
               />
             </div>
 
             {/* Compatibility Matrix */}
-            <div className="space-y-2 pt-2 border-t border-white/[0.04]">
-              <span className="text-[11px] text-[#66686D] uppercase block">Compatibility Matrix</span>
-              <div className="divide-y divide-white/[0.04] border border-white/[0.06] bg-[#070708] text-[11px]">
+            <div className="space-y-2 pt-2 border-t border-white/4">
+              <span className="text-xs text-subtle uppercase block">Compatibility Matrix</span>
+              <div className="divide-y divide-white/4 border border-white/6 bg-background text-xs">
                 <div className="flex items-center justify-between p-2">
-                  <span className="text-[#A0A0A4]">Execute ({executeToolName || "none"})</span>
+                  <span className="text-muted">Execute ({executeToolName || "none"})</span>
                   <span className={execAcceptsKey ? "text-emerald-400 font-bold" : "text-amber-400"}>
                     {execAcceptsKey ? `✓ '${opKey}' compatible` : `✕ missing '${opKey}'`}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-2">
-                  <span className="text-[#A0A0A4]">Inspect ({inspectToolName || "none"})</span>
+                  <span className="text-muted">Inspect ({inspectToolName || "none"})</span>
                   <span className={inspAcceptsKey ? "text-emerald-400 font-bold" : "text-amber-400"}>
                     {inspAcceptsKey ? `✓ '${opKey}' compatible` : `✕ missing '${opKey}'`}
                   </span>
                 </div>
                 {hasCompensate && (
                   <div className="flex items-center justify-between p-2">
-                    <span className="text-[#A0A0A4]">Compensate ({compensateToolName})</span>
+                    <span className="text-muted">Compensate ({compensateToolName})</span>
                     <span className={compAcceptsKey ? "text-emerald-400 font-bold" : "text-amber-400"}>
                       {compAcceptsKey ? `✓ '${opKey}' compatible` : `✕ missing '${opKey}'`}
                     </span>
@@ -402,21 +402,21 @@ export default function NewContractPage({
           </div>
 
           {/* Developer Assertions */}
-          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
-            <div className="text-[11px] text-[#66686D] uppercase tracking-wider border-b border-white/[0.06] pb-2">
+          <div className="p-5 border border-white/9 bg-panel space-y-4 font-mono text-xs">
+            <div className="text-xs text-subtle uppercase tracking-wider border-b border-white/6 pb-2">
               DEVELOPER ASSERTIONS
             </div>
 
-            <div className="space-y-3 font-sans text-[12.5px]">
+            <div className="space-y-3 font-sans text-xs">
               <label className="flex items-start gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={executeIdempotent}
                   onChange={(e) => setExecuteIdempotent(e.target.checked)}
-                  className="mt-1 rounded bg-[#070708] border-white/20 text-[#A5F36B] focus:ring-0"
+                  className="mt-1 rounded bg-background border-white/20 text-accent-lime focus:ring-0"
                 />
-                <span className="text-[#A0A0A4] leading-relaxed">
-                  <strong className="text-[#F5F5F3]">Execute Idempotency:</strong> The execute action (<code className="font-mono text-emerald-400">{executeToolName}</code>) binds to the operation identity without creating duplicate mutations.
+                <span className="text-muted leading-relaxed">
+                  <strong className="text-foreground">Execute Idempotency:</strong> The execute action (<code className="font-mono text-emerald-400">{executeToolName}</code>) binds to the operation identity without creating duplicate mutations.
                 </span>
               </label>
 
@@ -425,10 +425,10 @@ export default function NewContractPage({
                   type="checkbox"
                   checked={inspectAuthoritative}
                   onChange={(e) => setInspectAuthoritative(e.target.checked)}
-                  className="mt-1 rounded bg-[#070708] border-white/20 text-[#A5F36B] focus:ring-0"
+                  className="mt-1 rounded bg-background border-white/20 text-accent-lime focus:ring-0"
                 />
-                <span className="text-[#A0A0A4] leading-relaxed">
-                  <strong className="text-[#F5F5F3]">Authoritative Ground Truth:</strong> Inspect (<code className="font-mono text-cyan-300">{inspectToolName}</code>) reflects actual target application state for this identity.
+                <span className="text-muted leading-relaxed">
+                  <strong className="text-foreground">Authoritative Ground Truth:</strong> Inspect (<code className="font-mono text-cyan-300">{inspectToolName}</code>) reflects actual target application state for this identity.
                 </span>
               </label>
 
@@ -438,10 +438,10 @@ export default function NewContractPage({
                     type="checkbox"
                     checked={compensateRetrySafe}
                     onChange={(e) => setCompensateRetrySafe(e.target.checked)}
-                    className="mt-1 rounded bg-[#070708] border-white/20 text-[#A5F36B] focus:ring-0"
+                    className="mt-1 rounded bg-background border-white/20 text-accent-lime focus:ring-0"
                   />
-                  <span className="text-[#A0A0A4] leading-relaxed">
-                    <strong className="text-[#F5F5F3]">Safe Compensation:</strong> Compensation (<code className="font-mono text-amber-300">{compensateToolName}</code>) is safe to retry and idempotently removes the resource.
+                  <span className="text-muted leading-relaxed">
+                    <strong className="text-foreground">Safe Compensation:</strong> Compensation (<code className="font-mono text-amber-300">{compensateToolName}</code>) is safe to retry and idempotently removes the resource.
                   </span>
                 </label>
               )}
@@ -451,54 +451,53 @@ export default function NewContractPage({
 
         {/* RIGHT RAIL (~32%) — LIVE CONTRACT READINESS PANEL */}
         <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-24">
-          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] font-mono text-[12px] space-y-4">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-              <span className="text-[11px] text-[#66686D] uppercase tracking-wider">
+          <div className="p-5 border border-white/9 bg-panel font-mono text-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-white/6 pb-2">
+              <span className="text-xs text-subtle uppercase tracking-wider">
                 CONTRACT READINESS
               </span>
               <span
-                className={`text-[10px] font-mono px-2 py-0.5 rounded border font-bold ${
-                  isReady
+                className={`text-xs font-mono px-2 py-0.5 rounded border font-bold ${isReady
                     ? "bg-emerald-950/60 text-emerald-300 border-emerald-500/40"
                     : "bg-amber-950/60 text-amber-300 border-amber-500/40"
-                }`}
+                  }`}
               >
                 {isReady ? "READY" : "NEEDS REVIEW"}
               </span>
             </div>
 
             {/* Checklist */}
-            <div className="space-y-2 text-[11.5px]">
+            <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[#A0A0A4]">Execute tool selected</span>
-                <span className={executeToolName ? "text-emerald-400" : "text-[#66686D]"}>
+                <span className="text-muted">Execute tool selected</span>
+                <span className={executeToolName ? "text-emerald-400" : "text-subtle"}>
                   {executeToolName ? "✓" : "—"}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-[#A0A0A4]">Inspect tool selected</span>
-                <span className={inspectToolName ? "text-emerald-400" : "text-[#66686D]"}>
+                <span className="text-muted">Inspect tool selected</span>
+                <span className={inspectToolName ? "text-emerald-400" : "text-subtle"}>
                   {inspectToolName ? "✓" : "—"}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-[#A0A0A4]">Compensation handler</span>
-                <span className={hasCompensate ? "text-emerald-400" : "text-[#66686D]"}>
+                <span className="text-muted">Compensation handler</span>
+                <span className={hasCompensate ? "text-emerald-400" : "text-subtle"}>
                   {hasCompensate ? "✓ Configured" : "None (Optional)"}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-[#A0A0A4]">Identity parameter</span>
+                <span className="text-muted">Identity parameter</span>
                 <span className={execAcceptsKey && inspAcceptsKey ? "text-emerald-400" : "text-amber-400"}>
                   {execAcceptsKey && inspAcceptsKey ? "✓ Validated" : "⚠ Check matrix"}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-[#A0A0A4]">Developer assertions</span>
+                <span className="text-muted">Developer assertions</span>
                 <span className={assertionsValid ? "text-emerald-400" : "text-amber-400"}>
                   {assertionsValid ? "✓ Confirmed" : "⚠ Pending"}
                 </span>
@@ -507,11 +506,11 @@ export default function NewContractPage({
 
             {/* Issues List */}
             {validationIssues.length > 0 && (
-              <div className="pt-3 border-t border-white/[0.04] space-y-1.5">
-                <span className="text-[10.5px] text-amber-400 uppercase block">
+              <div className="pt-3 border-t border-white/4 space-y-1.5">
+                <span className="text-xs text-amber-400 uppercase block">
                   {validationIssues.length} {validationIssues.length === 1 ? "issue" : "issues"} to resolve:
                 </span>
-                <ul className="space-y-1 text-[11px] text-[#A0A0A4] font-sans">
+                <ul className="space-y-1 text-xs text-muted font-sans">
                   {validationIssues.map((issue, idx) => (
                     <li key={idx} className="flex items-start gap-1.5">
                       <span className="text-amber-400">×</span>
@@ -523,17 +522,17 @@ export default function NewContractPage({
             )}
 
             {/* Action Bar */}
-            <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
+            <div className="pt-4 border-t border-white/6 flex items-center justify-between gap-3">
               <Link
                 href={`/app/services/${id}`}
-                className="px-3 py-2 text-[#66686D] hover:text-[#F5F5F3] font-mono text-[12px] transition-colors"
+                className="px-3 py-2 text-subtle hover:text-foreground font-mono text-xs transition-colors"
               >
                 Cancel
               </Link>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold font-mono text-[12px] transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
+                className="px-4 py-2 rounded bg-foreground text-background hover:bg-white font-semibold font-mono text-xs transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
               >
                 {isSaving ? "Saving…" : "Save contract"}
               </button>

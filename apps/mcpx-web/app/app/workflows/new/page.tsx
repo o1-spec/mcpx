@@ -207,8 +207,8 @@ export default function NewWorkflowPage() {
 
   if (loading) {
     return (
-      <div className="py-20 text-center font-mono text-xs text-[#66686D] space-y-2">
-        <div className="w-4 h-4 border-2 border-white/20 border-t-[#A5F36B] rounded-full animate-spin mx-auto"></div>
+      <div className="py-20 text-center font-mono text-xs text-subtle space-y-2">
+        <div className="w-4 h-4 border-2 border-white/20 border-t-accent-lime rounded-full animate-spin mx-auto"></div>
         <div>Loading services and contracts…</div>
       </div>
     );
@@ -217,34 +217,34 @@ export default function NewWorkflowPage() {
   return (
     <div className="space-y-8 pb-16 font-sans">
       {/* Header */}
-      <div className="space-y-2 border-b border-white/[0.08] pb-5">
-        <div className="flex items-center gap-2 text-[12px] font-mono text-[#66686D]">
-          <Link href="/app/workflows" className="hover:text-[#F5F5F3] transition-colors">
+      <div className="space-y-2 border-b border-white/8 pb-5">
+        <div className="flex items-center gap-2 text-xs font-mono text-subtle">
+          <Link href="/app/workflows" className="hover:text-foreground transition-colors">
             Workflows
           </Link>
           <span>/</span>
-          <span className="text-[#A0A0A4]">New Workflow</span>
+          <span className="text-muted">New Workflow</span>
         </div>
 
         <div>
-          <h1 className="text-[22px] sm:text-[24px] font-bold text-[#F5F5F3] tracking-tight font-sans">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight font-sans">
             Create Workflow
           </h1>
-          <p className="text-[13px] text-[#A0A0A4] font-sans mt-0.5">
+          <p className="text-xs text-muted font-sans mt-0.5">
             Compose reliability contracts into a multi-step DAG transaction.
           </p>
         </div>
       </div>
 
       {allAvailableContracts.length === 0 ? (
-        <div className="p-6 border border-amber-500/30 bg-amber-950/20 font-mono text-[12px] text-amber-300 space-y-3">
+        <div className="p-6 border border-amber-500/30 bg-amber-950/20 font-mono text-xs text-amber-300 space-y-3">
           <div className="font-bold uppercase">[ NO READY CONTRACTS AVAILABLE ]</div>
-          <p className="text-[#A0A0A4] font-sans text-[13px] leading-relaxed">
+          <p className="text-muted font-sans text-xs leading-relaxed">
             Workflows require at least one configured, ready reliability contract. Please connect a WebMCP service and create a reliability contract first.
           </p>
           <Link
             href="/app/services"
-            className="inline-block px-3.5 py-1.5 rounded bg-[#F5F5F3] text-[#070708] font-bold text-[12px] transition-colors"
+            className="inline-block px-3.5 py-1.5 rounded bg-foreground text-background font-bold text-xs transition-colors"
           >
             Go to Services →
           </Link>
@@ -254,21 +254,21 @@ export default function NewWorkflowPage() {
           {/* Left Main Form (~68%) */}
           <div className="lg:col-span-8 space-y-6">
             {errorMessage && (
-              <div className="p-3 border border-rose-500/40 bg-rose-950/20 font-mono text-[12px] text-rose-300">
+              <div className="p-3 border border-rose-500/40 bg-rose-950/20 font-mono text-xs text-rose-300">
                 ✕ {errorMessage}
               </div>
             )}
 
             {/* Workflow Identity */}
-            <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
-              <div className="text-[11px] text-[#66686D] uppercase tracking-wider border-b border-white/[0.06] pb-2">
+            <div className="p-5 border border-white/9 bg-panel space-y-4 font-mono text-xs">
+              <div className="text-xs text-subtle uppercase tracking-wider border-b border-white/6 pb-2">
                 WORKFLOW IDENTITY
               </div>
 
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <label htmlFor="wf-name" className="text-[12px] font-medium text-[#F5F5F3] block font-sans">
-                    Workflow name <span className="text-[#A5F36B]">*</span>
+                  <label htmlFor="wf-name" className="text-xs font-medium text-foreground block font-sans">
+                    Workflow name <span className="text-accent-lime">*</span>
                   </label>
                   <input
                     id="wf-name"
@@ -276,14 +276,14 @@ export default function NewWorkflowPage() {
                     placeholder="e.g. Customer Onboarding, Widget Publishing, Order Settlement"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2 rounded bg-[#070708] border border-white/[0.09] text-[13px] font-sans text-[#F5F5F3] placeholder-[#66686D] focus:outline-none focus:border-white/30"
+                    className="w-full px-3 py-2 rounded bg-background border border-white/9 text-xs font-sans text-foreground placeholder-subtle focus:outline-none focus:border-white/30"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="wf-desc" className="text-[12px] font-medium text-[#A0A0A4] block font-sans">
-                    Description <span className="text-[#66686D] text-[11px]">(optional)</span>
+                  <label htmlFor="wf-desc" className="text-xs font-medium text-muted block font-sans">
+                    Description <span className="text-subtle text-xs">(optional)</span>
                   </label>
                   <input
                     id="wf-desc"
@@ -291,7 +291,7 @@ export default function NewWorkflowPage() {
                     placeholder="Brief description of this consequential workflow"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-3 py-2 rounded bg-[#070708] border border-white/[0.09] text-[13px] font-sans text-[#F5F5F3] placeholder-[#66686D] focus:outline-none focus:border-white/30"
+                    className="w-full px-3 py-2 rounded bg-background border border-white/9 text-xs font-sans text-foreground placeholder-subtle focus:outline-none focus:border-white/30"
                   />
                 </div>
               </div>
@@ -299,14 +299,14 @@ export default function NewWorkflowPage() {
 
             {/* Steps Builder */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
-                <h2 className="text-[13px] font-mono font-bold text-[#F5F5F3] uppercase tracking-wider">
+              <div className="flex items-center justify-between border-b border-white/6 pb-2.5">
+                <h2 className="text-xs font-mono font-bold text-foreground uppercase tracking-wider">
                   Workflow Steps ({steps.length})
                 </h2>
                 <button
                   type="button"
                   onClick={handleAddStep}
-                  className="px-3 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.09] text-[#F5F5F3] font-mono text-[11.5px] transition-colors cursor-pointer"
+                  className="px-3 py-1 rounded bg-white/4 hover:bg-white/8 border border-white/9 text-foreground font-mono text-xs transition-colors cursor-pointer"
                 >
                   + Add step
                 </button>
@@ -316,14 +316,14 @@ export default function NewWorkflowPage() {
                 {steps.map((step, idx) => (
                   <div
                     key={step.id}
-                    className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]"
+                    className="p-5 border border-white/9 bg-panel space-y-4 font-mono text-xs"
                   >
-                    <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
+                    <div className="flex items-center justify-between border-b border-white/6 pb-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="h-5 w-5 rounded bg-[#070708] border border-white/[0.1] flex items-center justify-center font-mono text-[10.5px] text-[#A5F36B] font-bold">
+                        <span className="h-5 w-5 rounded bg-background border border-white/10 flex items-center justify-center font-mono text-xs text-accent-lime font-bold">
                           {idx + 1}
                         </span>
-                        <span className="text-[13px] font-bold text-[#F5F5F3] font-sans">
+                        <span className="text-xs font-bold text-foreground font-sans">
                           {step.label || `Step ${idx + 1}`}
                         </span>
                       </div>
@@ -332,7 +332,7 @@ export default function NewWorkflowPage() {
                         <button
                           type="button"
                           onClick={() => handleRemoveStep(idx)}
-                          className="text-[11px] text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                          className="text-xs text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
                         >
                           Remove
                         </button>
@@ -341,7 +341,7 @@ export default function NewWorkflowPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-mono text-[#66686D] uppercase block">
+                        <label className="text-xs font-mono text-subtle uppercase block">
                           Step label
                         </label>
                         <input
@@ -353,12 +353,12 @@ export default function NewWorkflowPage() {
                             updated[idx].label = val;
                             setSteps(updated);
                           }}
-                          className="w-full px-3 py-1.5 rounded bg-[#070708] border border-white/[0.09] text-[12px] font-sans text-[#F5F5F3] focus:outline-none focus:border-white/30"
+                          className="w-full px-3 py-1.5 rounded bg-background border border-white/9 text-xs font-sans text-foreground focus:outline-none focus:border-white/30"
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-mono text-[#66686D] uppercase block">
+                        <label className="text-xs font-mono text-subtle uppercase block">
                           Reliability contract
                         </label>
                         <select
@@ -373,14 +373,14 @@ export default function NewWorkflowPage() {
                             }
                             setSteps(updated);
                           }}
-                          className="w-full px-3 py-1.5 rounded bg-[#070708] border border-white/[0.09] text-[12px] font-mono text-cyan-300 focus:outline-none focus:border-white/30"
+                          className="w-full px-3 py-1.5 rounded bg-background border border-white/9 text-xs font-mono text-cyan-300 focus:outline-none focus:border-white/30"
                           required
                         >
                           {allAvailableContracts.map(({ service, contract }) => (
                             <option
                               key={contract.id}
                               value={contract.id}
-                              className="text-[#F5F5F3] bg-[#0B0C0E]"
+                              className="text-foreground bg-panel"
                             >
                               {service.name} / {contract.name} ({contract.executeToolName})
                             </option>
@@ -390,8 +390,8 @@ export default function NewWorkflowPage() {
                     </div>
 
                     {/* Dependencies Selection */}
-                    <div className="space-y-2 pt-2 border-t border-white/[0.04]">
-                      <span className="text-[10.5px] font-mono text-[#66686D] uppercase block">
+                    <div className="space-y-2 pt-2 border-t border-white/4">
+                      <span className="text-xs font-mono text-subtle uppercase block">
                         Depends on
                       </span>
                       <div className="flex flex-wrap gap-3">
@@ -400,7 +400,7 @@ export default function NewWorkflowPage() {
                           .map((other) => (
                             <label
                               key={other.stepKey}
-                              className="flex items-center gap-1.5 cursor-pointer text-[#A0A0A4] text-[11.5px] select-none font-mono"
+                              className="flex items-center gap-1.5 cursor-pointer text-muted text-xs select-none font-mono"
                             >
                               <input
                                 type="checkbox"
@@ -419,14 +419,14 @@ export default function NewWorkflowPage() {
                                   }
                                   setSteps(updated);
                                 }}
-                                className="rounded bg-[#070708] border-white/20 text-[#A5F36B] focus:ring-0"
+                                className="rounded bg-background border-white/20 text-accent-lime focus:ring-0"
                               />
                               <span>{other.label}</span>
                             </label>
                           ))}
 
                         {steps.length === 1 && (
-                          <span className="text-[11px] text-[#66686D] font-mono">
+                          <span className="text-xs text-subtle font-mono">
                             Root step (no dependencies)
                           </span>
                         )}
@@ -439,55 +439,54 @@ export default function NewWorkflowPage() {
           </div>
 
           {/* Right Rail Validation Summary (~32%) */}
-          <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-24 font-mono text-[12px]">
-            <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4">
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-                <span className="text-[11px] text-[#66686D] uppercase tracking-wider">
+          <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-24 font-mono text-xs">
+            <div className="p-5 border border-white/9 bg-panel space-y-4">
+              <div className="flex items-center justify-between border-b border-white/6 pb-2">
+                <span className="text-xs text-subtle uppercase tracking-wider">
                   DAG VALIDATION
                 </span>
                 <span
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded border font-bold ${
-                    isFormValid
-                      ? "bg-emerald-950/60 text-emerald-300 border-emerald-500/40"
-                      : "bg-amber-950/60 text-amber-300 border-amber-500/40"
-                  }`}
+                  className={`text-xs font-mono px-2 py-0.5 rounded border font-bold ${isFormValid
+                    ? "bg-emerald-950/60 text-emerald-300 border-emerald-500/40"
+                    : "bg-amber-950/60 text-amber-300 border-amber-500/40"
+                    }`}
                 >
                   {isFormValid ? "READY TO RUN" : "NEEDS ATTENTION"}
                 </span>
               </div>
 
-              <div className="space-y-2 text-[11.5px]">
+              <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#A0A0A4]">Step count</span>
+                  <span className="text-muted">Step count</span>
                   <span className="text-emerald-400">✓ {steps.length} {steps.length > 1 ? "steps" : "step"}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-[#A0A0A4]">Acyclic graph</span>
+                  <span className="text-muted">Acyclic graph</span>
                   <span className={isCyclic ? "text-rose-400 font-bold" : "text-emerald-400"}>
                     {isCyclic ? "✕ Cycle detected" : "✓ No cycles"}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-[#A0A0A4]">Reliability contracts</span>
+                  <span className="text-muted">Reliability contracts</span>
                   <span className={allContractsSelected ? "text-emerald-400" : "text-amber-400"}>
                     {allContractsSelected ? "✓ All mapped" : "⚠ Incomplete"}
                   </span>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
+              <div className="pt-4 border-t border-white/6 flex items-center justify-between gap-3">
                 <Link
                   href="/app/workflows"
-                  className="px-3 py-2 text-[#66686D] hover:text-[#F5F5F3] font-mono text-[12px] transition-colors"
+                  className="px-3 py-2 text-subtle hover:text-foreground font-mono text-xs transition-colors"
                 >
                   Cancel
                 </Link>
                 <button
                   type="submit"
                   disabled={!isFormValid || isSaving}
-                  className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold font-mono text-[12px] transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
+                  className="px-4 py-2 rounded bg-foreground text-background hover:bg-white font-semibold font-mono text-xs transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
                 >
                   {isSaving ? "Saving…" : "Save workflow"}
                 </button>

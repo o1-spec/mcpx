@@ -33,7 +33,7 @@ export default function StatusPill({
 }: StatusPillProps) {
   const norm = (status || "").toUpperCase().replace(/[\s-]/g, "_");
 
-  let styles = "bg-white/[0.04] text-[#A0A0A4] border-white/[0.08]";
+  let styles = "bg-white/4 text-muted border-white/8";
   let dotColor = "bg-[#A0A0A4]";
   let label = status;
 
@@ -43,8 +43,8 @@ export default function StatusPill({
     case "RECOVERED":
     case "CONNECTED":
     case "ACTIVE":
-      styles = "bg-emerald-950/50 text-[#A5F36B] border-[#A5F36B]/30";
-      dotColor = "bg-[#A5F36B]";
+      styles = "bg-emerald-950/50 text-accent-lime border-accent-lime/30";
+      dotColor = "bg-accent-lime";
       break;
 
     case "EXECUTING":
@@ -69,15 +69,15 @@ export default function StatusPill({
       break;
 
     case "COMPENSATED":
-      styles = "bg-white/[0.04] text-[#A0A0A4] border-white/[0.08]";
+      styles = "bg-white/4 text-muted border-white/8";
       dotColor = "bg-[#66686D]";
       break;
   }
 
   const sizeStyles =
     size === "sm"
-      ? "text-[10.5px] px-2 py-0.5"
-      : "text-[11.5px] px-2.5 py-1";
+      ? "text-xs px-2 py-0.5"
+      : "text-xs px-2.5 py-1";
 
   return (
     <span

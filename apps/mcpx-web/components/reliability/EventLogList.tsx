@@ -17,7 +17,7 @@ export default function EventLogList({ eventLog, onClearLog }: EventLogListProps
         {eventLog.length > 0 && (
           <button
             onClick={onClearLog}
-            className="text-[11px] text-slate-500 hover:text-slate-400 cursor-pointer"
+            className="text-xs text-slate-500 hover:text-slate-400 cursor-pointer"
           >
             Clear Log
           </button>
@@ -49,21 +49,21 @@ export default function EventLogList({ eventLog, onClearLog }: EventLogListProps
                 key={ev.id}
                 className="p-2.5 rounded-lg border border-slate-800/80 bg-slate-900/40 space-y-1"
               >
-                <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700 font-mono">
+                    <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 font-mono">
                       {seqLabel}
                     </span>
                     <span className={`px-2 py-0.5 rounded font-bold border ${badgeColor}`}>
                       {ev.type}
                     </span>
                   </div>
-                  <span className="text-slate-500 text-[10px]">
+                  <span className="text-slate-500 text-xs">
                     {new Date(ev.timestamp).toLocaleTimeString()}
                   </span>
                 </div>
                 {ev.details && (
-                  <pre className="text-[11px] text-slate-400 whitespace-pre-wrap break-all pt-1 pl-1 font-mono">
+                  <pre className="text-xs text-slate-400 whitespace-pre-wrap break-all pt-1 pl-1 font-mono">
                     {JSON.stringify(ev.details, null, 2)}
                   </pre>
                 )}

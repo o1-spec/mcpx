@@ -57,10 +57,10 @@ export default function ServiceDetailPage({
       setService((prev) =>
         prev
           ? {
-              ...prev,
-              lastDiscoveredTools: tools,
-              lastDiscoveredAt: new Date().toISOString(),
-            }
+            ...prev,
+            lastDiscoveredTools: tools,
+            lastDiscoveredAt: new Date().toISOString(),
+          }
           : null
       );
       await fetchContracts();
@@ -144,8 +144,8 @@ export default function ServiceDetailPage({
 
   if (loading) {
     return (
-      <div className="py-20 text-center font-mono text-xs text-[#66686D] space-y-2">
-        <div className="w-4 h-4 border-2 border-white/20 border-t-[#A5F36B] rounded-full animate-spin mx-auto"></div>
+      <div className="py-20 text-center font-mono text-xs text-subtle space-y-2">
+        <div className="w-4 h-4 border-2 border-white/20 border-t-accent-lime rounded-full animate-spin mx-auto"></div>
         <div>Loading service metadata…</div>
       </div>
     );
@@ -153,12 +153,12 @@ export default function ServiceDetailPage({
 
   if (error || !service) {
     return (
-      <div className="p-6 border border-rose-500/30 bg-[#0B0C0E] font-mono text-xs text-rose-300 space-y-3">
+      <div className="p-6 border border-rose-500/30 bg-panel font-mono text-xs text-rose-300 space-y-3">
         <h2 className="font-semibold text-sm text-rose-400">[ SERVICE NOT FOUND ]</h2>
-        <p className="text-[#A0A0A4]">{error || "Could not retrieve connected service record."}</p>
+        <p className="text-muted">{error || "Could not retrieve connected service record."}</p>
         <Link
           href="/app/services"
-          className="text-[#F5F5F3] hover:text-white font-medium inline-block underline pt-1"
+          className="text-foreground hover:text-foreground font-medium inline-block underline pt-1"
         >
           ← Back to Services registry
         </Link>
@@ -174,35 +174,35 @@ export default function ServiceDetailPage({
       {/* ============================================================ */}
       {/* 1. TOP HEADER & HORIZONTAL METADATA BAR */}
       {/* ============================================================ */}
-      <div className="space-y-3 border-b border-white/[0.08] pb-5">
-        <div className="flex items-center gap-2 text-[12px] font-mono text-[#66686D]">
-          <Link href="/app/services" className="hover:text-[#F5F5F3] transition-colors">
+      <div className="space-y-3 border-b border-white/8 pb-5">
+        <div className="flex items-center gap-2 text-xs font-mono text-subtle">
+          <Link href="/app/services" className="hover:text-foreground transition-colors">
             Services
           </Link>
           <span>/</span>
-          <span className="text-[#A0A0A4]">{service.name}</span>
+          <span className="text-muted">{service.name}</span>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-[22px] sm:text-[24px] font-bold text-[#F5F5F3] tracking-tight font-sans">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight font-sans">
               {service.name}
             </h1>
 
             {/* Clean Single Horizontal Metadata Line */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-mono text-[#A0A0A4]">
-              <span className="text-[#F5F5F3]">{service.origin}</span>
-              <span className="text-[#66686D]">·</span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-muted">
+              <span className="text-foreground">{service.origin}</span>
+              <span className="text-subtle">·</span>
               <span>{service.lastDiscoveredTools?.length || 0} WebMCP tools</span>
-              <span className="text-[#66686D]">·</span>
+              <span className="text-subtle">·</span>
               <span className="flex items-center gap-1.5 text-emerald-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 Connected
               </span>
               {service.lastDiscoveredAt && (
                 <>
-                  <span className="text-[#66686D]">·</span>
-                  <span className="text-[#66686D]">
+                  <span className="text-subtle">·</span>
+                  <span className="text-subtle">
                     Discovered {new Date(service.lastDiscoveredAt).toLocaleTimeString()}
                   </span>
                 </>
@@ -215,7 +215,7 @@ export default function ServiceDetailPage({
             <button
               onClick={handleRediscover}
               disabled={isRediscovering}
-              className="px-3 py-1.5 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.09] text-[#F5F5F3] font-mono text-[12px] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded bg-white/4 hover:bg-white/8 border border-white/9 text-foreground font-mono text-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
               {isRediscovering ? (
                 <>
@@ -229,7 +229,7 @@ export default function ServiceDetailPage({
 
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="px-3 py-1.5 rounded bg-transparent hover:bg-rose-950/30 border border-white/[0.08] hover:border-rose-500/40 text-[#66686D] hover:text-rose-400 font-mono text-[12px] transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded bg-transparent hover:bg-rose-950/30 border border-white/8 hover:border-rose-500/40 text-subtle hover:text-rose-400 font-mono text-xs transition-colors cursor-pointer"
             >
               Disconnect
             </button>
@@ -238,31 +238,31 @@ export default function ServiceDetailPage({
       </div>
 
       {rediscoverSuccess && (
-        <div className="p-3 border border-emerald-500/40 bg-emerald-950/20 font-mono text-[12px] text-emerald-300 animate-in fade-in duration-200">
+        <div className="p-3 border border-emerald-500/40 bg-emerald-950/20 font-mono text-xs text-emerald-300 animate-in fade-in duration-200">
           ✓ WebMCP tool registry successfully refreshed from origin.
         </div>
       )}
 
       {/* Delete Confirmation Card */}
       {showDeleteConfirm && (
-        <div className="p-5 border border-rose-500/40 bg-[#0F1012] font-mono text-[12px] space-y-3 animate-in fade-in duration-150">
+        <div className="p-5 border border-rose-500/40 bg-[#0F1012] font-mono text-xs space-y-3 animate-in fade-in duration-150">
           <div className="flex items-center gap-2 text-rose-400 font-bold">
             <span>[ DISCONNECT SERVICE ]</span>
           </div>
-          <p className="text-[#A0A0A4] font-sans text-[13px] leading-relaxed">
+          <p className="text-muted font-sans text-xs leading-relaxed">
             This removes the service and its contract mappings from your MCPx control plane. It does not alter the target WebMCP application runtime.
           </p>
           <div className="flex items-center gap-2 pt-1">
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="px-3 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[12px] transition-colors cursor-pointer disabled:opacity-50"
+              className="px-3 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
             >
               {isDeleting ? "Disconnecting…" : "Confirm disconnect"}
             </button>
             <button
               onClick={() => setShowDeleteConfirm(false)}
-              className="px-3 py-1.5 rounded bg-white/[0.04] text-[#A0A0A4] hover:text-[#F5F5F3] border border-white/[0.09] transition-colors cursor-pointer text-[12px]"
+              className="px-3 py-1.5 rounded bg-white/4 text-muted hover:text-foreground border border-white/9 transition-colors cursor-pointer text-xs"
             >
               Cancel
             </button>
@@ -280,12 +280,12 @@ export default function ServiceDetailPage({
           {/* SECTION A: DISCOVERED TOOLS REGISTRY */}
           {/* ============================================================ */}
           <section className="space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/6 pb-2.5">
               <div>
-                <h2 className="text-[13px] font-mono font-bold text-[#F5F5F3] uppercase tracking-wider">
+                <h2 className="text-xs font-mono font-bold text-foreground uppercase tracking-wider">
                   Discovered WebMCP Tools ({tools.length})
                 </h2>
-                <p className="text-[12px] text-[#66686D] mt-0.5 font-sans">
+                <p className="text-xs text-subtle mt-0.5 font-sans">
                   Tools currently exposed by this origin over postMessage JSON-RPC.
                 </p>
               </div>
@@ -297,19 +297,19 @@ export default function ServiceDetailPage({
                   placeholder="Search tools…"
                   value={toolSearch}
                   onChange={(e) => setToolSearch(e.target.value)}
-                  className="px-2.5 py-1 rounded bg-[#0B0C0E] border border-white/[0.09] text-[#F5F5F3] placeholder-[#66686D] font-mono text-[11.5px] focus:outline-none focus:border-white/30 w-full sm:w-44"
+                  className="px-2.5 py-1 rounded bg-panel border border-white/9 text-foreground placeholder-subtle font-mono text-xs focus:outline-none focus:border-white/30 w-full sm:w-44"
                 />
               </div>
             </div>
 
             {filteredTools.length === 0 ? (
-              <div className="p-6 border border-dashed border-white/[0.08] bg-[#0B0C0E] text-center text-[#66686D] font-mono text-[12px]">
+              <div className="p-6 border border-dashed border-white/8 bg-panel text-center text-subtle font-mono text-xs">
                 {tools.length === 0 ? "No WebMCP tools discovered on this service." : "No tools matching your search."}
               </div>
             ) : (
-              <div className="border border-white/[0.09] bg-[#0B0C0E] divide-y divide-white/[0.06] font-mono text-[12px] overflow-hidden">
+              <div className="border border-white/9 bg-panel divide-y divide-white/6 font-mono text-xs overflow-hidden">
                 {/* Table Header (Desktop) */}
-                <div className="hidden sm:grid sm:grid-cols-12 px-4 py-2 text-[10.5px] text-[#66686D] uppercase tracking-wider bg-[#070708]">
+                <div className="hidden sm:grid sm:grid-cols-12 px-4 py-2 text-xs text-subtle uppercase tracking-wider bg-background">
                   <div className="col-span-4">Tool</div>
                   <div className="col-span-2">Intent / Type</div>
                   <div className="col-span-2">Inputs</div>
@@ -338,60 +338,60 @@ export default function ServiceDetailPage({
                   }
 
                   return (
-                    <div key={tool.name} className="transition-colors hover:bg-white/[0.015]">
+                    <div key={tool.name} className="transition-colors hover:bg-white/1.5">
                       {/* Main Row */}
                       <div
                         onClick={() => setExpandedToolIndex(isExpanded ? null : idx)}
                         className="p-3.5 sm:px-4 sm:py-2.5 grid grid-cols-1 sm:grid-cols-12 items-center gap-2 sm:gap-0 cursor-pointer"
                       >
-                        <div className="sm:col-span-4 font-bold text-[#F5F5F3] flex items-center gap-1.5">
-                          <span className="text-[#A5F36B]">›</span>
+                        <div className="sm:col-span-4 font-bold text-foreground flex items-center gap-1.5">
+                          <span className="text-accent-lime">›</span>
                           <span>{tool.name}</span>
                         </div>
 
-                        <div className="sm:col-span-2 text-[#A0A0A4] text-[11.5px] font-sans">
+                        <div className="sm:col-span-2 text-muted text-xs font-sans">
                           {intent}
                         </div>
 
-                        <div className="sm:col-span-2 text-[#66686D] text-[11.5px]">
+                        <div className="sm:col-span-2 text-subtle text-xs">
                           {propKeys.length} {propKeys.length === 1 ? "field" : "fields"}
                         </div>
 
-                        <div className="sm:col-span-3 text-[11.5px]">
+                        <div className="sm:col-span-3 text-xs">
                           {usages.length > 0 ? (
                             <span className="text-emerald-400 font-sans">
                               Mapped: {usages[0].contractName}
                             </span>
                           ) : (
-                            <span className="text-[#66686D]">—</span>
+                            <span className="text-subtle">—</span>
                           )}
                         </div>
 
-                        <div className="sm:col-span-1 text-right text-[11px] text-[#A0A0A4] hover:text-white">
+                        <div className="sm:col-span-1 text-right text-xs text-muted hover:text-foreground">
                           {isExpanded ? "▾ Hide" : "▸ Inspect"}
                         </div>
                       </div>
 
                       {/* Expanded Inline Detail Drawer */}
                       {isExpanded && (
-                        <div className="p-4 sm:p-5 bg-[#070708] border-t border-white/[0.06] space-y-4 font-sans text-[12px] animate-in fade-in duration-100">
+                        <div className="p-4 sm:p-5 bg-background border-t border-white/6 space-y-4 font-sans text-xs animate-in fade-in duration-100">
                           {tool.description && (
                             <div className="space-y-1">
-                              <span className="text-[11px] font-mono text-[#66686D] uppercase block">Description</span>
-                              <p className="text-[#A0A0A4] leading-relaxed">{tool.description}</p>
+                              <span className="text-xs font-mono text-subtle uppercase block">Description</span>
+                              <p className="text-muted leading-relaxed">{tool.description}</p>
                             </div>
                           )}
 
                           {/* Inputs Table */}
                           <div className="space-y-2">
-                            <span className="text-[11px] font-mono text-[#66686D] uppercase block">
+                            <span className="text-xs font-mono text-subtle uppercase block">
                               Input Schema ({propKeys.length} parameters)
                             </span>
                             {propKeys.length === 0 ? (
-                              <div className="text-[11.5px] text-[#66686D] font-mono">No input parameters required.</div>
+                              <div className="text-xs text-subtle font-mono">No input parameters required.</div>
                             ) : (
-                              <div className="border border-white/[0.08] bg-[#0B0C0E] divide-y divide-white/[0.04] font-mono text-[11px]">
-                                <div className="grid grid-cols-12 px-3 py-1.5 text-[#66686D] text-[10px] uppercase bg-[#070708]">
+                              <div className="border border-white/8 bg-panel divide-y divide-white/4 font-mono text-xs">
+                                <div className="grid grid-cols-12 px-3 py-1.5 text-subtle text-xs uppercase bg-background">
                                   <div className="col-span-4">Field</div>
                                   <div className="col-span-3">Type</div>
                                   <div className="col-span-5">Requirement</div>
@@ -401,10 +401,10 @@ export default function ServiceDetailPage({
                                   const isReq = requiredList.includes(k);
                                   return (
                                     <div key={k} className="grid grid-cols-12 px-3 py-1.5 items-center">
-                                      <div className="col-span-4 font-bold text-[#F5F5F3]">{k}</div>
+                                      <div className="col-span-4 font-bold text-foreground">{k}</div>
                                       <div className="col-span-3 text-cyan-300">{prop?.type || "any"}</div>
                                       <div className="col-span-5">
-                                        <span className={`px-1.5 py-0.5 rounded text-[9.5px] ${isReq ? "bg-amber-950/60 text-amber-300 border border-amber-500/30" : "text-[#66686D]"}`}>
+                                        <span className={`px-1.5 py-0.5 rounded text-[9.5px] ${isReq ? "bg-amber-950/60 text-amber-300 border border-amber-500/30" : "text-subtle"}`}>
                                           {isReq ? "required" : "optional"}
                                         </span>
                                       </div>
@@ -416,15 +416,15 @@ export default function ServiceDetailPage({
                           </div>
 
                           {/* Contract Usage */}
-                          <div className="space-y-1 font-mono text-[11.5px]">
-                            <span className="text-[11px] text-[#66686D] uppercase block font-mono">Contract Bindings</span>
+                          <div className="space-y-1 font-mono text-xs">
+                            <span className="text-xs text-subtle uppercase block font-mono">Contract Bindings</span>
                             {usages.length === 0 ? (
-                              <span className="text-[#66686D]">Not currently mapped to any reliability contract.</span>
+                              <span className="text-subtle">Not currently mapped to any reliability contract.</span>
                             ) : (
                               <div className="flex flex-wrap gap-2 pt-1">
                                 {usages.map((u, i) => (
-                                  <span key={i} className="px-2 py-1 rounded bg-[#0B0C0E] border border-white/[0.08] text-[#F5F5F3]">
-                                    {u.contractName} · <span className="text-[#A5F36B]">{u.role}</span>
+                                  <span key={i} className="px-2 py-1 rounded bg-panel border border-white/8 text-foreground">
+                                    {u.contractName} · <span className="text-accent-lime">{u.role}</span>
                                   </span>
                                 ))}
                               </div>
@@ -432,16 +432,16 @@ export default function ServiceDetailPage({
                           </div>
 
                           {/* Raw Schema Toggle */}
-                          <div className="pt-2 border-t border-white/[0.04]">
+                          <div className="pt-2 border-t border-white/4">
                             <button
                               type="button"
                               onClick={() => setRawSchemaToolIndex(showRaw ? null : idx)}
-                              className="text-[11px] font-mono text-[#66686D] hover:text-[#A0A0A4] transition-colors cursor-pointer"
+                              className="text-xs font-mono text-subtle hover:text-muted transition-colors cursor-pointer"
                             >
                               {showRaw ? "▾ Hide raw JSON schema" : "▸ View raw JSON schema"}
                             </button>
                             {showRaw && tool.inputSchema && (
-                              <pre className="mt-2 p-3 bg-[#0B0C0E] border border-white/[0.06] font-mono text-[10.5px] text-[#A0A0A4] whitespace-pre-wrap break-all overflow-x-auto">
+                              <pre className="mt-2 p-3 bg-panel border border-white/6 font-mono text-xs text-muted whitespace-pre-wrap break-all overflow-x-auto">
                                 {JSON.stringify(tool.inputSchema, null, 2)}
                               </pre>
                             )}
@@ -458,46 +458,46 @@ export default function ServiceDetailPage({
           {/* ============================================================ */}
           {/* SECTION B: RELIABILITY CONTRACTS REGISTRY */}
           {/* ============================================================ */}
-          <section className="space-y-3 pt-4 border-t border-white/[0.08]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-2.5">
+          <section className="space-y-3 pt-4 border-t border-white/8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/6 pb-2.5">
               <div>
-                <h2 className="text-[13px] font-mono font-bold text-[#F5F5F3] uppercase tracking-wider">
+                <h2 className="text-xs font-mono font-bold text-foreground uppercase tracking-wider">
                   Reliability Contracts ({contracts.length})
                 </h2>
-                <p className="text-[12px] text-[#A0A0A4] mt-0.5 font-sans">
+                <p className="text-xs text-muted mt-0.5 font-sans">
                   Map one consequential action to the tools MCPx should use to execute, inspect, and compensate it.
                 </p>
               </div>
 
               <Link
                 href={`/app/services/${encodeURIComponent(id)}/contracts/new`}
-                className="px-3 py-1.5 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold font-mono text-[12px] transition-colors cursor-pointer self-start sm:self-auto shadow-sm"
+                className="px-3 py-1.5 rounded bg-foreground text-background hover:bg-white font-semibold font-mono text-xs transition-colors cursor-pointer self-start sm:self-auto shadow-sm"
               >
                 + Create contract
               </Link>
             </div>
 
             {contracts.length === 0 ? (
-              <div className="p-6 border border-dashed border-white/[0.08] bg-[#0B0C0E] text-center space-y-3 font-sans">
+              <div className="p-6 border border-dashed border-white/8 bg-panel text-center space-y-3 font-sans">
                 <div className="space-y-1">
-                  <span className="text-[13px] font-semibold text-[#F5F5F3] block">
+                  <span className="text-xs font-semibold text-foreground block">
                     No reliability contracts yet.
                   </span>
-                  <p className="text-[12px] text-[#A0A0A4] max-w-md mx-auto leading-relaxed">
+                  <p className="text-xs text-muted max-w-md mx-auto leading-relaxed">
                     MCPx has discovered {tools.length} tools on this service, but none have been configured with execute, inspect, and compensation semantics.
                   </p>
                 </div>
                 <Link
                   href={`/app/services/${encodeURIComponent(id)}/contracts/new`}
-                  className="px-3.5 py-1.5 rounded bg-[#F5F5F3] text-[#070708] font-mono text-[12px] font-semibold transition-colors inline-block cursor-pointer"
+                  className="px-3.5 py-1.5 rounded bg-foreground text-background font-mono text-xs font-semibold transition-colors inline-block cursor-pointer"
                 >
                   Create first contract →
                 </Link>
               </div>
             ) : (
-              <div className="border border-white/[0.09] bg-[#0B0C0E] divide-y divide-white/[0.06] font-mono text-[12px] overflow-hidden">
+              <div className="border border-white/9 bg-panel divide-y divide-white/6 font-mono text-xs overflow-hidden">
                 {/* Contracts Header */}
-                <div className="hidden sm:grid sm:grid-cols-12 px-4 py-2 text-[10.5px] text-[#66686D] uppercase tracking-wider bg-[#070708]">
+                <div className="hidden sm:grid sm:grid-cols-12 px-4 py-2 text-xs text-subtle uppercase tracking-wider bg-background">
                   <div className="col-span-3">Contract</div>
                   <div className="col-span-3">Execute</div>
                   <div className="col-span-2">Inspect</div>
@@ -514,41 +514,40 @@ export default function ServiceDetailPage({
                   return (
                     <div
                       key={ctr.id}
-                      className="p-3.5 sm:px-4 sm:py-3 grid grid-cols-1 sm:grid-cols-12 items-center gap-2 sm:gap-0 hover:bg-white/[0.015] transition-colors"
+                      className="p-3.5 sm:px-4 sm:py-3 grid grid-cols-1 sm:grid-cols-12 items-center gap-2 sm:gap-0 hover:bg-white/1.5 transition-colors"
                     >
                       <div className="sm:col-span-3 space-y-0.5">
                         <Link
                           href={`/app/services/${encodeURIComponent(id)}/contracts/${encodeURIComponent(ctr.id)}`}
-                          className="font-bold text-[#F5F5F3] hover:text-[#A5F36B] transition-colors block font-sans text-[13px]"
+                          className="font-bold text-foreground hover:text-accent-lime transition-colors block font-sans text-xs"
                         >
                           {ctr.name}
                         </Link>
-                        <span className="text-[10.5px] text-[#66686D] block font-mono">
+                        <span className="text-xs text-subtle block font-mono">
                           ID: {ctr.operationKeyField}
                         </span>
                       </div>
 
-                      <div className="sm:col-span-3 text-emerald-400 font-mono text-[11.5px] truncate">
+                      <div className="sm:col-span-3 text-emerald-400 font-mono text-xs truncate">
                         {ctr.executeToolName}
                       </div>
 
-                      <div className="sm:col-span-2 text-cyan-300 font-mono text-[11.5px] truncate">
+                      <div className="sm:col-span-2 text-cyan-300 font-mono text-xs truncate">
                         {ctr.inspectToolName}
                       </div>
 
-                      <div className="sm:col-span-2 text-amber-300 font-mono text-[11.5px] truncate">
-                        {ctr.compensateToolName || <span className="text-[#66686D]">None</span>}
+                      <div className="sm:col-span-2 text-amber-300 font-mono text-xs truncate">
+                        {ctr.compensateToolName || <span className="text-subtle">None</span>}
                       </div>
 
                       <div className="sm:col-span-1">
                         <span
-                          className={`text-[10px] font-mono px-2 py-0.5 rounded border inline-block ${
-                            isReady
+                          className={`text-xs font-mono px-2 py-0.5 rounded border inline-block ${isReady
                               ? "bg-emerald-950/60 text-emerald-300 border-emerald-500/40"
                               : isNeedsReview
-                              ? "bg-amber-950/60 text-amber-300 border-amber-500/40"
-                              : "bg-rose-950/60 text-rose-300 border-rose-500/40"
-                          }`}
+                                ? "bg-amber-950/60 text-amber-300 border-amber-500/40"
+                                : "bg-rose-950/60 text-rose-300 border-rose-500/40"
+                            }`}
                         >
                           {ctr.status}
                         </span>
@@ -557,7 +556,7 @@ export default function ServiceDetailPage({
                       <div className="sm:col-span-1 text-right">
                         <Link
                           href={`/app/services/${encodeURIComponent(id)}/contracts/${encodeURIComponent(ctr.id)}`}
-                          className="text-[11.5px] font-mono text-[#A0A0A4] hover:text-white transition-colors"
+                          className="text-xs font-mono text-muted hover:text-foreground transition-colors"
                         >
                           Open →
                         </Link>
@@ -574,44 +573,44 @@ export default function ServiceDetailPage({
         <div className="lg:col-span-4 space-y-5">
           {/* Reference Service Notice */}
           {isReferenceService && (
-            <div className="p-4 border border-white/[0.09] bg-[#0F1012] font-mono text-[12px] space-y-1.5">
+            <div className="p-4 border border-white/9 bg-[#0F1012] font-mono text-xs space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-[#A5F36B]"></span>
-                <span className="text-[#A5F36B] font-bold text-[11px] uppercase">
+                <span className="w-1.5 h-1.5 bg-accent-lime"></span>
+                <span className="text-accent-lime font-bold text-xs uppercase">
                   REFERENCE SERVICE
                 </span>
               </div>
-              <p className="text-[#A0A0A4] font-sans text-[12px] leading-relaxed">
+              <p className="text-muted font-sans text-xs leading-relaxed">
                 Preconfigured reference service providing sample WebMCP tools and deterministic reliability contracts.
               </p>
             </div>
           )}
 
           {/* Service & Connection Overview */}
-          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] font-mono text-[12px] space-y-4">
-            <div className="text-[11px] text-[#66686D] uppercase tracking-wider border-b border-white/[0.06] pb-2">
+          <div className="p-5 border border-white/9 bg-panel font-mono text-xs space-y-4">
+            <div className="text-xs text-subtle uppercase tracking-wider border-b border-white/6 pb-2">
               WEBMCP CONNECTION
             </div>
 
-            <div className="space-y-2.5 text-[11.5px]">
+            <div className="space-y-2.5 text-xs">
               <div>
-                <span className="text-[#66686D] block text-[10.5px]">ORIGIN</span>
-                <span className="text-[#F5F5F3] font-bold break-all">{service.origin}</span>
+                <span className="text-subtle block text-xs">ORIGIN</span>
+                <span className="text-foreground font-bold break-all">{service.origin}</span>
               </div>
 
               <div>
-                <span className="text-[#66686D] block text-[10.5px]">EXPOSURE</span>
+                <span className="text-subtle block text-xs">EXPOSURE</span>
                 <span className="text-emerald-400">Allowed for MCPx origin</span>
               </div>
 
               <div>
-                <span className="text-[#66686D] block text-[10.5px]">DISCOVERED TOOLS</span>
-                <span className="text-[#F5F5F3]">{tools.length} tools registered</span>
+                <span className="text-subtle block text-xs">DISCOVERED TOOLS</span>
+                <span className="text-foreground">{tools.length} tools registered</span>
               </div>
 
               <div>
-                <span className="text-[#66686D] block text-[10.5px]">REGISTERED AT</span>
-                <span className="text-[#A0A0A4]">
+                <span className="text-subtle block text-xs">REGISTERED AT</span>
+                <span className="text-muted">
                   {new Date(service.createdAt).toLocaleDateString()}
                 </span>
               </div>
@@ -619,15 +618,15 @@ export default function ServiceDetailPage({
           </div>
 
           {/* Reliability Contract Readiness Summary */}
-          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] font-mono text-[12px] space-y-3">
-            <div className="text-[11px] text-[#66686D] uppercase tracking-wider border-b border-white/[0.06] pb-2">
+          <div className="p-5 border border-white/9 bg-panel font-mono text-xs space-y-3">
+            <div className="text-xs text-subtle uppercase tracking-wider border-b border-white/6 pb-2">
               RELIABILITY SUMMARY
             </div>
 
-            <div className="space-y-2 text-[12px]">
+            <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[#A0A0A4]">Contracts configured</span>
-                <span className="text-[#F5F5F3] font-bold">{contracts.length}</span>
+                <span className="text-muted">Contracts configured</span>
+                <span className="text-foreground font-bold">{contracts.length}</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -645,19 +644,19 @@ export default function ServiceDetailPage({
           </div>
 
           {/* Developer Details (Collapsible) */}
-          <div className="p-4 border border-white/[0.06] bg-[#070708] font-mono text-[11.5px] space-y-2">
+          <div className="p-4 border border-white/6 bg-background font-mono text-xs space-y-2">
             <button
               type="button"
               onClick={() => setShowDevDetails(!showDevDetails)}
-              className="w-full flex items-center justify-between text-[#66686D] hover:text-[#A0A0A4] transition-colors cursor-pointer"
+              className="w-full flex items-center justify-between text-subtle hover:text-muted transition-colors cursor-pointer"
             >
               <span>DEVELOPER DETAILS</span>
               <span>{showDevDetails ? "▾" : "▸"}</span>
             </button>
 
             {showDevDetails && (
-              <div className="space-y-2 pt-2 text-[10.5px] text-[#A0A0A4] border-t border-white/[0.04]">
-                <div>Service ID: <code className="text-[#F5F5F3]">{service.id}</code></div>
+              <div className="space-y-2 pt-2 text-xs text-muted border-t border-white/4">
+                <div>Service ID: <code className="text-foreground">{service.id}</code></div>
                 <div>Transport: <code className="text-cyan-300">postMessage (JSON-RPC 2.0)</code></div>
                 <div>Isolation: <code className="text-emerald-400">Sandboxed Iframe</code></div>
                 <div>Updated: <code>{new Date(service.updatedAt).toISOString()}</code></div>

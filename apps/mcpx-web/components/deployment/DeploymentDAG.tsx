@@ -19,13 +19,13 @@ function getNodeStateConfig(node: TransactionNode): StateConfig {
     case "PENDING":
       return {
         label: "WAITING",
-        badge: "text-[#65696B] bg-white/[0.03] border-white/[0.06]",
+        badge: "text-subtle bg-white/3 border-white/6",
         dot: "bg-[#65696B]",
       };
     case "EXECUTING":
       return {
         label: "EXECUTING",
-        badge: "text-white bg-white/[0.08] border-white/20",
+        badge: "text-white bg-white/8 border-white/20",
         dot: "bg-white",
         pulse: true,
       };
@@ -48,15 +48,15 @@ function getNodeStateConfig(node: TransactionNode): StateConfig {
     case "RECOVERED":
       return {
         label: "RECOVERED",
-        badge: "text-[#A5F36B] bg-emerald-950/80 border-[#A5F36B]/50 font-medium",
-        dot: "bg-[#A5F36B]",
+        badge: "text-accent-lime bg-emerald-950/80 border-accent-lime/50 font-medium",
+        dot: "bg-accent-lime",
         subtext: "Resource found · No duplicate write",
       };
     case "SUCCEEDED":
       return {
         label: "SUCCEEDED",
-        badge: "text-[#A5F36B] bg-emerald-950/80 border-[#A5F36B]/40",
-        dot: "bg-[#A5F36B]",
+        badge: "text-accent-lime bg-emerald-950/80 border-accent-lime/40",
+        dot: "bg-accent-lime",
       };
     case "FAILED":
       return {
@@ -75,14 +75,14 @@ function getNodeStateConfig(node: TransactionNode): StateConfig {
     case "COMPENSATED":
       return {
         label: "COMPENSATED",
-        badge: "text-[#65696B] bg-white/[0.02] border-white/[0.06]",
+        badge: "text-subtle bg-white/2 border-white/6",
         dot: "bg-[#65696B]",
         subtext: "Resource removal verified",
       };
     default:
       return {
         label: node.state,
-        badge: "text-[#969B9E] bg-white/[0.04] border-white/[0.06]",
+        badge: "text-muted bg-white/4 border-white/6",
         dot: "bg-[#65696B]",
       };
   }
@@ -103,7 +103,7 @@ export default function DeploymentDAG({ transaction }: DeploymentDAGProps) {
     const config = getNodeStateConfig(node);
 
     return (
-      <div className="border border-white/[0.08] bg-[#080A0B] p-3.5 space-y-2 font-mono text-[11.5px] transition-all duration-200">
+      <div className="border border-white/8 bg-background p-3.5 space-y-2 font-mono text-xs transition-all duration-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span
@@ -111,27 +111,27 @@ export default function DeploymentDAG({ transaction }: DeploymentDAGProps) {
                 config.pulse ? "animate-pulse" : ""
               }`}
             />
-            <span className="font-semibold text-[#F2F3F1] tracking-tight">{title}</span>
+            <span className="font-semibold text-foreground tracking-tight">{title}</span>
           </div>
 
           <span
-            className={`px-2 py-0.5 text-[10px] font-mono border rounded ${config.badge}`}
+            className={`px-2 py-0.5 text-xs font-mono border rounded ${config.badge}`}
           >
             {config.label}
           </span>
         </div>
 
-        <div className="flex items-center justify-between text-[10.5px] text-[#65696B]">
+        <div className="flex items-center justify-between text-xs text-subtle">
           <span>{typeDescription}</span>
           {node.resourceId ? (
-            <span className="text-[#969B9E] truncate max-w-[120px]">
+            <span className="text-muted truncate max-w-30">
               {node.resourceId.slice(0, 10)}
             </span>
           ) : null}
         </div>
 
         {config.subtext && (
-          <div className="text-[10px] pt-1 text-[#969B9E] border-t border-white/[0.04] leading-tight">
+          <div className="text-xs pt-1 text-muted border-t border-white/4 leading-tight">
             {config.subtext}
           </div>
         )}
@@ -151,12 +151,12 @@ export default function DeploymentDAG({ transaction }: DeploymentDAGProps) {
       {/* Connector 1 */}
       <div className="flex justify-center">
         <div
-          className={`h-6 w-[1px] transition-colors duration-200 ${
+          className={`h-6 w-px transition-colors duration-200 ${
             dbNode?.state === "SUCCEEDED"
-              ? "bg-[#A5F36B]"
+              ? "bg-accent-lime"
               : dbNode?.state === "COMPENSATED"
-              ? "bg-white/[0.1]"
-              : "bg-white/[0.08]"
+              ? "bg-white/10"
+              : "bg-white/8"
           }`}
         />
       </div>
@@ -171,17 +171,17 @@ export default function DeploymentDAG({ transaction }: DeploymentDAGProps) {
       {/* Branch Connector */}
       <div className="flex justify-center items-center gap-28 sm:gap-40 py-1">
         <span
-          className={`h-6 w-[1px] -rotate-25 transform origin-top transition-colors ${
+          className={`h-6 w-px -rotate-25 transform origin-top transition-colors ${
             backendNode?.state === "SUCCEEDED"
-              ? "bg-[#A5F36B]"
-              : "bg-white/[0.08]"
+              ? "bg-accent-lime"
+              : "bg-white/8"
           }`}
         />
         <span
-          className={`h-6 w-[1px] rotate-25 transform origin-top transition-colors ${
+          className={`h-6 w-px rotate-25 transform origin-top transition-colors ${
             backendNode?.state === "SUCCEEDED"
-              ? "bg-[#A5F36B]"
-              : "bg-white/[0.08]"
+              ? "bg-accent-lime"
+              : "bg-white/8"
           }`}
         />
       </div>

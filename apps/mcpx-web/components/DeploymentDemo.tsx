@@ -171,7 +171,7 @@ export default function DeploymentDemo({
         badge={
           <div className="flex items-center gap-2">
             <StatusPill status="ACTIVE" size="sm" />
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-[#A0A0A4]">
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-white/4 border border-white/8 text-muted">
               4 microservices
             </span>
           </div>
@@ -179,26 +179,24 @@ export default function DeploymentDemo({
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Scenario Toggle */}
-            <div className="flex items-center rounded border border-white/[0.08] bg-[#0B0C0E] p-0.5 font-mono text-[11.5px]">
+            <div className="flex items-center rounded border border-white/8 bg-panel p-0.5 font-mono text-xs">
               <button
                 type="button"
                 onClick={() => setSelectedScenario("challenge")}
-                className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
-                  selectedScenario === "challenge"
-                    ? "bg-white/[0.08] text-[#F5F5F3] font-semibold"
-                    : "text-[#A0A0A4] hover:text-[#F5F5F3]"
-                }`}
+                className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${selectedScenario === "challenge"
+                    ? "bg-white/8 text-foreground font-semibold"
+                    : "text-muted hover:text-foreground"
+                  }`}
               >
                 Challenge Mode
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedScenario("happy")}
-                className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${
-                  selectedScenario === "happy"
-                    ? "bg-white/[0.08] text-[#F5F5F3] font-semibold"
-                    : "text-[#A0A0A4] hover:text-[#F5F5F3]"
-                }`}
+                className={`px-3 py-1.5 rounded transition-colors cursor-pointer ${selectedScenario === "happy"
+                    ? "bg-white/8 text-foreground font-semibold"
+                    : "text-muted hover:text-foreground"
+                  }`}
               >
                 Happy Path
               </button>
@@ -209,11 +207,11 @@ export default function DeploymentDemo({
               type="button"
               onClick={handleRun}
               disabled={isRunning || isHydrating}
-              className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold text-[12.5px] font-sans transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-sm"
+              className="px-4 py-2 rounded bg-foreground text-background hover:bg-white font-semibold text-xs font-sans transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2 shadow-sm"
             >
               {isRunning ? (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-[#070708] animate-ping" />
+                  <span className="w-2 h-2 rounded-full bg-background animate-ping" />
                   <span>Executing Pipeline…</span>
                 </>
               ) : selectedScenario === "challenge" ? (
@@ -227,7 +225,7 @@ export default function DeploymentDemo({
             <button
               type="button"
               onClick={() => setDiagnosticsOpen(true)}
-              className="px-3 py-2 rounded font-mono text-[12px] text-[#A0A0A4] hover:text-[#F5F5F3] bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] transition-colors cursor-pointer"
+              className="px-3 py-2 rounded font-mono text-xs text-muted hover:text-foreground bg-white/3 hover:bg-white/6 border border-white/8 transition-colors cursor-pointer"
             >
               Diagnostics ↗
             </button>
@@ -236,7 +234,7 @@ export default function DeploymentDemo({
               type="button"
               onClick={onReset}
               disabled={isRunning}
-              className="px-3 py-2 rounded font-mono text-[12px] text-[#66686D] hover:text-[#F5F5F3] hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-50"
+              className="px-3 py-2 rounded font-mono text-xs text-subtle hover:text-foreground hover:bg-white/4 transition-colors cursor-pointer disabled:opacity-50"
             >
               Reset
             </button>
@@ -245,20 +243,20 @@ export default function DeploymentDemo({
       />
 
       {/* Scenario Explanatory Sub-bar */}
-      <div className="p-3 bg-[#0B0C0E] border border-white/[0.06] rounded text-[12px] font-mono text-[#A0A0A4] flex items-center justify-between">
+      <div className="p-3 bg-panel border border-white/6 rounded text-xs font-mono text-muted flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[#66686D]">ACTIVE SCENARIO:</span>
+          <span className="text-subtle">ACTIVE SCENARIO:</span>
           {selectedScenario === "challenge" ? (
             <span>
-              Lost ACK on Routing (<span className="text-amber-400">IN_DOUBT</span>) → authoritative reconciliation (<span className="text-[#A5F36B]">RECOVERED</span>) → confirmed Frontend failure → human-approved reverse rollback.
+              Lost ACK on Routing (<span className="text-amber-400">IN_DOUBT</span>) → authoritative reconciliation (<span className="text-accent-lime">RECOVERED</span>) → confirmed Frontend failure → human-approved reverse rollback.
             </span>
           ) : (
             <span>
-              Direct 4-node pipeline execution across all services (<span className="text-[#A5F36B]">COMMITTED</span>).
+              Direct 4-node pipeline execution across all services (<span className="text-accent-lime">COMMITTED</span>).
             </span>
           )}
         </div>
-        <span className="text-[11px] text-[#66686D] shrink-0">POSTGRESQL DURABILITY</span>
+        <span className="text-xs text-subtle shrink-0">POSTGRESQL DURABILITY</span>
       </div>
 
       {/* 2. Main Two-Column Control Plane */}
@@ -273,7 +271,7 @@ export default function DeploymentDemo({
                 type="button"
                 onClick={onInspectAll}
                 disabled={isRunning}
-                className="text-[11px] font-mono text-[#A0A0A4] hover:text-[#A5F36B] transition-colors cursor-pointer disabled:opacity-50"
+                className="text-xs font-mono text-muted hover:text-accent-lime transition-colors cursor-pointer disabled:opacity-50"
               >
                 Inspect All Nodes ↻
               </button>
@@ -296,12 +294,12 @@ export default function DeploymentDemo({
 
             {/* Outcome Banner Compensated */}
             {isCompensated && (
-              <div className="mt-6 p-4 border border-white/[0.08] bg-[#070708] font-mono text-[11.5px] space-y-1.5 rounded">
-                <div className="flex items-center justify-between text-[#F5F5F3] font-semibold">
-                  <span className="text-[#A5F36B]">✓ Transaction compensated</span>
+              <div className="mt-6 p-4 border border-white/8 bg-background font-mono text-xs space-y-1.5 rounded">
+                <div className="flex items-center justify-between text-foreground font-semibold">
+                  <span className="text-accent-lime">✓ Transaction compensated</span>
                   <span>3 resources removed and verified</span>
                 </div>
-                <div className="text-[#A0A0A4] text-[11px]">
+                <div className="text-muted text-xs">
                   Frontend was never created. Reverse rollback completed in verified order (Routing → Backend → Database).
                 </div>
               </div>
@@ -309,9 +307,9 @@ export default function DeploymentDemo({
 
             {/* Outcome Banner Committed */}
             {isCommitted && (
-              <div className="mt-6 p-4 border border-[#A5F36B]/30 bg-[#A5F36B]/5 font-mono text-[11.5px] space-y-2 rounded">
-                <div className="flex items-center justify-between text-[#F5F5F3] font-semibold">
-                  <span className="text-[#A5F36B]">✓ Deployment committed</span>
+              <div className="mt-6 p-4 border border-accent-lime/30 bg-accent-lime/5 font-mono text-xs space-y-2 rounded">
+                <div className="flex items-center justify-between text-foreground font-semibold">
+                  <span className="text-accent-lime">✓ Deployment committed</span>
                   <span>4 resources active</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -320,7 +318,7 @@ export default function DeploymentDemo({
                       href={frontendPreviewUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-1.5 rounded bg-[#A5F36B] text-[#070708] font-semibold text-[11px] hover:bg-white transition-colors"
+                      className="px-3 py-1.5 rounded bg-accent-lime text-background font-semibold text-xs hover:bg-white transition-colors"
                     >
                       Open application ↗
                     </a>
@@ -330,7 +328,7 @@ export default function DeploymentDemo({
                       href={routingGatewayUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-1.5 rounded bg-white/[0.06] text-[#F5F5F3] text-[11px] hover:bg-white/[0.1] transition-colors"
+                      className="px-3 py-1.5 rounded bg-white/6 text-foreground text-xs hover:bg-white/10 transition-colors"
                     >
                       Gateway route ↗
                     </a>
@@ -348,45 +346,45 @@ export default function DeploymentDemo({
         <div className="lg:col-span-4 space-y-6">
           {/* Section 1: Transaction Metadata */}
           <Panel title="TRANSACTION METADATA">
-            <div className="space-y-3 font-mono text-[11.5px]">
-              <div className="flex items-center justify-between text-[#A0A0A4]">
+            <div className="space-y-3 font-mono text-xs">
+              <div className="flex items-center justify-between text-muted">
                 <span>Status</span>
                 <StatusPill status={transaction.state} size="sm" />
               </div>
 
-              <div className="flex items-center justify-between text-[#A0A0A4]">
+              <div className="flex items-center justify-between text-muted">
                 <span>Transaction ID</span>
                 <button
                   type="button"
                   onClick={copyTxId}
-                  className="text-[#F5F5F3] hover:text-[#A5F36B] flex items-center gap-1 cursor-pointer"
+                  className="text-foreground hover:text-accent-lime flex items-center gap-1 cursor-pointer"
                   title="Click to copy"
                 >
-                  <span className="truncate max-w-[130px]">{transaction.id}</span>
-                  <span className="text-[10px]">{copied ? "✓" : "📋"}</span>
+                  <span className="truncate max-w-32.5">{transaction.id}</span>
+                  <span className="text-xs">{copied ? "✓" : "📋"}</span>
                 </button>
               </div>
 
-              <div className="flex items-center justify-between text-[#A0A0A4]">
+              <div className="flex items-center justify-between text-muted">
                 <span>Durability</span>
-                <span className="text-[#A5F36B]">PostgreSQL (Port 5435)</span>
+                <span className="text-accent-lime">PostgreSQL (Port 5435)</span>
               </div>
 
-              <div className="flex items-center justify-between text-[#A0A0A4]">
+              <div className="flex items-center justify-between text-muted">
                 <span>Workflow Type</span>
-                <span className="text-[#F5F5F3]">4-Service Reference</span>
+                <span className="text-foreground">4-Service Reference</span>
               </div>
             </div>
           </Panel>
 
           {/* Section 2: Authoritative State List */}
           <Panel title="AUTHORITATIVE STATE" subtitle="REAL-TIME REMOTE">
-            <div className="divide-y divide-white/[0.04] space-y-2 pt-1 font-mono text-[11.5px]">
+            <div className="divide-y divide-white/4 space-y-2 pt-1 font-mono text-xs">
               {/* Database */}
               <div className="pt-2 flex items-center justify-between">
                 <div>
-                  <div className="text-[#F5F5F3] text-[12px] font-sans font-medium">Database Service</div>
-                  <div className="text-[10.5px] text-[#66686D]">PostgreSQL schema</div>
+                  <div className="text-foreground text-xs font-sans font-medium">Database Service</div>
+                  <div className="text-xs text-subtle">PostgreSQL schema</div>
                 </div>
                 <StatusPill status={getResourceStatus("database").status} size="sm" />
               </div>
@@ -394,8 +392,8 @@ export default function DeploymentDemo({
               {/* Backend */}
               <div className="pt-2 flex items-center justify-between">
                 <div>
-                  <div className="text-[#F5F5F3] text-[12px] font-sans font-medium">Compute Service</div>
-                  <div className="text-[10.5px] text-[#66686D]">Backend runtime</div>
+                  <div className="text-foreground text-xs font-sans font-medium">Compute Service</div>
+                  <div className="text-xs text-subtle">Backend runtime</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusPill status={getResourceStatus("backend").status} size="sm" />
@@ -404,7 +402,7 @@ export default function DeploymentDemo({
                       href={getResourceStatus("backend").sublink?.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[#A5F36B] hover:underline text-[10.5px]"
+                      className="text-accent-lime hover:underline text-xs"
                     >
                       ↗
                     </a>
@@ -415,8 +413,8 @@ export default function DeploymentDemo({
               {/* Routing */}
               <div className="pt-2 flex items-center justify-between">
                 <div>
-                  <div className="text-[#F5F5F3] text-[12px] font-sans font-medium">Routing Service</div>
-                  <div className="text-[10.5px] text-[#66686D]">Gateway proxy route</div>
+                  <div className="text-foreground text-xs font-sans font-medium">Routing Service</div>
+                  <div className="text-xs text-subtle">Gateway proxy route</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusPill status={getResourceStatus("routing").status} size="sm" />
@@ -425,7 +423,7 @@ export default function DeploymentDemo({
                       href={getResourceStatus("routing").sublink?.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[#A5F36B] hover:underline text-[10.5px]"
+                      className="text-accent-lime hover:underline text-xs"
                     >
                       ↗
                     </a>
@@ -436,8 +434,8 @@ export default function DeploymentDemo({
               {/* Frontend */}
               <div className="pt-2 flex items-center justify-between">
                 <div>
-                  <div className="text-[#F5F5F3] text-[12px] font-sans font-medium">Frontend Service</div>
-                  <div className="text-[10.5px] text-[#66686D]">Preview deployment</div>
+                  <div className="text-foreground text-xs font-sans font-medium">Frontend Service</div>
+                  <div className="text-xs text-subtle">Preview deployment</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusPill status={getResourceStatus("frontend").status} size="sm" />
@@ -446,7 +444,7 @@ export default function DeploymentDemo({
                       href={getResourceStatus("frontend").sublink?.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[#A5F36B] hover:underline text-[10.5px]"
+                      className="text-accent-lime hover:underline text-xs"
                     >
                       ↗
                     </a>
@@ -459,20 +457,20 @@ export default function DeploymentDemo({
           {/* Section 3: Recent Activity Log */}
           <Panel title="RECENT EVENTS" subtitle="LATEST 5">
             {recentEvents.length === 0 ? (
-              <div className="py-4 text-center text-[#66686D] text-[11px] font-mono">
+              <div className="py-4 text-center text-subtle text-xs font-mono">
                 No events recorded yet. Run a scenario above.
               </div>
             ) : (
-              <div className="space-y-2.5 font-mono text-[11px]">
+              <div className="space-y-2.5 font-mono text-xs">
                 {recentEvents.map((ev, idx) => (
-                  <div key={idx} className="flex items-start justify-between border-b border-white/[0.04] pb-2">
+                  <div key={idx} className="flex items-start justify-between border-b border-white/4 pb-2">
                     <div className="space-y-0.5">
-                      <span className="text-[#F5F5F3] block font-medium">{ev.type}</span>
-                      <span className="text-[#66686D] text-[10px]">
+                      <span className="text-foreground block font-medium">{ev.type}</span>
+                      <span className="text-subtle text-xs">
                         {new Date(ev.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <span className="text-[#66686D] text-[10px]">#{eventLog.length - idx}</span>
+                    <span className="text-subtle text-xs">#{eventLog.length - idx}</span>
                   </div>
                 ))}
               </div>
