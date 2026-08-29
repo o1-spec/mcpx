@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none">
+  <!-- Dark background container with subtle border -->
+  <rect width="32" height="32" rx="7" fill="#070708"/>
+  <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" stroke="#FFFFFF" stroke-opacity="0.12"/>
+  
+  <!-- 2x2 MCPx Transaction Node Matrix -->
+  <!-- Node 1 (Top Left - Active Lime Node) -->
+  <rect x="7" y="7" width="7" height="7" rx="1.5" fill="#A5F36B"/>
+  
+  <!-- Node 2 (Top Right - High Opacity Foreground) -->
+  <rect x="18" y="7" width="7" height="7" rx="1.5" fill="#F5F5F3" fill-opacity="0.9"/>
+  
+  <!-- Node 3 (Bottom Left - Low Opacity Foreground) -->
+  <rect x="7" y="18" width="7" height="7" rx="1.5" fill="#F5F5F3" fill-opacity="0.35"/>
+  
+  <!-- Node 4 (Bottom Right - Medium Opacity Foreground) -->
+  <rect x="18" y="18" width="7" height="7" rx="1.5" fill="#F5F5F3" fill-opacity="0.8"/>
+  
+  <!-- Subtle transaction graph interconnect line -->
+  <path d="M14 10.5H18" stroke="#A5F36B" stroke-width="1.2" stroke-opacity="0.6"/>
+  <path d="M10.5 14V18" stroke="#A5F36B" stroke-width="1.2" stroke-opacity="0.6"/>
+</svg>

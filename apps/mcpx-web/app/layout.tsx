@@ -18,6 +18,13 @@ export const metadata: Metadata = {
   title: "MCPx — WebMCP, without the guesswork",
   description:
     "Reliability infrastructure for WebMCP. MCPx runs consequential WebMCP workflows as durable transactions — recovering uncertain writes, reconciling authoritative state, and safely rolling back partial failures.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
