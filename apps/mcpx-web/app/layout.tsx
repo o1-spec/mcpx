@@ -1,24 +1,23 @@
 import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
 });
 
-const manrope = Manrope({
-  variable: "--font-manrope",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
-  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
   title: "MCPx — WebMCP, without the guesswork",
   description:
-    "Reliability infrastructure for WebMCP. MCPx makes multi-step browser actions durable, recoverable, and safe to roll back.",
+    "Reliability infrastructure for WebMCP. MCPx runs consequential WebMCP workflows as durable transactions — recovering uncertain writes, reconciling authoritative state, and safely rolling back partial failures.",
 };
 
 export default function RootLayout({
@@ -29,9 +28,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${manrope.variable} font-sans h-full antialiased bg-[#050607]`}
+      className={`${geistSans.variable} ${geistMono.variable} font-sans h-full antialiased bg-[#070708]`}
     >
-      <body className="min-h-full flex flex-col bg-[#050607] text-[#F4F4F2]">
+      <body className="min-h-full flex flex-col bg-[#070708] text-[#F5F5F3]">
         {children}
       </body>
     </html>

@@ -1,15 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #050607;
-  --foreground: #F4F4F2;
+  --background: #070708;
+  --foreground: #F5F5F3;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: var(--font-manrope), var(--font-inter), sans-serif;
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  --font-display: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
@@ -20,6 +21,10 @@ body {
 
 .font-display {
   font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
 }
 
 /* Lenis smooth scrolling rules */
@@ -51,4 +56,3 @@ html.lenis, html.lenis body {
     transform: translateX(200%);
   }
 }
-

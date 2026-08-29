@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import AppNav from "@/components/services/AppNav";
 import { useReliabilityContracts } from "@/hooks/useReliabilityContracts";
 import type { ConnectedServiceRecord } from "@/lib/db";
 
@@ -43,10 +42,15 @@ export default function NewContractPage({
 
         const tools = data.service?.lastDiscoveredTools || [];
         if (tools.length > 0) {
-          setExecuteToolName(tools[0].name);
-          if (tools.length > 1) {
-            setInspectToolName(tools[1].name);
-          }
+          // Default guess
+          const createTool = tools.find((t: { name: string }) => t.name.startsWith("create_") || t.name.startsWith("deploy_") || t.name.startsWith("provision_"));
+          const getTool = tools.find((t: { name: string }) => t.name.startsWith("get_") || t.name.startsWith("inspect_") || t.name.startsWith("query_"));
+          const deleteTool = tools.find((t: { name: string }) => t.name.startsWith("delete_") || t.name.startsWith("unpublish_") || t.name.startsWith("destroy_"));
+
+          setExecuteToolName(createTool ? createTool.name : tools[0].name);
+          if (getTool) setInspectToolName(getTool.name);
+          else if (tools.length > 1) setInspectToolName(tools[1].name);
+          if (deleteTool) setCompensateToolName(deleteTool.name);
         }
       } catch (err: unknown) {
         console.error("[mcpx-contract-new] load error:", err);
@@ -63,9 +67,9 @@ export default function NewContractPage({
   const compTool = compensateToolName ? tools.find((t) => t.name === compensateToolName) : null;
 
   const opKey = operationKeyField.trim();
-  const execProps = (execTool?.inputSchema?.properties as Record<string, unknown>) || {};
-  const inspProps = (inspTool?.inputSchema?.properties as Record<string, unknown>) || {};
-  const compProps = (compTool?.inputSchema?.properties as Record<string, unknown>) || {};
+  const execProps = (execTool?.inputSchema?.properties as Record<string, { type?: string }>) || {};
+  const inspProps = (inspTool?.inputSchema?.properties as Record<string, { type?: string }>) || {};
+  const compProps = (compTool?.inputSchema?.properties as Record<string, { type?: string }>) || {};
 
   const execAcceptsKey = execTool ? (Object.keys(execProps).length === 0 || opKey in execProps) : false;
   const inspAcceptsKey = inspTool ? (Object.keys(inspProps).length === 0 || opKey in inspProps) : false;
@@ -78,14 +82,38 @@ export default function NewContractPage({
     inspectAuthoritative &&
     (!hasCompensate || compensateRetrySafe);
 
-  const isReady =
-    Boolean(name.trim()) &&
-    Boolean(executeToolName) &&
-    Boolean(inspectToolName) &&
-    execAcceptsKey &&
-    inspAcceptsKey &&
-    compAcceptsKey &&
-    assertionsValid;
+  // Issues list for readiness panel
+  const validationIssues = useMemo(() => {
+    const issues: string[] = [];
+    if (!name.trim()) issues.push("Contract name is required");
+    if (!executeToolName) issues.push("Execute tool not selected");
+    if (!inspectToolName) issues.push("Inspect tool not selected");
+    if (!execAcceptsKey && execTool) issues.push(`Execute (${executeToolName}) does not declare '${opKey}'`);
+    if (!inspAcceptsKey && inspTool) issues.push(`Inspect (${inspectToolName}) does not declare '${opKey}'`);
+    if (!compAcceptsKey && compTool) issues.push(`Compensate (${compensateToolName}) does not declare '${opKey}'`);
+    if (!executeIdempotent) issues.push("Execute idempotency assertion not confirmed");
+    if (!inspectAuthoritative) issues.push("Authoritative inspection assertion not confirmed");
+    if (hasCompensate && !compensateRetrySafe) issues.push("Compensation safety assertion not confirmed");
+    return issues;
+  }, [
+    name,
+    executeToolName,
+    inspectToolName,
+    compensateToolName,
+    opKey,
+    execAcceptsKey,
+    inspAcceptsKey,
+    compAcceptsKey,
+    executeIdempotent,
+    inspectAuthoritative,
+    compensateRetrySafe,
+    hasCompensate,
+    execTool,
+    inspTool,
+    compTool,
+  ]);
+
+  const isReady = validationIssues.length === 0;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,188 +149,274 @@ export default function NewContractPage({
 
   if (loadingService) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 sm:p-10">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <AppNav />
-          <div className="py-12 text-center text-xs text-slate-500">
-            Loading service tools…
-          </div>
-        </div>
+      <div className="py-20 text-center font-mono text-xs text-[#66686D] space-y-2">
+        <div className="w-4 h-4 border-2 border-white/20 border-t-[#A5F36B] rounded-full animate-spin mx-auto"></div>
+        <div>Loading service tools…</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 sm:p-10 selection:bg-indigo-500 selection:text-white">
-      <div className="max-w-3xl mx-auto space-y-8">
-        <AppNav />
-
-        {/* Header */}
-        <div className="space-y-1 border-b border-slate-800/80 pb-5">
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/app/services/${id}`}
-              className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              ← Back to {service?.name || "Service"}
-            </Link>
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-white font-sans">
-            Create reliability contract
-          </h1>
-          <p className="text-xs text-slate-400">
-            Map a consequential mutation to its authoritative inspection tool and optional compensation handler.
-          </p>
+    <div className="space-y-8 pb-16 font-sans">
+      {/* Header */}
+      <div className="space-y-2 border-b border-white/[0.08] pb-5">
+        <div className="flex items-center gap-2 text-[12px] font-mono text-[#66686D]">
+          <Link href="/app/services" className="hover:text-[#F5F5F3] transition-colors">
+            Services
+          </Link>
+          <span>/</span>
+          <Link
+            href={`/app/services/${id}`}
+            className="hover:text-[#F5F5F3] transition-colors"
+          >
+            {service?.name || "Service"}
+          </Link>
+          <span>/</span>
+          <span className="text-[#A0A0A4]">New Contract</span>
         </div>
 
-        {errorMessage && (
-          <div className="p-3 rounded-lg bg-rose-950/60 border border-rose-500/40 text-xs text-rose-300">
-            {errorMessage}
-          </div>
-        )}
+        <div>
+          <h1 className="text-[22px] sm:text-[24px] font-bold text-[#F5F5F3] tracking-tight font-sans">
+            New Reliability Contract
+          </h1>
+          <p className="text-[13px] text-[#A0A0A4] font-sans mt-0.5">
+            Define how MCPx should execute, inspect, and compensate one logical operation.
+          </p>
+        </div>
+      </div>
 
-        <form onSubmit={handleSave} className="space-y-8">
-          {/* Section 1: Operation & Tool Mapping */}
-          <div className="p-6 rounded-2xl border border-slate-800/80 bg-slate-900/30 space-y-5">
-            <div className="space-y-1 border-b border-slate-800/60 pb-3">
-              <h2 className="text-sm font-semibold text-white">
-                1. Operation & Tool Mapping
-              </h2>
-              <p className="text-xs text-slate-400">
-                Pair the mutating tool with an authoritative inspection tool.
-              </p>
+      {errorMessage && (
+        <div className="p-3 border border-rose-500/40 bg-rose-950/20 font-mono text-[12px] text-rose-300">
+          ✕ {errorMessage}
+        </div>
+      )}
+
+      <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* LEFT / MAIN COLUMN (~68%) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Contract Name */}
+          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-3 font-mono text-[12px]">
+            <div className="text-[11px] text-[#66686D] uppercase tracking-wider">
+              CONTRACT IDENTITY
             </div>
+            <div className="space-y-1.5">
+              <label htmlFor="contract-name" className="text-[12px] font-medium text-[#F5F5F3] block font-sans">
+                Contract name <span className="text-[#A5F36B]">*</span>
+              </label>
+              <input
+                id="contract-name"
+                type="text"
+                placeholder="e.g. Create Widget, Provision Database, Deploy Routing"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 rounded bg-[#070708] border border-white/[0.09] text-[13px] font-sans text-[#F5F5F3] placeholder-[#66686D] focus:outline-none focus:border-white/30"
+                required
+              />
+            </div>
+          </div>
 
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label htmlFor="contract-name" className="text-xs font-medium text-slate-300 block">
-                  Contract name <span className="text-indigo-400">*</span>
-                </label>
-                <input
-                  id="contract-name"
-                  type="text"
-                  placeholder="e.g. Create invoice, Provision workspace, Deploy build"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs font-sans text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Execute Tool */}
-                <div className="space-y-1.5">
-                  <label htmlFor="exec-tool-select" className="text-xs font-medium text-slate-300 block">
-                    Execute tool <span className="text-indigo-400">*</span>
-                  </label>
-                  <select
-                    id="exec-tool-select"
-                    value={executeToolName}
-                    onChange={(e) => setExecuteToolName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-emerald-400 focus:outline-none focus:border-indigo-500"
-                    required
-                  >
-                    {tools.map((t) => (
-                      <option key={t.name} value={t.name} className="text-slate-200 bg-slate-900 font-mono">
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-[10px] text-slate-500 font-sans block">
-                    The consequential mutation.
-                  </span>
-                </div>
-
-                {/* Inspect Tool */}
-                <div className="space-y-1.5">
-                  <label htmlFor="insp-tool-select" className="text-xs font-medium text-slate-300 block">
-                    Inspect tool <span className="text-indigo-400">*</span>
-                  </label>
-                  <select
-                    id="insp-tool-select"
-                    value={inspectToolName}
-                    onChange={(e) => setInspectToolName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-cyan-400 focus:outline-none focus:border-indigo-500"
-                    required
-                  >
-                    {tools.map((t) => (
-                      <option key={t.name} value={t.name} className="text-slate-200 bg-slate-900 font-mono">
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-[10px] text-slate-500 font-sans block">
-                    Authoritative ground truth.
-                  </span>
-                </div>
-
-                {/* Compensate Tool */}
-                <div className="space-y-1.5">
-                  <label htmlFor="comp-tool-select" className="text-xs font-medium text-slate-300 block">
-                    Compensate tool <span className="text-slate-500 text-[10px]">(optional)</span>
-                  </label>
-                  <select
-                    id="comp-tool-select"
-                    value={compensateToolName}
-                    onChange={(e) => setCompensateToolName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-rose-400 focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="" className="text-slate-500 bg-slate-900 font-sans">
-                      None (Compensation unavailable)
-                    </option>
-                    {tools.map((t) => (
-                      <option key={t.name} value={t.name} className="text-slate-200 bg-slate-900 font-mono">
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-[10px] text-slate-500 font-sans block">
-                    Undo/rollback handler.
-                  </span>
-                </div>
-              </div>
-
-              {/* Operation Identity Field */}
-              <div className="space-y-1.5 pt-1">
-                <label htmlFor="op-key-field" className="text-xs font-medium text-slate-300 block">
-                  Operation identity field
-                </label>
-                <input
-                  id="op-key-field"
-                  type="text"
-                  value={operationKeyField}
-                  onChange={(e) => setOperationKeyField(e.target.value)}
-                  placeholder="operationKey, idempotencyKey, requestId"
-                  className="w-full max-w-xs px-3.5 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-amber-300 focus:outline-none focus:border-indigo-500 transition-colors"
-                />
-                <span className="text-[11px] text-slate-500 font-sans block">
-                  The shared argument name used across execute, inspect, and compensate calls.
+          {/* Step 01: Execute Mapping */}
+          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+              <div className="flex items-center gap-2">
+                <span className="px-1.5 py-0.5 rounded bg-emerald-950/60 text-[#A5F36B] border border-[#A5F36B]/30 text-[10px]">
+                  01
                 </span>
+                <span className="font-bold text-[#F5F5F3]">EXECUTE</span>
+              </div>
+              <span className="text-[11px] text-[#66686D]">CONSEQUENTIAL ACTION</span>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="exec-select" className="text-[12px] text-[#A0A0A4] font-sans block">
+                Which WebMCP tool performs the consequential mutation?
+              </label>
+              <select
+                id="exec-select"
+                value={executeToolName}
+                onChange={(e) => setExecuteToolName(e.target.value)}
+                className="w-full px-3 py-2 rounded bg-[#070708] border border-white/[0.09] text-[#F5F5F3] font-mono text-[12px] focus:outline-none focus:border-white/30"
+                required
+              >
+                {tools.map((t) => (
+                  <option key={t.name} value={t.name} className="bg-[#0B0C0E] text-[#F5F5F3]">
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Selected Tool Schema Preview */}
+            {execTool && (
+              <div className="pt-2 border-t border-white/[0.04] space-y-1.5 text-[11px]">
+                <span className="text-[#66686D] block">Declared parameters:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.keys(execProps).map((k) => (
+                    <span key={k} className="px-2 py-0.5 rounded bg-[#070708] border border-white/[0.06] text-[#A0A0A4]">
+                      {k}: <span className="text-cyan-300">{execProps[k]?.type || "any"}</span>
+                    </span>
+                  ))}
+                  {Object.keys(execProps).length === 0 && (
+                    <span className="text-[#66686D]">No parameters declared in schema</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Step 02: Inspect Mapping */}
+          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+              <div className="flex items-center gap-2">
+                <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 text-[10px]">
+                  02
+                </span>
+                <span className="font-bold text-[#F5F5F3]">INSPECT</span>
+              </div>
+              <span className="text-[11px] text-[#66686D]">AUTHORITATIVE GROUND TRUTH</span>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="insp-select" className="text-[12px] text-[#A0A0A4] font-sans block">
+                Which tool tells MCPx what authoritative state currently exists?
+              </label>
+              <select
+                id="insp-select"
+                value={inspectToolName}
+                onChange={(e) => setInspectToolName(e.target.value)}
+                className="w-full px-3 py-2 rounded bg-[#070708] border border-white/[0.09] text-[#F5F5F3] font-mono text-[12px] focus:outline-none focus:border-white/30"
+                required
+              >
+                {tools.map((t) => (
+                  <option key={t.name} value={t.name} className="bg-[#0B0C0E] text-[#F5F5F3]">
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {inspTool && (
+              <div className="pt-2 border-t border-white/[0.04] space-y-1.5 text-[11px]">
+                <span className="text-[#66686D] block">Declared parameters:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.keys(inspProps).map((k) => (
+                    <span key={k} className="px-2 py-0.5 rounded bg-[#070708] border border-white/[0.06] text-[#A0A0A4]">
+                      {k}: <span className="text-cyan-300">{inspProps[k]?.type || "any"}</span>
+                    </span>
+                  ))}
+                  {Object.keys(inspProps).length === 0 && (
+                    <span className="text-[#66686D]">No parameters declared in schema</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Step 03: Compensate Mapping */}
+          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+              <div className="flex items-center gap-2">
+                <span className="px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/30 text-[10px]">
+                  03
+                </span>
+                <span className="font-bold text-[#F5F5F3]">COMPENSATE</span>
+              </div>
+              <span className="text-[11px] text-[#66686D]">REVERSE ROLLBACK HANDLER</span>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="comp-select" className="text-[12px] text-[#A0A0A4] font-sans block">
+                Which tool reverses the completed action? (Optional)
+              </label>
+              <select
+                id="comp-select"
+                value={compensateToolName}
+                onChange={(e) => setCompensateToolName(e.target.value)}
+                className="w-full px-3 py-2 rounded bg-[#070708] border border-white/[0.09] text-[#F5F5F3] font-mono text-[12px] focus:outline-none focus:border-white/30"
+              >
+                <option value="" className="bg-[#0B0C0E] text-[#66686D]">
+                  No automatic compensation (Workflows will require manual attention on rollback)
+                </option>
+                {tools.map((t) => (
+                  <option key={t.name} value={t.name} className="bg-[#0B0C0E] text-[#F5F5F3]">
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Step 04: Operation Identity & Compatibility Matrix */}
+          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+              <div className="flex items-center gap-2">
+                <span className="px-1.5 py-0.5 rounded bg-white/10 text-[#F5F5F3] border border-white/20 text-[10px]">
+                  04
+                </span>
+                <span className="font-bold text-[#F5F5F3]">OPERATION IDENTITY</span>
+              </div>
+              <span className="text-[11px] text-[#66686D]">CORRELATION PARAMETER</span>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="op-field" className="text-[12px] text-[#A0A0A4] font-sans block">
+                Shared identity parameter
+              </label>
+              <input
+                id="op-field"
+                type="text"
+                value={operationKeyField}
+                onChange={(e) => setOperationKeyField(e.target.value)}
+                placeholder="operationKey, idempotencyKey"
+                className="w-full max-w-xs px-3 py-1.5 rounded bg-[#070708] border border-white/[0.09] text-amber-300 font-mono text-[12px] focus:outline-none focus:border-white/30"
+                required
+              />
+            </div>
+
+            {/* Compatibility Matrix */}
+            <div className="space-y-2 pt-2 border-t border-white/[0.04]">
+              <span className="text-[11px] text-[#66686D] uppercase block">Compatibility Matrix</span>
+              <div className="divide-y divide-white/[0.04] border border-white/[0.06] bg-[#070708] text-[11px]">
+                <div className="flex items-center justify-between p-2">
+                  <span className="text-[#A0A0A4]">Execute ({executeToolName || "none"})</span>
+                  <span className={execAcceptsKey ? "text-emerald-400 font-bold" : "text-amber-400"}>
+                    {execAcceptsKey ? `✓ '${opKey}' compatible` : `✕ missing '${opKey}'`}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-2">
+                  <span className="text-[#A0A0A4]">Inspect ({inspectToolName || "none"})</span>
+                  <span className={inspAcceptsKey ? "text-emerald-400 font-bold" : "text-amber-400"}>
+                    {inspAcceptsKey ? `✓ '${opKey}' compatible` : `✕ missing '${opKey}'`}
+                  </span>
+                </div>
+                {hasCompensate && (
+                  <div className="flex items-center justify-between p-2">
+                    <span className="text-[#A0A0A4]">Compensate ({compensateToolName})</span>
+                    <span className={compAcceptsKey ? "text-emerald-400 font-bold" : "text-amber-400"}>
+                      {compAcceptsKey ? `✓ '${opKey}' compatible` : `✕ missing '${opKey}'`}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Section 2: Developer Assertions */}
-          <div className="p-6 rounded-2xl border border-slate-800/80 bg-slate-900/30 space-y-4">
-            <div className="space-y-1 border-b border-slate-800/60 pb-3">
-              <h2 className="text-sm font-semibold text-white">
-                2. Developer Assertions
-              </h2>
-              <p className="text-xs text-slate-400">
-                Confirm the semantic guarantees provided by the service implementation.
-              </p>
+          {/* Developer Assertions */}
+          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] space-y-4 font-mono text-[12px]">
+            <div className="text-[11px] text-[#66686D] uppercase tracking-wider border-b border-white/[0.06] pb-2">
+              DEVELOPER ASSERTIONS
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 font-sans text-[12.5px]">
               <label className="flex items-start gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={executeIdempotent}
                   onChange={(e) => setExecuteIdempotent(e.target.checked)}
-                  className="mt-0.5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0"
+                  className="mt-1 rounded bg-[#070708] border-white/20 text-[#A5F36B] focus:ring-0"
                 />
-                <span className="text-slate-300">
-                  <strong>Execute idempotency:</strong> The execute action (<code className="font-mono text-emerald-400">{executeToolName}</code>) treats the operation identity idempotently.
+                <span className="text-[#A0A0A4] leading-relaxed">
+                  <strong className="text-[#F5F5F3]">Execute Idempotency:</strong> The execute action (<code className="font-mono text-emerald-400">{executeToolName}</code>) binds to the operation identity without creating duplicate mutations.
                 </span>
               </label>
 
@@ -311,10 +425,10 @@ export default function NewContractPage({
                   type="checkbox"
                   checked={inspectAuthoritative}
                   onChange={(e) => setInspectAuthoritative(e.target.checked)}
-                  className="mt-0.5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0"
+                  className="mt-1 rounded bg-[#070708] border-white/20 text-[#A5F36B] focus:ring-0"
                 />
-                <span className="text-slate-300">
-                  <strong>Authoritative ground truth:</strong> Inspect (<code className="font-mono text-cyan-400">{inspectToolName}</code>) returns accurate remote state for the resource created by this operation identity.
+                <span className="text-[#A0A0A4] leading-relaxed">
+                  <strong className="text-[#F5F5F3]">Authoritative Ground Truth:</strong> Inspect (<code className="font-mono text-cyan-300">{inspectToolName}</code>) reflects actual target application state for this identity.
                 </span>
               </label>
 
@@ -324,85 +438,109 @@ export default function NewContractPage({
                     type="checkbox"
                     checked={compensateRetrySafe}
                     onChange={(e) => setCompensateRetrySafe(e.target.checked)}
-                    className="mt-0.5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0"
+                    className="mt-1 rounded bg-[#070708] border-white/20 text-[#A5F36B] focus:ring-0"
                   />
-                  <span className="text-slate-300">
-                    <strong>Safe compensation:</strong> Compensation (<code className="font-mono text-rose-400">{compensateToolName}</code>) is safe to retry and idempotent.
+                  <span className="text-[#A0A0A4] leading-relaxed">
+                    <strong className="text-[#F5F5F3]">Safe Compensation:</strong> Compensation (<code className="font-mono text-amber-300">{compensateToolName}</code>) is safe to retry and idempotently removes the resource.
                   </span>
                 </label>
               )}
             </div>
           </div>
+        </div>
 
-          {/* Section 3: Validation Summary Card */}
-          <div className="p-6 rounded-2xl border border-slate-800/80 bg-slate-900/40 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
-              <span className="text-xs font-medium text-slate-300 uppercase tracking-wider">
-                Reliability contract validation
+        {/* RIGHT RAIL (~32%) — LIVE CONTRACT READINESS PANEL */}
+        <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-24">
+          <div className="p-5 border border-white/[0.09] bg-[#0B0C0E] font-mono text-[12px] space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+              <span className="text-[11px] text-[#66686D] uppercase tracking-wider">
+                CONTRACT READINESS
               </span>
               <span
-                className={`text-xs font-mono px-2.5 py-0.5 rounded border ${
+                className={`text-[10px] font-mono px-2 py-0.5 rounded border font-bold ${
                   isReady
-                    ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/40"
-                    : "bg-amber-950/80 text-amber-300 border-amber-500/40"
+                    ? "bg-emerald-950/60 text-emerald-300 border-emerald-500/40"
+                    : "bg-amber-950/60 text-amber-300 border-amber-500/40"
                 }`}
               >
-                {isReady ? "READY" : "INVALID"}
+                {isReady ? "READY" : "NEEDS REVIEW"}
               </span>
             </div>
 
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/40">
-                <span className="text-slate-400">Execute (<code className="font-mono text-slate-300">{executeToolName || "none"}</code>)</span>
-                <span className={execTool ? "text-emerald-400" : "text-rose-400"}>
-                  {execTool ? "✓ Tool available" : "✕ Missing"}
+            {/* Checklist */}
+            <div className="space-y-2 text-[11.5px]">
+              <div className="flex items-center justify-between">
+                <span className="text-[#A0A0A4]">Execute tool selected</span>
+                <span className={executeToolName ? "text-emerald-400" : "text-[#66686D]"}>
+                  {executeToolName ? "✓" : "—"}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/40">
-                <span className="text-slate-400">Inspect (<code className="font-mono text-slate-300">{inspectToolName || "none"}</code>)</span>
-                <span className={inspTool ? "text-emerald-400" : "text-rose-400"}>
-                  {inspTool ? "✓ Tool available" : "✕ Missing"}
+              <div className="flex items-center justify-between">
+                <span className="text-[#A0A0A4]">Inspect tool selected</span>
+                <span className={inspectToolName ? "text-emerald-400" : "text-[#66686D]"}>
+                  {inspectToolName ? "✓" : "—"}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/40">
-                <span className="text-slate-400">Compensate (<code className="font-mono text-slate-300">{compensateToolName || "None"}</code>)</span>
-                <span className={hasCompensate ? (compTool ? "text-emerald-400" : "text-rose-400") : "text-slate-500"}>
-                  {hasCompensate ? (compTool ? "✓ Tool available" : "✕ Missing") : "Not configured (Undo disabled)"}
+              <div className="flex items-center justify-between">
+                <span className="text-[#A0A0A4]">Compensation handler</span>
+                <span className={hasCompensate ? "text-emerald-400" : "text-[#66686D]"}>
+                  {hasCompensate ? "✓ Configured" : "None (Optional)"}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-slate-800/40">
-                <span className="text-slate-400">Operation identity (<code className="font-mono text-amber-300">{opKey}</code>)</span>
-                <span className={execAcceptsKey && inspAcceptsKey && compAcceptsKey ? "text-emerald-400" : "text-amber-400"}>
-                  {execAcceptsKey && inspAcceptsKey && compAcceptsKey ? "✓ Accepted across contract" : "⚠ Not found in tool schemas"}
+              <div className="flex items-center justify-between">
+                <span className="text-[#A0A0A4]">Identity parameter</span>
+                <span className={execAcceptsKey && inspAcceptsKey ? "text-emerald-400" : "text-amber-400"}>
+                  {execAcceptsKey && inspAcceptsKey ? "✓ Validated" : "⚠ Check matrix"}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-1">
-                <span className="text-slate-400">Developer assertions</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[#A0A0A4]">Developer assertions</span>
                 <span className={assertionsValid ? "text-emerald-400" : "text-amber-400"}>
-                  {assertionsValid ? "✓ Confirmed" : "⚠ Confirmation required"}
+                  {assertionsValid ? "✓ Confirmed" : "⚠ Pending"}
                 </span>
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between">
-              <span className="text-[11px] text-slate-500">
-                Validating metadata only · No remote tools are executed.
-              </span>
+            {/* Issues List */}
+            {validationIssues.length > 0 && (
+              <div className="pt-3 border-t border-white/[0.04] space-y-1.5">
+                <span className="text-[10.5px] text-amber-400 uppercase block">
+                  {validationIssues.length} {validationIssues.length === 1 ? "issue" : "issues"} to resolve:
+                </span>
+                <ul className="space-y-1 text-[11px] text-[#A0A0A4] font-sans">
+                  {validationIssues.map((issue, idx) => (
+                    <li key={idx} className="flex items-start gap-1.5">
+                      <span className="text-amber-400">×</span>
+                      <span>{issue}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Action Bar */}
+            <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
+              <Link
+                href={`/app/services/${id}`}
+                className="px-3 py-2 text-[#66686D] hover:text-[#F5F5F3] font-mono text-[12px] transition-colors"
+              >
+                Cancel
+              </Link>
               <button
                 type="submit"
                 disabled={isSaving}
-                className="px-5 py-2.5 rounded-lg font-medium text-xs bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 rounded bg-[#F5F5F3] text-[#070708] hover:bg-white font-semibold font-mono text-[12px] transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
               >
                 {isSaving ? "Saving…" : "Save contract"}
               </button>
             </div>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
