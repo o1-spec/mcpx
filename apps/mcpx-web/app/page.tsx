@@ -39,10 +39,10 @@ export default function HomePage() {
     }
 
     if (prefersReduced) {
-      return; // Skip complex smooth scroll & timeline animations for accessibility
+      return; // Skip complex motion for accessibility
     }
 
-    // 1. Initialize Lenis Smooth Scroll (only on non-touch desktop devices for native mobile inertia)
+    // 1. Initialize Lenis Smooth Scroll on desktop (native inertia on touch mobile)
     const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     let lenis: Lenis | null = null;
 
@@ -103,7 +103,7 @@ export default function HomePage() {
 
       // 3. Hero Layered Cinematic Entrance Timeline
       const heroTl = gsap.timeline({
-        paused: shouldPlayLoader, // Pause if loader is active, will trigger on loader handoff
+        paused: shouldPlayLoader, // Triggered after loader handoff
       });
 
       heroTl
@@ -121,7 +121,7 @@ export default function HomePage() {
         )
         .fromTo(
           ".hero-sculpture-core",
-          { y: 35, opacity: 0 },
+          { y: 30, opacity: 0 },
           { y: 0, opacity: 1, duration: 1.1, ease: "power3.out" },
           0.1
         )
@@ -162,7 +162,7 @@ export default function HomePage() {
           0.9
         );
 
-      // 4. Initial Loader Sequence (if first visit)
+      // 4. Initial Loader Sequence (Desktop & Mobile)
       if (shouldPlayLoader && loaderRef.current) {
         const loaderTl = gsap.timeline({
           onComplete: () => {
@@ -230,7 +230,11 @@ export default function HomePage() {
           .to({}, { duration: 0.2 });
       }
 
-      // Responsive matchMedia for GSAP
+      // ============================================================
+      // 5. GSAP MATCHMEDIA: DESKTOP VS MOBILE MOTION CHOREOGRAPHY
+      // ============================================================
+
+      // DESKTOP CHOREOGRAPHY (>= 1024px)
       mm.add("(min-width: 1024px)", () => {
         // Desktop Hero Parallax
         gsap.to(".hero-sculpture-core", {
@@ -272,11 +276,45 @@ export default function HomePage() {
         });
       });
 
+      // MOBILE & TABLET CHOREOGRAPHY (< 1024px)
       mm.add("(max-width: 1023px)", () => {
-        // Mobile / Tablet: Simple reveal without pinned lock
+        // Mobile Hero Subtle Parallax
+        gsap.to(".hero-sculpture-core", {
+          y: 20,
+          ease: "none",
+          scrollTrigger: {
+            trigger: "#hero-section",
+            start: "top top",
+            end: "bottom top",
+            scrub: true,
+          },
+        });
+
+        // Mobile Vertical Pinned Scrollytelling (170vh duration, gentle touch snap)
         ScrollTrigger.create({
           trigger: "#scrolly-uncertainty-container",
-          start: "top 80%",
+          start: "top 60px",
+          end: "+=170%",
+          pin: true,
+          pinSpacing: true,
+          snap: {
+            snapTo: [0, 0.33, 0.66, 1],
+            duration: { min: 0.15, max: 0.35 },
+            delay: 0.08,
+            ease: "power1.out",
+          },
+          onUpdate: (self) => {
+            const progress = self.progress;
+            if (progress < 0.22) {
+              setScrollyStage(0);
+            } else if (progress < 0.55) {
+              setScrollyStage(1);
+            } else if (progress < 0.82) {
+              setScrollyStage(2);
+            } else {
+              setScrollyStage(3);
+            }
+          },
         });
       });
 
@@ -316,20 +354,45 @@ export default function HomePage() {
       );
 
       // Reference DAG Scroll Animation (Section 4)
-      gsap.fromTo(
-        ".dag-container",
-        { y: 20, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: "#reference-dag-section",
-            start: "top 80%",
-          },
-        }
-      );
+      const dagTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#reference-dag-section",
+          start: "top 75%",
+        },
+      });
+
+      dagTl
+        .fromTo(
+          ".dag-node-db",
+          { scale: 0.95, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.45, ease: "power2.out" }
+        )
+        .fromTo(
+          ".dag-line-1",
+          { scaleY: 0, transformOrigin: "top center" },
+          { scaleY: 1, duration: 0.35, ease: "none" }
+        )
+        .fromTo(
+          ".dag-node-backend",
+          { scale: 0.95, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.45, ease: "power2.out" }
+        )
+        .fromTo(
+          ".dag-line-split",
+          { opacity: 0 },
+          { opacity: 1, duration: 0.3, ease: "power2.out" }
+        )
+        .fromTo(
+          ".dag-node-routing, .dag-node-frontend",
+          { y: 15, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.45, stagger: 0.12, ease: "power2.out" }
+        )
+        .fromTo(
+          ".dag-approval-banner",
+          { y: 10, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" },
+          "+=0.1"
+        );
 
       // Dark-to-Light Navbar Color Adaptation on "Why MCPx"
       ScrollTrigger.create({
@@ -378,7 +441,7 @@ export default function HomePage() {
         },
       });
 
-      // Generic Product Horizontal Flow (Section 6)
+      // Generic Product Horizontal/Vertical Flow (Section 6)
       gsap.fromTo(
         ".generic-flow-progress-bar",
         { scaleX: 0, transformOrigin: "left center" },
@@ -1189,7 +1252,7 @@ export default function HomePage() {
                 A lost response does not tell MCPx whether a consequential action actually committed. Instead of retrying blindly, MCPx asks the application that owns the state.
               </p>
 
-              {/* Interactive Step Switcher for Mobile & Tablet */}
+              {/* Interactive Step Switcher */}
               <div className="pt-2 flex flex-wrap items-center gap-1.5 sm:gap-2 font-mono text-[11px] text-[#73777D]">
                 <button
                   onClick={() => setScrollyStage(0)}
@@ -1221,7 +1284,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right Column: Live Interactive Dynamic Stage Surface */}
+            {/* Right Column: Live Interactive Dynamic Stage Surface (Responsive Horizontal + Vertical Graphic) */}
             <div className="lg:col-span-7">
               <div className="p-5 sm:p-7 md:p-8 rounded-2xl bg-[#0C0D0E] border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.8)] space-y-5 sm:space-y-6 relative overflow-hidden">
                 {/* Background State Glow */}
@@ -1267,43 +1330,84 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Visual Connection Wire Stage */}
+                {/* Visual Transaction Wire Channel (Desktop horizontal + Mobile vertical) */}
                 <div className="p-3.5 sm:p-4 rounded-xl bg-[#050607] border border-white/[0.04] font-mono text-[11.5px] sm:text-[12px] space-y-4">
-                  <div className="flex items-center justify-between text-[10.5px] sm:text-[11px] text-[#73777D]">
-                    <span>MCPx Client</span>
-                    <span className="text-[#A0A3A8] hidden sm:inline">Cross-Origin Boundary</span>
-                    <span>Routing Remote Host</span>
-                  </div>
-
-                  {/* Animated Beam Wire Graphic */}
-                  <div className="relative h-8 flex items-center justify-between px-2">
-                    <div className="w-3 h-3 rounded-full bg-[#F4F4F2] shadow-sm z-10 shrink-0"></div>
-
-                    {/* Laser Path */}
-                    <div className="flex-1 h-[2px] mx-2 relative bg-white/[0.08] overflow-hidden">
-                      {scrollyStage === 0 && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#F4F4F2] to-transparent w-1/2 animate-[slide_1.2s_infinite]" />
-                      )}
-                      {scrollyStage === 1 && (
-                        <div className="absolute left-1/3 w-1/3 h-full bg-amber-500/80 animate-pulse" />
-                      )}
-                      {scrollyStage === 2 && (
-                        <div className="absolute inset-0 border-t border-dotted border-cyan-400" />
-                      )}
-                      {scrollyStage === 3 && (
-                        <div className="absolute inset-0 bg-[#A6F275] shadow-[0_0_8px_#A6F275]" />
-                      )}
+                  {/* Desktop Horizontal Wire */}
+                  <div className="hidden sm:block space-y-3">
+                    <div className="flex items-center justify-between text-[11px] text-[#73777D]">
+                      <span>MCPx Client</span>
+                      <span className="text-[#A0A3A8]">Cross-Origin Boundary</span>
+                      <span>Routing Remote Host</span>
                     </div>
 
-                    <div
-                      className={`w-3 h-3 rounded-full z-10 shrink-0 transition-colors ${
-                        scrollyStage === 3
-                          ? "bg-[#A6F275] shadow-[0_0_8px_#A6F275]"
-                          : scrollyStage === 1
-                          ? "bg-amber-400"
-                          : "bg-white/40"
-                      }`}
-                    ></div>
+                    <div className="relative h-8 flex items-center justify-between px-2">
+                      <div className="w-3 h-3 rounded-full bg-[#F4F4F2] shadow-sm z-10 shrink-0"></div>
+
+                      <div className="flex-1 h-[2px] mx-2 relative bg-white/[0.08] overflow-hidden">
+                        {scrollyStage === 0 && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#F4F4F2] to-transparent w-1/2 animate-[slide_1.2s_infinite]" />
+                        )}
+                        {scrollyStage === 1 && (
+                          <div className="absolute left-1/3 w-1/3 h-full bg-amber-500/80 animate-pulse" />
+                        )}
+                        {scrollyStage === 2 && (
+                          <div className="absolute inset-0 border-t border-dotted border-cyan-400" />
+                        )}
+                        {scrollyStage === 3 && (
+                          <div className="absolute inset-0 bg-[#A6F275] shadow-[0_0_8px_#A6F275]" />
+                        )}
+                      </div>
+
+                      <div
+                        className={`w-3 h-3 rounded-full z-10 shrink-0 transition-colors ${
+                          scrollyStage === 3
+                            ? "bg-[#A6F275] shadow-[0_0_8px_#A6F275]"
+                            : scrollyStage === 1
+                            ? "bg-amber-400"
+                            : "bg-white/40"
+                        }`}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Mobile Vertical Transaction Channel */}
+                  <div className="block sm:hidden space-y-3 py-1">
+                    <div className="flex items-center justify-between text-[11px] text-[#A0A3A8]">
+                      <span>MCPx Runtime</span>
+                      <span className="text-[#73777D]">Client Origin</span>
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center py-2 space-y-2 relative">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#F4F4F2]"></div>
+                      <div className="w-[2px] h-12 bg-white/[0.1] relative overflow-hidden">
+                        {scrollyStage === 0 && (
+                          <div className="absolute inset-0 bg-[#F4F4F2] animate-pulse" />
+                        )}
+                        {scrollyStage === 1 && (
+                          <div className="absolute top-1/2 left-0 w-full h-1/2 bg-amber-500 animate-pulse" />
+                        )}
+                        {scrollyStage === 2 && (
+                          <div className="absolute inset-0 border-l border-dotted border-cyan-400" />
+                        )}
+                        {scrollyStage === 3 && (
+                          <div className="absolute inset-0 bg-[#A6F275] shadow-[0_0_8px_#A6F275]" />
+                        )}
+                      </div>
+                      <div
+                        className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                          scrollyStage === 3
+                            ? "bg-[#A6F275]"
+                            : scrollyStage === 1
+                            ? "bg-amber-400"
+                            : "bg-white/40"
+                        }`}
+                      ></div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-[#A0A3A8]">
+                      <span>Remote routing.app</span>
+                      <span className="text-[#73777D]">State Owner</span>
+                    </div>
                   </div>
 
                   {/* Stage Narration Log */}
@@ -1675,7 +1779,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Clean Horizontal Progression Flow */}
+          {/* Clean Horizontal/Vertical Progression Flow */}
           <div className="p-5 sm:p-7 md:p-8 rounded-2xl bg-[#0C0D0E] border border-white/[0.06] space-y-6 sm:space-y-8 relative overflow-hidden">
             {/* Animated Progression Line */}
             <div className="generic-flow-progress-bar absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#A6F275] to-transparent origin-left scale-x-0" />
