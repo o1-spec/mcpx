@@ -210,39 +210,31 @@ export default function NewWorkflowPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 sm:p-10">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <AppNav />
-          <div className="py-12 text-center text-xs text-slate-500">
-            Loading services and contracts…
-          </div>
-        </div>
+      <div className="py-12 text-center text-xs font-mono text-[#65696B]">
+        Loading services and contracts…
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 sm:p-10 selection:bg-indigo-500 selection:text-white">
-      <div className="max-w-3xl mx-auto space-y-8">
-        <AppNav />
-
-        {/* Header */}
-        <div className="space-y-1 border-b border-slate-800/80 pb-5">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/app/workflows"
-              className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              ← Workflows
-            </Link>
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-white font-sans">
-            Create workflow
-          </h1>
-          <p className="text-xs text-slate-400">
-            Compose reliability contracts into a multi-step DAG transaction.
-          </p>
+    <div className="space-y-6 max-w-3xl">
+      {/* Header */}
+      <div className="space-y-1 border-b border-white/[0.06] pb-4">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/app/workflows"
+            className="text-xs font-mono text-[#969B9E] hover:text-[#F2F3F1] transition-colors"
+          >
+            ← Workflows
+          </Link>
         </div>
+        <h1 className="text-[17px] sm:text-[19px] font-bold tracking-tight text-[#F2F3F1] font-display">
+          Create workflow
+        </h1>
+        <p className="text-[12.5px] text-[#969B9E]">
+          Compose reliability contracts into a multi-step DAG transaction.
+        </p>
+      </div>
 
         {allAvailableContracts.length === 0 ? (
           <div className="p-6 rounded-2xl border border-amber-500/30 bg-amber-950/20 text-xs text-amber-300 space-y-3">
@@ -491,6 +483,5 @@ export default function NewWorkflowPage() {
           </form>
         )}
       </div>
-    </div>
   );
 }

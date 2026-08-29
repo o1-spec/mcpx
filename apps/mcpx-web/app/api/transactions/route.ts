@@ -2,6 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { pool, initCoordinatorDb } from "@/lib/db";
 import type { TransactionNode } from "@/lib/transaction/types";
 
+export async function GET() {
+  try {
+    await initCoordinatorDb();
+    const client = await pool.connect();
+    try {
+      const res = await client.query(
+        `SELECT id, state, scenario, created_at, updated_at 
+         FROM transactions 
+         ORDER BY created_at DESC 
+         LIMIT 50`
+      );
+      return NextResponse.json({ transactions: res.rows });
+    } finally {
+      client.release();
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[mcpx-web] GET /api/transactions failed:", err);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     await initCoordinatorDb();

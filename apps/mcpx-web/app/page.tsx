@@ -103,7 +103,7 @@ export default function HomePage() {
 
       // 3. Hero Layered Cinematic Entrance Timeline
       const heroTl = gsap.timeline({
-        paused: shouldPlayLoader, // Triggered after loader handoff
+        paused: shouldPlayLoader,
       });
 
       heroTl
@@ -162,7 +162,7 @@ export default function HomePage() {
           0.9
         );
 
-      // 4. Initial Loader Sequence (Desktop & Mobile)
+      // 4. Initial Loader Sequence
       if (shouldPlayLoader && loaderRef.current) {
         const loaderTl = gsap.timeline({
           onComplete: () => {
@@ -231,10 +231,9 @@ export default function HomePage() {
       }
 
       // ============================================================
-      // 5. GSAP MATCHMEDIA: DESKTOP VS MOBILE MOTION CHOREOGRAPHY
+      // 5. GSAP MATCHMEDIA: BLUEPRINT CHOREOGRAPHY
       // ============================================================
 
-      // DESKTOP CHOREOGRAPHY (>= 1024px)
       mm.add("(min-width: 1024px)", () => {
         // Desktop Hero Parallax
         gsap.to(".hero-sculpture-core", {
@@ -248,7 +247,7 @@ export default function HomePage() {
           },
         });
 
-        // Desktop Pinned Scrollytelling (Section 2)
+        // Desktop Pinned Uncertainty Scrollytelling
         ScrollTrigger.create({
           trigger: "#scrolly-uncertainty-container",
           start: "top top",
@@ -276,9 +275,8 @@ export default function HomePage() {
         });
       });
 
-      // MOBILE & TABLET CHOREOGRAPHY (< 1024px)
       mm.add("(max-width: 1023px)", () => {
-        // Mobile Hero Subtle Parallax
+        // Mobile Hero Parallax
         gsap.to(".hero-sculpture-core", {
           y: 20,
           ease: "none",
@@ -290,7 +288,7 @@ export default function HomePage() {
           },
         });
 
-        // Mobile Vertical Pinned Scrollytelling (170vh duration, gentle touch snap)
+        // Mobile Vertical Pinned Scrollytelling
         ScrollTrigger.create({
           trigger: "#scrolly-uncertainty-container",
           start: "top 60px",
@@ -318,42 +316,21 @@ export default function HomePage() {
         });
       });
 
-      // Product Paths Lateral Stagger (Section 1)
+      // Section 1 Blueprint Cell Stagger
       gsap.fromTo(
-        ".product-card-1",
-        { x: -20, opacity: 0 },
+        ".blueprint-cell-1, .blueprint-cell-2, .blueprint-cell-3",
+        { opacity: 0, y: 15 },
         {
-          x: 0,
           opacity: 1,
-          duration: 0.7,
-          ease: "power2.out",
-          scrollTrigger: { trigger: "#product", start: "top 80%" },
-        }
-      );
-      gsap.fromTo(
-        ".product-card-2",
-        { y: 20, opacity: 0 },
-        {
           y: 0,
-          opacity: 1,
-          duration: 0.7,
-          ease: "power2.out",
-          scrollTrigger: { trigger: "#product", start: "top 80%" },
-        }
-      );
-      gsap.fromTo(
-        ".product-card-3",
-        { x: 20, opacity: 0 },
-        {
-          x: 0,
-          opacity: 1,
-          duration: 0.7,
+          duration: 0.65,
+          stagger: 0.12,
           ease: "power2.out",
           scrollTrigger: { trigger: "#product", start: "top 80%" },
         }
       );
 
-      // Reference DAG Scroll Animation (Section 4)
+      // Section 4 Blueprint DAG Line Drawing
       const dagTl = gsap.timeline({
         scrollTrigger: {
           trigger: "#reference-dag-section",
@@ -364,8 +341,8 @@ export default function HomePage() {
       dagTl
         .fromTo(
           ".dag-node-db",
-          { scale: 0.95, opacity: 0 },
-          { scale: 1, opacity: 1, duration: 0.45, ease: "power2.out" }
+          { opacity: 0, scale: 0.96 },
+          { opacity: 1, scale: 1, duration: 0.45, ease: "power2.out" }
         )
         .fromTo(
           ".dag-line-1",
@@ -374,8 +351,8 @@ export default function HomePage() {
         )
         .fromTo(
           ".dag-node-backend",
-          { scale: 0.95, opacity: 0 },
-          { scale: 1, opacity: 1, duration: 0.45, ease: "power2.out" }
+          { opacity: 0, scale: 0.96 },
+          { opacity: 1, scale: 1, duration: 0.45, ease: "power2.out" }
         )
         .fromTo(
           ".dag-line-split",
@@ -384,14 +361,8 @@ export default function HomePage() {
         )
         .fromTo(
           ".dag-node-routing, .dag-node-frontend",
-          { y: 15, opacity: 0 },
+          { y: 12, opacity: 0 },
           { y: 0, opacity: 1, duration: 0.45, stagger: 0.12, ease: "power2.out" }
-        )
-        .fromTo(
-          ".dag-approval-banner",
-          { y: 10, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" },
-          "+=0.1"
         );
 
       // Dark-to-Light Navbar Color Adaptation on "Why MCPx"
@@ -406,7 +377,7 @@ export default function HomePage() {
               "text-[#111210]",
               "border-black/[0.08]"
             );
-            headerRef.current.classList.remove("bg-[#050607]/80", "border-white/[0.06]");
+            headerRef.current.classList.remove("bg-[#080A0B]/85", "border-white/[0.06]");
           }
         },
         onLeave: () => {
@@ -416,7 +387,7 @@ export default function HomePage() {
               "text-[#111210]",
               "border-black/[0.08]"
             );
-            headerRef.current.classList.add("bg-[#050607]/80", "border-white/[0.06]");
+            headerRef.current.classList.add("bg-[#080A0B]/85", "border-white/[0.06]");
           }
         },
         onEnterBack: () => {
@@ -426,7 +397,7 @@ export default function HomePage() {
               "text-[#111210]",
               "border-black/[0.08]"
             );
-            headerRef.current.classList.remove("bg-[#050607]/80", "border-white/[0.06]");
+            headerRef.current.classList.remove("bg-[#080A0B]/85", "border-white/[0.06]");
           }
         },
         onLeaveBack: () => {
@@ -436,7 +407,7 @@ export default function HomePage() {
               "text-[#111210]",
               "border-black/[0.08]"
             );
-            headerRef.current.classList.add("bg-[#050607]/80", "border-white/[0.06]");
+            headerRef.current.classList.add("bg-[#080A0B]/85", "border-white/[0.06]");
           }
         },
       });
@@ -522,14 +493,19 @@ export default function HomePage() {
   return (
     <div
       ref={mainRef}
-      className="min-h-[100svh] bg-[#050607] text-[#F4F4F2] font-sans selection:bg-[#A6F275] selection:text-[#050607] relative overflow-x-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+      className="min-h-[100svh] bg-[#080A0B] text-[#F2F3F1] font-sans selection:bg-[#A5F36B] selection:text-[#080A0B] relative overflow-x-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
     >
+      {/* Subtle Blueprint Grid Lines Background */}
+      <div className="fixed inset-0 pointer-events-none z-0 select-none opacity-40">
+        <div className="w-full h-full max-w-[1240px] mx-auto border-x border-white/[0.04] grid grid-cols-3 md:grid-cols-6 divide-x divide-white/[0.03]" />
+      </div>
+
       {/* ============================================================ */}
       {/* 0. SUBTLE 1.5PX SCROLL PROGRESS LINE */}
       {/* ============================================================ */}
       <div
         ref={progressBarRef}
-        className="fixed top-0 left-0 right-0 h-[1.5px] bg-[#A6F275] z-50 origin-left scale-x-0 pointer-events-none opacity-85"
+        className="fixed top-0 left-0 right-0 h-[1.5px] bg-[#A5F36B] z-50 origin-left scale-x-0 pointer-events-none opacity-90"
       />
 
       {/* ============================================================ */}
@@ -539,7 +515,7 @@ export default function HomePage() {
         <div
           ref={loaderRef}
           onClick={() => setShowLoader(false)}
-          className="initial-loader-overlay fixed inset-0 z-[100] bg-[#050607] flex flex-col items-center justify-center select-none cursor-pointer p-4"
+          className="initial-loader-overlay fixed inset-0 z-[100] bg-[#080A0B] flex flex-col items-center justify-center select-none cursor-pointer p-4"
         >
           <div className="relative flex flex-col items-center justify-center space-y-4 sm:space-y-6">
             <svg
@@ -559,13 +535,13 @@ export default function HomePage() {
                   <stop offset="100%" stopColor="#050608" />
                 </linearGradient>
                 <linearGradient id="loaderBeam" x1="0" y1="1" x2="0" y2="0">
-                  <stop offset="0%" stopColor="#A6F275" stopOpacity="0.9" />
-                  <stop offset="60%" stopColor="#A6F275" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#A6F275" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#A5F36B" stopOpacity="0.9" />
+                  <stop offset="60%" stopColor="#A5F36B" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="#A5F36B" stopOpacity="0" />
                 </linearGradient>
                 <radialGradient id="loaderGlow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#A6F275" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#050607" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#A5F36B" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#080A0B" stopOpacity="0" />
                 </radialGradient>
               </defs>
 
@@ -642,7 +618,7 @@ export default function HomePage() {
                   width="13"
                   height="8"
                   rx="1.5"
-                  fill="#A6F275"
+                  fill="#A5F36B"
                   transform="rotate(-15)"
                 />
                 <rect
@@ -652,7 +628,7 @@ export default function HomePage() {
                   width="13"
                   height="8"
                   rx="1.5"
-                  fill="#F4F4F2"
+                  fill="#F2F3F1"
                   transform="rotate(15)"
                 />
                 <rect
@@ -676,14 +652,14 @@ export default function HomePage() {
                   transform="rotate(15)"
                 />
 
-                <circle cx="0" cy="0" r="1.5" fill="#050607" />
+                <circle cx="0" cy="0" r="1.5" fill="#080A0B" />
               </g>
             </svg>
 
             {/* Wordmark Reveal */}
             <div className="loader-wordmark flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#A6F275] animate-pulse"></span>
-              <span className="font-display font-bold text-[16px] tracking-[-0.02em] text-[#F4F4F2]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#A5F36B] animate-pulse"></span>
+              <span className="font-display font-bold text-[16px] tracking-[-0.02em] text-[#F2F3F1]">
                 MCPx
               </span>
             </div>
@@ -692,20 +668,20 @@ export default function HomePage() {
       )}
 
       {/* ============================================================ */}
-      {/* 1. SLIM, QUIET STICKY NAVBAR */}
+      {/* 1. SLIM, QUIET BLUEPRINT NAVBAR */}
       {/* ============================================================ */}
       <header
         ref={headerRef}
-        className="fixed top-0 left-0 right-0 z-40 bg-[#050607]/80 backdrop-blur-md border-b border-white/[0.06] transition-colors duration-300"
+        className="fixed top-0 left-0 right-0 z-40 bg-[#080A0B]/85 backdrop-blur-md border-b border-white/[0.06] transition-colors duration-300"
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-[1240px] mx-auto px-4 sm:px-6 md:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
             {/* Unboxed 4-tile geometric mark */}
             <div className="grid grid-cols-2 gap-1 w-4.5 h-4.5 items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-[1px] bg-[#A6F275] group-hover:scale-105 transition-transform"></span>
-              <span className="w-1.5 h-1.5 rounded-[1px] bg-current opacity-90"></span>
-              <span className="w-1.5 h-1.5 rounded-[1px] bg-current opacity-35"></span>
-              <span className="w-1.5 h-1.5 rounded-[1px] bg-current opacity-80"></span>
+              <span className="w-1.5 h-1.5 bg-[#A5F36B] group-hover:scale-105 transition-transform"></span>
+              <span className="w-1.5 h-1.5 bg-current opacity-90"></span>
+              <span className="w-1.5 h-1.5 bg-current opacity-35"></span>
+              <span className="w-1.5 h-1.5 bg-current opacity-80"></span>
             </div>
             <span className="font-display font-bold text-[17px] tracking-[-0.02em] text-current">
               MCPx
@@ -736,7 +712,7 @@ export default function HomePage() {
             </a>
             <Link
               href="/app"
-              className="px-3.5 py-1.5 rounded-lg bg-[#F4F4F2] text-[#050607] hover:bg-white font-medium text-[13px] transition-all duration-150 cursor-pointer shadow-sm ml-1"
+              className="px-3.5 py-1.5 rounded-md bg-[#F2F3F1] text-[#080A0B] hover:bg-white font-medium text-[13px] transition-all duration-150 cursor-pointer shadow-sm ml-1"
             >
               Open app
             </Link>
@@ -746,13 +722,13 @@ export default function HomePage() {
           <div className="flex items-center gap-2 md:hidden">
             <Link
               href="/app"
-              className="px-3 py-1 rounded-lg bg-[#F4F4F2] text-[#050607] font-medium text-[12px]"
+              className="px-3 py-1 rounded-md bg-[#F2F3F1] text-[#080A0B] font-medium text-[12px]"
             >
               App
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-white/[0.05] border border-white/[0.1] text-[#F4F4F2] cursor-pointer"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-white/[0.05] border border-white/[0.1] text-[#F2F3F1] cursor-pointer"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? (
@@ -770,19 +746,19 @@ export default function HomePage() {
 
         {/* Mobile Dropdown Panel */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#0C0D0E]/95 backdrop-blur-xl border-b border-white/[0.08] px-5 py-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="md:hidden bg-[#0C0E0F]/95 backdrop-blur-xl border-b border-white/[0.08] px-5 py-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
             <nav className="flex flex-col space-y-2 text-[14px]">
               <a
                 href="#product"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2 px-3 rounded-lg hover:bg-white/[0.05] text-[#F4F4F2]"
+                className="py-2 px-3 rounded hover:bg-white/[0.05] text-[#F2F3F1]"
               >
                 Product
               </a>
               <a
                 href="#how-it-works"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-2 px-3 rounded-lg hover:bg-white/[0.05] text-[#F4F4F2]"
+                className="py-2 px-3 rounded hover:bg-white/[0.05] text-[#F2F3F1]"
               >
                 How it works
               </a>
@@ -790,7 +766,7 @@ export default function HomePage() {
                 href="https://github.com"
                 target="_blank"
                 rel="noreferrer"
-                className="py-2 px-3 rounded-lg hover:bg-white/[0.05] text-[#F4F4F2]"
+                className="py-2 px-3 rounded hover:bg-white/[0.05] text-[#F2F3F1]"
               >
                 GitHub
               </a>
@@ -798,7 +774,7 @@ export default function HomePage() {
                 <Link
                   href="/app"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#F4F4F2] text-[#050607] font-semibold text-center block text-[13px]"
+                  className="w-full py-2.5 px-4 rounded-md bg-[#F2F3F1] text-[#080A0B] font-semibold text-center block text-[13px]"
                 >
                   Open app
                 </Link>
@@ -813,13 +789,12 @@ export default function HomePage() {
       {/* ============================================================ */}
       <section
         id="hero-section"
-        className="relative pt-16 sm:pt-20 pb-10 sm:pb-12 px-4 sm:px-6 md:px-8 max-w-6xl mx-auto flex flex-col items-center justify-between min-h-[calc(100svh-4rem)]"
+        className="relative pt-16 sm:pt-20 pb-10 sm:pb-12 px-4 sm:px-6 md:px-8 max-w-[1240px] mx-auto flex flex-col items-center justify-between min-h-[calc(100svh-4rem)] z-10"
       >
         {/* Large Atmospheric Background Architectural Sculpture */}
         <div className="w-full relative flex justify-center items-center overflow-visible select-none pt-1 sm:pt-4">
-          {/* Volumetric ambient light ray from top-left */}
           <div className="hero-ambient-glow absolute -top-16 left-1/2 -translate-x-[60%] w-[600px] sm:w-[800px] md:w-[1000px] h-[350px] sm:h-[450px] md:h-[550px] pointer-events-none mix-blend-screen overflow-hidden">
-            <div className="w-full h-full bg-[radial-gradient(ellipse_at_35%_20%,rgba(255,255,255,0.4)_0%,rgba(166,242,117,0.1)_25%,rgba(5,6,7,0)_70%)]" />
+            <div className="w-full h-full bg-[radial-gradient(ellipse_at_35%_20%,rgba(255,255,255,0.4)_0%,rgba(165,243,107,0.1)_25%,rgba(8,10,11,0)_70%)]" />
           </div>
 
           <svg
@@ -845,21 +820,21 @@ export default function HomePage() {
               </linearGradient>
               <linearGradient id="backgroundHex" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#0d0f13" stopOpacity="0.8" />
-                <stop offset="100%" stopColor="#050607" stopOpacity="0" />
+                <stop offset="100%" stopColor="#080A0B" stopOpacity="0" />
               </linearGradient>
               <linearGradient id="telemetryBeam" x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0%" stopColor="#A6F275" stopOpacity="0.9" />
-                <stop offset="40%" stopColor="#A6F275" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#A6F275" stopOpacity="0" />
+                <stop offset="0%" stopColor="#A5F36B" stopOpacity="0.9" />
+                <stop offset="40%" stopColor="#A5F36B" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#A5F36B" stopOpacity="0" />
               </linearGradient>
               <linearGradient id="telemetryDim" x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0%" stopColor="#F4F4F2" stopOpacity="0.5" />
-                <stop offset="60%" stopColor="#F4F4F2" stopOpacity="0.1" />
-                <stop offset="100%" stopColor="#F4F4F2" stopOpacity="0" />
+                <stop offset="0%" stopColor="#F2F3F1" stopOpacity="0.5" />
+                <stop offset="60%" stopColor="#F2F3F1" stopOpacity="0.1" />
+                <stop offset="100%" stopColor="#F2F3F1" stopOpacity="0" />
               </linearGradient>
               <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#A6F275" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="#050607" stopOpacity="0" />
+                <stop offset="0%" stopColor="#A5F36B" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#080A0B" stopOpacity="0" />
               </radialGradient>
             </defs>
 
@@ -979,8 +954,8 @@ export default function HomePage() {
                 y="-15"
                 width="16"
                 height="10"
-                rx="2"
-                fill="#A6F275"
+                rx="1"
+                fill="#A5F36B"
                 transform="rotate(-15)"
               />
               <rect
@@ -988,8 +963,8 @@ export default function HomePage() {
                 y="-15"
                 width="16"
                 height="10"
-                rx="2"
-                fill="#F4F4F2"
+                rx="1"
+                fill="#F2F3F1"
                 transform="rotate(15)"
               />
               <rect
@@ -997,7 +972,7 @@ export default function HomePage() {
                 y="5"
                 width="16"
                 height="10"
-                rx="2"
+                rx="1"
                 fill="#3A3E48"
                 transform="rotate(-15)"
               />
@@ -1006,11 +981,11 @@ export default function HomePage() {
                 y="5"
                 width="16"
                 height="10"
-                rx="2"
+                rx="1"
                 fill="#E2E4DE"
                 transform="rotate(15)"
               />
-              <circle cx="0" cy="0" r="1.5" fill="#050607" />
+              <circle cx="0" cy="0" r="1.5" fill="#080A0B" />
             </g>
           </svg>
         </div>
@@ -1018,73 +993,73 @@ export default function HomePage() {
         {/* Hero Copy & Call To Action */}
         <div className="text-center max-w-4xl mx-auto -mt-6 sm:-mt-12 md:-mt-16 lg:-mt-20 relative z-10 space-y-4 px-2">
           <div className="hero-eyebrow flex items-center justify-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#A6F275]"></span>
-            <span className="text-[12px] sm:text-[13px] text-[#A0A3A8] font-normal tracking-normal">
-              Reliability infrastructure for WebMCP
+            <span className="w-1.5 h-1.5 bg-[#A5F36B]"></span>
+            <span className="text-[12px] sm:text-[13px] text-[#9B9FA1] font-mono tracking-normal uppercase">
+              [ RELIABILITY RUNTIME FOR WEBMCP ]
             </span>
           </div>
 
           {/* Masked Line Reveal Headline */}
-          <h1 className="font-display text-[30px] sm:text-[42px] md:text-[50px] lg:text-[56px] font-bold text-[#F4F4F2] tracking-[-0.035em] leading-[1.04] max-w-[740px] mx-auto overflow-hidden">
+          <h1 className="font-display text-[30px] sm:text-[42px] md:text-[50px] lg:text-[56px] font-bold text-[#F2F3F1] tracking-[-0.035em] leading-[1.04] max-w-[740px] mx-auto overflow-hidden">
             <span className="block overflow-hidden py-1">
               <span className="hero-headline-line block">WebMCP, without the guesswork.</span>
             </span>
           </h1>
 
-          <p className="hero-supporting text-[14px] sm:text-[16px] lg:text-[17px] text-[#A0A3A8] max-w-[480px] mx-auto leading-[1.5] font-normal">
+          <p className="hero-supporting text-[14px] sm:text-[16px] lg:text-[17px] text-[#9B9FA1] max-w-[480px] mx-auto leading-[1.5] font-normal">
             MCPx makes multi-step browser actions durable, recoverable, and safe to roll back.
           </p>
 
           <div className="hero-buttons flex flex-col sm:flex-row items-center justify-center gap-3 pt-1 w-full sm:w-auto">
             <Link
               href="/app"
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-[13px] sm:text-[14px] font-medium bg-[#F4F4F2] text-[#050607] hover:bg-white transition-all cursor-pointer shadow-sm text-center min-h-[44px] flex items-center justify-center"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-md text-[13px] sm:text-[14px] font-medium bg-[#F2F3F1] text-[#080A0B] hover:bg-white transition-all cursor-pointer shadow-sm text-center min-h-[44px] flex items-center justify-center font-mono"
             >
               Try the demo
             </Link>
             <a
               href="#product"
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-[13px] sm:text-[14px] font-medium text-[#F4F4F2] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer text-center min-h-[44px] flex items-center justify-center"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-md text-[13px] sm:text-[14px] font-medium text-[#F2F3F1] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer text-center min-h-[44px] flex items-center justify-center font-mono"
             >
               How it works
             </a>
           </div>
         </div>
 
-        {/* Four Lightweight Proof Points */}
-        <div className="w-full max-w-4xl pt-10 sm:pt-14 md:pt-16 pb-2 grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-left border-t border-white/[0.06] relative z-10 mt-6 sm:mt-8">
-          <div className="hero-proof-item">
-            <div className="text-[13.5px] sm:text-[15px] font-semibold text-[#F4F4F2]">
+        {/* Four Lightweight Proof Points (Blueprint strip) */}
+        <div className="w-full max-w-[1240px] pt-10 sm:pt-14 md:pt-16 pb-2 grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/[0.06] border-t border-white/[0.06] relative z-10 mt-6 sm:mt-8">
+          <div className="hero-proof-item px-4 py-3 sm:py-2">
+            <div className="text-[13.5px] sm:text-[15px] font-semibold text-[#F2F3F1]">
               WebMCP native
             </div>
-            <div className="text-[12px] sm:text-[13px] text-[#A0A3A8] mt-0.5">
+            <div className="text-[12px] sm:text-[13px] text-[#9B9FA1] font-mono mt-0.5">
               Cross-origin execution
             </div>
           </div>
 
-          <div className="hero-proof-item">
-            <div className="text-[13.5px] sm:text-[15px] font-semibold text-[#F4F4F2]">
+          <div className="hero-proof-item px-4 py-3 sm:py-2">
+            <div className="text-[13.5px] sm:text-[15px] font-semibold text-[#F2F3F1]">
               Durable state
             </div>
-            <div className="text-[12px] sm:text-[13px] text-[#A0A3A8] mt-0.5">
+            <div className="text-[12px] sm:text-[13px] text-[#9B9FA1] font-mono mt-0.5">
               PostgreSQL backed
             </div>
           </div>
 
-          <div className="hero-proof-item">
-            <div className="text-[13.5px] sm:text-[15px] font-semibold text-[#F4F4F2]">
+          <div className="hero-proof-item px-4 py-3 sm:py-2">
+            <div className="text-[13.5px] sm:text-[15px] font-semibold text-[#F2F3F1]">
               Authoritative
             </div>
-            <div className="text-[12px] sm:text-[13px] text-[#A0A3A8] mt-0.5">
+            <div className="text-[12px] sm:text-[13px] text-[#9B9FA1] font-mono mt-0.5">
               Reconciliation
             </div>
           </div>
 
-          <div className="hero-proof-item">
-            <div className="text-[13.5px] sm:text-[15px] font-semibold text-[#F4F4F2]">
+          <div className="hero-proof-item px-4 py-3 sm:py-2">
+            <div className="text-[13.5px] sm:text-[15px] font-semibold text-[#F2F3F1]">
               Human controlled
             </div>
-            <div className="text-[12px] sm:text-[13px] text-[#A0A3A8] mt-0.5">
+            <div className="text-[12px] sm:text-[13px] text-[#9B9FA1] font-mono mt-0.5">
               Saga rollback
             </div>
           </div>
@@ -1092,136 +1067,151 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 3. SECTION 1: "What are you orchestrating?" (Product Paths) */}
+      {/* 3. SECTION 1: BLUEPRINT GRID CELLS ("What are you orchestrating?") */}
       {/* ============================================================ */}
-      <section id="product" className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 max-w-6xl mx-auto border-t border-white/[0.06]">
+      <section id="product" className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 max-w-[1240px] mx-auto border-t border-white/[0.06] relative z-10">
         <div className="space-y-8 sm:space-y-10">
-          <div className="max-w-2xl space-y-2.5">
-            <span className="text-[12px] font-mono text-[#A6F275] tracking-wide uppercase">
-              Orchestration Lifecycle
+          <div className="max-w-2xl space-y-2">
+            <span className="text-[11px] font-mono text-[#A5F36B] tracking-wider uppercase">
+              [ 01 · ORCHESTRATION BLUEPRINT ]
             </span>
-            <h2 className="font-display text-[24px] sm:text-[32px] md:text-[36px] font-bold text-[#F4F4F2] tracking-[-0.03em] leading-[1.1]">
+            <h2 className="font-display text-[24px] sm:text-[32px] md:text-[36px] font-bold text-[#F2F3F1] tracking-[-0.03em] leading-[1.1]">
               What are you orchestrating?
             </h2>
-            <p className="text-[14px] sm:text-[16px] text-[#A0A3A8] leading-relaxed">
+            <p className="text-[14px] sm:text-[16px] text-[#9B9FA1] leading-relaxed">
               Connect WebMCP applications, define how consequential actions recover, and compose them into durable multi-step workflows.
             </p>
           </div>
 
-          {/* Three Lateral Stagger Product Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Card 1: Connect Services */}
-            <div className="product-card-1 p-5 sm:p-6 rounded-2xl bg-[#0C0D0E] border border-white/[0.06] hover:border-white/[0.12] transition-all flex flex-col justify-between space-y-5">
-              <div className="space-y-2.5">
-                <span className="text-[11px] font-mono text-[#73777D]">01 · Discovery</span>
-                <h3 className="font-display text-[17px] sm:text-[19px] font-semibold text-[#F4F4F2]">
+          {/* Connected 3-Column Blueprint Grid Frame */}
+          <div className="border border-white/[0.08] divide-y md:divide-y-0 md:divide-x divide-white/[0.08] grid grid-cols-1 md:grid-cols-3 bg-[#080A0B]">
+            {/* CELL 01: Connect services */}
+            <div className="blueprint-cell-1 p-6 sm:p-7 flex flex-col justify-between space-y-6 relative">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-[11px] font-mono text-[#65696B]">
+                  <span>[ 01 ]</span>
+                  <span>DISCOVERY</span>
+                </div>
+                <h3 className="font-display text-[18px] sm:text-[20px] font-semibold text-[#F2F3F1]">
                   Connect services
                 </h3>
-                <p className="text-[13px] sm:text-[14px] text-[#A0A3A8] leading-relaxed">
-                  Bring WebMCP-enabled applications into MCPx and discover the tools they expose to your browser.
+                <p className="text-[13px] sm:text-[14px] text-[#9B9FA1] leading-relaxed">
+                  Bring WebMCP-enabled applications into MCPx and discover the tools they expose across origin boundaries.
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#050607] border border-white/[0.04] font-mono text-[11px] space-y-2">
-                <div className="flex items-center justify-between text-[#73777D] text-[10px] pb-1 border-b border-white/[0.04]">
-                  <span className="text-[#F4F4F2] truncate max-w-[140px]">billing.example.com</span>
-                  <span className="text-[#A6F275]">6 tools found</span>
+              {/* Technical Schematic: Origin + Discovered Tools */}
+              <div className="border border-white/[0.06] bg-[#0C0E0F] p-4 font-mono text-[11px] space-y-3">
+                <div className="flex items-center justify-between text-[10.5px] border-b border-white/[0.06] pb-2 text-[#9B9FA1]">
+                  <span className="text-[#F2F3F1]">billing.example.com</span>
+                  <span className="text-[#A5F36B]">6 tools</span>
                 </div>
-                <div className="space-y-1 text-[#A0A3A8]">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#A6F275] shrink-0"></span>
-                    <span className="truncate">create_invoice</span>
+
+                <div className="space-y-1.5 text-[#9B9FA1] text-[10.5px]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1 h-1 bg-[#A5F36B]"></span>
+                    <span className="text-[#F2F3F1]">create_invoice</span>
                   </div>
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/40 shrink-0"></span>
-                    <span className="truncate">get_invoice</span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-1 h-1 bg-white/40"></span>
+                    <span>get_invoice</span>
                   </div>
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/40 shrink-0"></span>
-                    <span className="truncate">delete_invoice</span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-1 h-1 bg-white/40"></span>
+                    <span>delete_invoice</span>
                   </div>
                 </div>
               </div>
 
               <Link
                 href="/app/services/new"
-                className="inline-flex items-center text-[13px] font-medium text-[#A6F275] hover:underline gap-1 pt-0.5 min-h-[36px]"
+                className="inline-flex items-center text-[12.5px] font-mono text-[#A5F36B] hover:underline gap-1 pt-1"
               >
-                Explore services →
+                Connect service →
               </Link>
             </div>
 
-            {/* Card 2: Define Reliability */}
-            <div className="product-card-2 p-5 sm:p-6 rounded-2xl bg-[#0C0D0E] border border-white/[0.06] hover:border-white/[0.12] transition-all flex flex-col justify-between space-y-5">
-              <div className="space-y-2.5">
-                <span className="text-[11px] font-mono text-[#73777D]">02 · Contracts</span>
-                <h3 className="font-display text-[17px] sm:text-[19px] font-semibold text-[#F4F4F2]">
+            {/* CELL 02: Define reliability */}
+            <div className="blueprint-cell-2 p-6 sm:p-7 flex flex-col justify-between space-y-6 relative">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-[11px] font-mono text-[#65696B]">
+                  <span>[ 02 ]</span>
+                  <span>CONTRACTS</span>
+                </div>
+                <h3 className="font-display text-[18px] sm:text-[20px] font-semibold text-[#F2F3F1]">
                   Define reliability
                 </h3>
-                <p className="text-[13px] sm:text-[14px] text-[#A0A3A8] leading-relaxed">
-                  Tell MCPx how a consequential operation should be executed, inspected, and compensated.
+                <p className="text-[13px] sm:text-[14px] text-[#9B9FA1] leading-relaxed">
+                  Tell MCPx how a consequential operation should be executed, inspected, and safely compensated.
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#050607] border border-white/[0.04] font-mono text-[11px] space-y-1.5">
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-[#73777D]">Execute</span>
-                  <span className="text-[#F4F4F2] truncate">create_invoice</span>
+              {/* Technical Schematic: Contract Structure */}
+              <div className="border border-white/[0.06] bg-[#0C0E0F] p-4 font-mono text-[11px] space-y-2">
+                <div className="flex items-center justify-between text-[10.5px]">
+                  <span className="text-[#65696B]">EXECUTE</span>
+                  <span className="text-[#F2F3F1]">create_invoice</span>
                 </div>
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-[#73777D]">Inspect</span>
-                  <span className="text-[#A6F275] truncate">get_invoice</span>
+                <div className="text-center text-[#65696B] text-[10px]">↓</div>
+                <div className="flex items-center justify-between text-[10.5px]">
+                  <span className="text-[#65696B]">INSPECT</span>
+                  <span className="text-[#A5F36B]">get_invoice</span>
                 </div>
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-[#73777D]">Compensate</span>
-                  <span className="text-[#F4F4F2] truncate">delete_invoice</span>
+                <div className="text-center text-[#65696B] text-[10px]">↓</div>
+                <div className="flex items-center justify-between text-[10.5px]">
+                  <span className="text-[#65696B]">COMPENSATE</span>
+                  <span className="text-[#F2F3F1]">delete_invoice</span>
                 </div>
-                <div className="pt-1 border-t border-white/[0.04] flex items-center justify-between text-[9.5px] text-[#73777D]">
-                  <span>Identity key</span>
-                  <span className="text-[#A0A3A8] truncate">operationKey</span>
+                <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[10px] text-[#65696B]">
+                  <span>IDENTITY</span>
+                  <span className="text-[#9B9FA1]">operationKey</span>
                 </div>
               </div>
 
               <Link
                 href="/app/services"
-                className="inline-flex items-center text-[13px] font-medium text-[#A6F275] hover:underline gap-1 pt-0.5 min-h-[36px]"
+                className="inline-flex items-center text-[12.5px] font-mono text-[#A5F36B] hover:underline gap-1 pt-1"
               >
-                Reliability contracts →
+                Define contracts →
               </Link>
             </div>
 
-            {/* Card 3: Compose Workflows */}
-            <div className="product-card-3 p-5 sm:p-6 rounded-2xl bg-[#0C0D0E] border border-white/[0.06] hover:border-white/[0.12] transition-all flex flex-col justify-between space-y-5">
-              <div className="space-y-2.5">
-                <span className="text-[11px] font-mono text-[#73777D]">03 · Execution</span>
-                <h3 className="font-display text-[17px] sm:text-[19px] font-semibold text-[#F4F4F2]">
+            {/* CELL 03: Compose workflows */}
+            <div className="blueprint-cell-3 p-6 sm:p-7 flex flex-col justify-between space-y-6 relative">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-[11px] font-mono text-[#65696B]">
+                  <span>[ 03 ]</span>
+                  <span>EXECUTION</span>
+                </div>
+                <h3 className="font-display text-[18px] sm:text-[20px] font-semibold text-[#F2F3F1]">
                   Compose workflows
                 </h3>
-                <p className="text-[13px] sm:text-[14px] text-[#A0A3A8] leading-relaxed">
-                  Combine reliable operations into dependency-aware transactions without hardcoding the workflow into MCPx.
+                <p className="text-[13px] sm:text-[14px] text-[#9B9FA1] leading-relaxed">
+                  Combine reliable operations into dependency-aware transactions without hardcoding workflows into runtime.
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#050607] border border-white/[0.04] font-mono text-[11px] space-y-1.5">
-                <div className="flex items-center gap-1.5 text-[#F4F4F2] truncate">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#A6F275] shrink-0"></span>
-                  <span className="truncate">Create customer</span>
+              {/* Technical Schematic: Workflow Pipeline */}
+              <div className="border border-white/[0.06] bg-[#0C0E0F] p-4 font-mono text-[11px] space-y-2">
+                <div className="flex items-center gap-2 text-[#F2F3F1]">
+                  <span className="w-1.5 h-1.5 bg-[#A5F36B]"></span>
+                  <span>Create customer</span>
                 </div>
-                <div className="pl-2 text-[#73777D] text-[9.5px]">↓</div>
-                <div className="flex items-center gap-1.5 text-[#F4F4F2] truncate">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#A6F275] shrink-0"></span>
-                  <span className="truncate">Create workspace</span>
+                <div className="pl-2.5 text-[#65696B] text-[10px]">│</div>
+                <div className="flex items-center gap-2 text-[#F2F3F1]">
+                  <span className="w-1.5 h-1.5 bg-[#A5F36B]"></span>
+                  <span>Create workspace</span>
                 </div>
-                <div className="pl-2 text-[#73777D] text-[9.5px]">↓</div>
-                <div className="flex items-center gap-1.5 text-[#A0A3A8] truncate">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/40 shrink-0"></span>
-                  <span className="truncate">Send invite</span>
+                <div className="pl-2.5 text-[#65696B] text-[10px]">│</div>
+                <div className="flex items-center gap-2 text-[#9B9FA1]">
+                  <span className="w-1.5 h-1.5 bg-white/40"></span>
+                  <span>Send invite</span>
                 </div>
               </div>
 
               <Link
                 href="/app/workflows/new"
-                className="inline-flex items-center text-[13px] font-medium text-[#A6F275] hover:underline gap-1 pt-0.5 min-h-[36px]"
+                className="inline-flex items-center text-[12.5px] font-mono text-[#A5F36B] hover:underline gap-1 pt-1"
               >
                 Build workflows →
               </Link>
@@ -1231,253 +1221,192 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 4. SECTION 2: SCROLLYTELLING / UNCERTAINTY MOMENT */}
+      {/* 4. SECTION 2: BLUEPRINT UNCERTAINTY SCROLLYTELLING */}
       {/* "The response disappeared. Did the write happen?" */}
       {/* ============================================================ */}
       <div id="how-it-works" className="relative border-t border-white/[0.06]">
         <div
           id="scrolly-uncertainty-container"
-          className="min-h-auto lg:min-h-screen py-14 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 max-w-6xl mx-auto flex flex-col justify-center"
+          className="min-h-auto lg:min-h-screen py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 max-w-[1240px] mx-auto flex flex-col justify-center relative z-10"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left Column: Narrative */}
             <div className="lg:col-span-5 space-y-4 sm:space-y-5">
-              <span className="text-[12px] font-mono text-[#A6F275] tracking-wide uppercase">
-                Uncertain outcomes
+              <span className="text-[11px] font-mono text-[#A5F36B] tracking-wider uppercase">
+                [ 02 · UNCERTAINTY SCHEMATIC ]
               </span>
-              <h2 className="font-display text-[24px] sm:text-[32px] md:text-[36px] font-bold text-[#F4F4F2] tracking-[-0.03em] leading-[1.1]">
+              <h2 className="font-display text-[24px] sm:text-[32px] md:text-[36px] font-bold text-[#F2F3F1] tracking-[-0.03em] leading-[1.1]">
                 The response disappeared. Did the write happen?
               </h2>
-              <p className="text-[14px] sm:text-[16px] text-[#A0A3A8] leading-relaxed">
+              <p className="text-[14px] sm:text-[16px] text-[#9B9FA1] leading-relaxed">
                 A lost response does not tell MCPx whether a consequential action actually committed. Instead of retrying blindly, MCPx asks the application that owns the state.
               </p>
 
               {/* Interactive Step Switcher */}
-              <div className="pt-2 flex flex-wrap items-center gap-1.5 sm:gap-2 font-mono text-[11px] text-[#73777D]">
+              <div className="pt-2 flex flex-wrap items-center gap-1.5 sm:gap-2 font-mono text-[11px] text-[#65696B]">
                 <button
                   onClick={() => setScrollyStage(0)}
-                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${scrollyStage === 0 ? "bg-white/10 text-[#F4F4F2] font-semibold" : "hover:text-[#F4F4F2]"}`}
+                  className={`px-2.5 py-1 transition-colors cursor-pointer border ${scrollyStage === 0 ? "bg-white/10 text-[#F2F3F1] border-white/20" : "border-transparent hover:text-[#F2F3F1]"}`}
                 >
-                  01 Dispatched
+                  [01] DISPATCH
                 </button>
                 <span>→</span>
                 <button
                   onClick={() => setScrollyStage(1)}
-                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${scrollyStage === 1 ? "bg-amber-950/80 text-amber-300 font-semibold border border-amber-500/40" : "hover:text-[#F4F4F2]"}`}
+                  className={`px-2.5 py-1 transition-colors cursor-pointer border ${scrollyStage === 1 ? "bg-amber-950/80 text-amber-300 border-amber-500/50" : "border-transparent hover:text-[#F2F3F1]"}`}
                 >
-                  02 IN_DOUBT
+                  [02] IN_DOUBT
                 </button>
                 <span>→</span>
                 <button
                   onClick={() => setScrollyStage(2)}
-                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${scrollyStage === 2 ? "bg-cyan-950/80 text-cyan-300 font-semibold border border-cyan-500/40" : "hover:text-[#F4F4F2]"}`}
+                  className={`px-2.5 py-1 transition-colors cursor-pointer border ${scrollyStage === 2 ? "bg-cyan-950/80 text-cyan-300 border-cyan-500/50" : "border-transparent hover:text-[#F2F3F1]"}`}
                 >
-                  03 Inspect
+                  [03] INSPECT
                 </button>
                 <span>→</span>
                 <button
                   onClick={() => setScrollyStage(3)}
-                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${scrollyStage === 3 ? "bg-emerald-950/80 text-[#A6F275] font-semibold border border-[#A6F275]/40" : "hover:text-[#F4F4F2]"}`}
+                  className={`px-2.5 py-1 transition-colors cursor-pointer border ${scrollyStage === 3 ? "bg-emerald-950/80 text-[#A5F36B] border-[#A5F36B]/50" : "border-transparent hover:text-[#F2F3F1]"}`}
                 >
-                  04 RECOVERED
+                  [04] RECOVERED
                 </button>
               </div>
             </div>
 
-            {/* Right Column: Live Interactive Dynamic Stage Surface (Responsive Horizontal + Vertical Graphic) */}
+            {/* Right Column: Blueprint Integrated Schematic Grid */}
             <div className="lg:col-span-7">
-              <div className="p-5 sm:p-7 md:p-8 rounded-2xl bg-[#0C0D0E] border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.8)] space-y-5 sm:space-y-6 relative overflow-hidden">
-                {/* Background State Glow */}
-                <div
-                  className={`absolute -top-10 -right-10 w-48 h-48 rounded-full blur-3xl transition-opacity duration-500 pointer-events-none ${
-                    scrollyStage === 1
-                      ? "bg-amber-500/20 opacity-100"
-                      : scrollyStage === 3
-                      ? "bg-[#A6F275]/20 opacity-100"
-                      : "bg-white/5 opacity-40"
-                  }`}
-                />
-
-                {/* State Machine Header */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-4">
+              <div className="border border-white/[0.08] bg-[#0C0E0F] p-6 sm:p-8 space-y-6 relative">
+                {/* Header state bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
                   <div className="space-y-0.5">
-                    <span className="text-[11px] font-mono text-[#73777D]">Target Service: routing.app</span>
-                    <div className="font-mono text-[13px] sm:text-[14px] text-[#F4F4F2] font-medium truncate">create_route(spec)</div>
+                    <span className="text-[10.5px] font-mono text-[#65696B] uppercase">TARGET: routing.app</span>
+                    <div className="font-mono text-[13px] text-[#F2F3F1]">create_route(spec)</div>
                   </div>
 
-                  {/* Reactive Status Badge */}
                   <div>
                     {scrollyStage === 0 && (
-                      <span className="px-3 py-1 rounded-md text-[11px] font-mono bg-white/[0.08] text-[#F4F4F2] font-semibold animate-pulse">
+                      <span className="px-2.5 py-1 text-[11px] font-mono bg-white/[0.08] border border-white/20 text-[#F2F3F1]">
                         EXECUTING
                       </span>
                     )}
                     {scrollyStage === 1 && (
-                      <span className="px-3 py-1 rounded-md text-[11px] font-mono bg-amber-950/90 border border-amber-500/50 text-amber-300 font-semibold shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                      <span className="px-2.5 py-1 text-[11px] font-mono bg-amber-950/80 border border-amber-500/50 text-amber-300">
                         IN_DOUBT
                       </span>
                     )}
                     {scrollyStage === 2 && (
-                      <span className="px-3 py-1 rounded-md text-[11px] font-mono bg-cyan-950/90 border border-cyan-500/50 text-cyan-300 font-semibold shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                      <span className="px-2.5 py-1 text-[11px] font-mono bg-cyan-950/80 border border-cyan-500/50 text-cyan-300">
                         RECONCILING
                       </span>
                     )}
                     {scrollyStage === 3 && (
-                      <span className="px-3 py-1 rounded-md text-[11px] font-mono bg-emerald-950/90 border border-[#A6F275]/50 text-[#A6F275] font-semibold shadow-[0_0_15px_rgba(166,242,117,0.3)]">
+                      <span className="px-2.5 py-1 text-[11px] font-mono bg-emerald-950/80 border border-[#A5F36B]/50 text-[#A5F36B]">
                         ✓ RECOVERED
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Visual Transaction Wire Channel (Desktop horizontal + Mobile vertical) */}
-                <div className="p-3.5 sm:p-4 rounded-xl bg-[#050607] border border-white/[0.04] font-mono text-[11.5px] sm:text-[12px] space-y-4">
-                  {/* Desktop Horizontal Wire */}
-                  <div className="hidden sm:block space-y-3">
-                    <div className="flex items-center justify-between text-[11px] text-[#73777D]">
-                      <span>MCPx Client</span>
-                      <span className="text-[#A0A3A8]">Cross-Origin Boundary</span>
-                      <span>Routing Remote Host</span>
-                    </div>
-
-                    <div className="relative h-8 flex items-center justify-between px-2">
-                      <div className="w-3 h-3 rounded-full bg-[#F4F4F2] shadow-sm z-10 shrink-0"></div>
-
-                      <div className="flex-1 h-[2px] mx-2 relative bg-white/[0.08] overflow-hidden">
-                        {scrollyStage === 0 && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#F4F4F2] to-transparent w-1/2 animate-[slide_1.2s_infinite]" />
-                        )}
-                        {scrollyStage === 1 && (
-                          <div className="absolute left-1/3 w-1/3 h-full bg-amber-500/80 animate-pulse" />
-                        )}
-                        {scrollyStage === 2 && (
-                          <div className="absolute inset-0 border-t border-dotted border-cyan-400" />
-                        )}
-                        {scrollyStage === 3 && (
-                          <div className="absolute inset-0 bg-[#A6F275] shadow-[0_0_8px_#A6F275]" />
-                        )}
-                      </div>
-
-                      <div
-                        className={`w-3 h-3 rounded-full z-10 shrink-0 transition-colors ${
-                          scrollyStage === 3
-                            ? "bg-[#A6F275] shadow-[0_0_8px_#A6F275]"
-                            : scrollyStage === 1
-                            ? "bg-amber-400"
-                            : "bg-white/40"
-                        }`}
-                      ></div>
-                    </div>
+                {/* Integrated Vertical Schematic Wire */}
+                <div className="border border-white/[0.06] bg-[#080A0B] p-5 font-mono text-[11.5px] space-y-4">
+                  <div className="flex items-center justify-between text-[11px] text-[#9B9FA1]">
+                    <span>MCPx RUNTIME [CLIENT]</span>
+                    <span className="text-[#65696B]">CROSS-ORIGIN</span>
                   </div>
 
-                  {/* Mobile Vertical Transaction Channel */}
-                  <div className="block sm:hidden space-y-3 py-1">
-                    <div className="flex items-center justify-between text-[11px] text-[#A0A3A8]">
-                      <span>MCPx Runtime</span>
-                      <span className="text-[#73777D]">Client Origin</span>
+                  <div className="flex flex-col items-center justify-center py-2 space-y-2 relative">
+                    <div className="w-2 h-2 bg-[#F2F3F1]"></div>
+                    <div className="w-[1px] h-16 bg-white/[0.1] relative overflow-hidden">
+                      {scrollyStage === 0 && (
+                        <div className="absolute inset-0 bg-[#F2F3F1] animate-pulse" />
+                      )}
+                      {scrollyStage === 1 && (
+                        <div className="absolute top-1/2 left-0 w-full h-1/2 bg-amber-500 animate-pulse" />
+                      )}
+                      {scrollyStage === 2 && (
+                        <div className="absolute inset-0 border-l border-dotted border-cyan-400" />
+                      )}
+                      {scrollyStage === 3 && (
+                        <div className="absolute inset-0 bg-[#A5F36B]" />
+                      )}
                     </div>
+                    <div
+                      className={`w-2 h-2 transition-colors ${
+                        scrollyStage === 3
+                          ? "bg-[#A5F36B]"
+                          : scrollyStage === 1
+                          ? "bg-amber-400"
+                          : "bg-white/40"
+                      }`}
+                    ></div>
+                  </div>
 
-                    <div className="flex flex-col items-center justify-center py-2 space-y-2 relative">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#F4F4F2]"></div>
-                      <div className="w-[2px] h-12 bg-white/[0.1] relative overflow-hidden">
-                        {scrollyStage === 0 && (
-                          <div className="absolute inset-0 bg-[#F4F4F2] animate-pulse" />
-                        )}
-                        {scrollyStage === 1 && (
-                          <div className="absolute top-1/2 left-0 w-full h-1/2 bg-amber-500 animate-pulse" />
-                        )}
-                        {scrollyStage === 2 && (
-                          <div className="absolute inset-0 border-l border-dotted border-cyan-400" />
-                        )}
-                        {scrollyStage === 3 && (
-                          <div className="absolute inset-0 bg-[#A6F275] shadow-[0_0_8px_#A6F275]" />
-                        )}
-                      </div>
-                      <div
-                        className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                          scrollyStage === 3
-                            ? "bg-[#A6F275]"
-                            : scrollyStage === 1
-                            ? "bg-amber-400"
-                            : "bg-white/40"
-                        }`}
-                      ></div>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] text-[#A0A3A8]">
-                      <span>Remote routing.app</span>
-                      <span className="text-[#73777D]">State Owner</span>
-                    </div>
+                  <div className="flex items-center justify-between text-[11px] text-[#9B9FA1]">
+                    <span>REMOTE APPLICATION [SERVICE]</span>
+                    <span className="text-[#65696B]">STATE OWNER</span>
                   </div>
 
                   {/* Stage Narration Log */}
-                  <div className="p-3 rounded-lg bg-[#0A0B0E] border border-white/[0.04] text-[11px] sm:text-[11.5px] leading-relaxed">
+                  <div className="border-t border-white/[0.06] pt-3 text-[11px] leading-relaxed">
                     {scrollyStage === 0 && (
-                      <div className="text-[#A0A3A8]">
-                        <span className="text-[#F4F4F2] font-semibold">1. Mutation Dispatched: </span>
-                        Solid request dispatched across origin. Awaiting network acknowledgement.
+                      <div className="text-[#9B9FA1]">
+                        <span className="text-[#F2F3F1] font-semibold">[01] DISPATCHED: </span>
+                        Mutation sent across origin. Awaiting network ACK packet.
                       </div>
                     )}
                     {scrollyStage === 1 && (
                       <div className="text-amber-300">
-                        <span className="font-semibold text-amber-200">2. Transport ACK Lost: </span>
-                        Network response dropped. State is uncertain — mutation must NOT be blindly retried.
+                        <span className="font-semibold text-amber-200">[02] ACK LOST: </span>
+                        Response dropped. State is uncertain — mutation must NOT be blindly retried.
                       </div>
                     )}
                     {scrollyStage === 2 && (
                       <div className="text-cyan-300">
-                        <span className="font-semibold text-cyan-200">3. Authoritative Inspection: </span>
-                        Issuing get_route(operationKey) to query the remote authoritative state store.
+                        <span className="font-semibold text-cyan-200">[03] INSPECTION: </span>
+                        Querying remote authoritative store: get_route(operationKey).
                       </div>
                     )}
                     {scrollyStage === 3 && (
-                      <div className="text-[#A6F275]">
-                        <span className="font-semibold text-white">4. Confirmed Exists: </span>
-                        Remote resource confirmed committed. Transaction reconciled to RECOVERED safely.
+                      <div className="text-[#A5F36B]">
+                        <span className="font-semibold text-white">[04] CONFIRMED: </span>
+                        Resource confirmed exists: true. Reconciled without duplicate mutation.
                       </div>
                     )}
                   </div>
-                </div>
-
-                {/* Progress bar under scrolly stage */}
-                <div className="flex items-center justify-between text-[10.5px] sm:text-[11px] text-[#73777D] font-mono pt-1">
-                  <span>Scroll or tap stages</span>
-                  <span className="text-[#A6F275]">
-                    {scrollyStage === 0 && "Step 1 of 4"}
-                    {scrollyStage === 1 && "Step 2 of 4 (Uncertainty)"}
-                    {scrollyStage === 2 && "Step 3 of 4 (Inspection)"}
-                    {scrollyStage === 3 && "Step 4 of 4 (Complete)"}
-                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Three Reliability Outcome Principles */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-10 sm:pt-12 border-t border-white/[0.05] mt-10 sm:mt-12">
-            <div className="space-y-1.5">
-              <h3 className="font-display text-[15px] sm:text-[16px] font-semibold text-[#F4F4F2]">
+          {/* Horizontal Blueprint Reliability Strip */}
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/[0.08] border-t border-white/[0.08] mt-12 pt-6">
+            <div className="py-3 px-4 space-y-1.5">
+              <span className="text-[10px] font-mono text-[#65696B]">[ 01 ]</span>
+              <h3 className="font-display text-[15px] font-semibold text-[#F2F3F1]">
                 Recover uncertainty
               </h3>
-              <p className="text-[13px] sm:text-[14px] text-[#A0A3A8] leading-relaxed">
+              <p className="text-[13px] text-[#9B9FA1] leading-relaxed">
                 Inspect authoritative remote state instead of assuming a timed-out write failed.
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <h3 className="font-display text-[15px] sm:text-[16px] font-semibold text-[#F4F4F2]">
-                Roll back partial work
+            <div className="py-3 px-4 space-y-1.5">
+              <span className="text-[10px] font-mono text-[#65696B]">[ 02 ]</span>
+              <h3 className="font-display text-[15px] font-semibold text-[#F2F3F1]">
+                Reverse compensation
               </h3>
-              <p className="text-[13px] sm:text-[14px] text-[#A0A3A8] leading-relaxed">
+              <p className="text-[13px] text-[#9B9FA1] leading-relaxed">
                 Calculate compensation in reverse dependency order and verify every resource is gone.
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <h3 className="font-display text-[15px] sm:text-[16px] font-semibold text-[#F4F4F2]">
-                Keep humans in control
+            <div className="py-3 px-4 space-y-1.5">
+              <span className="text-[10px] font-mono text-[#65696B]">[ 03 ]</span>
+              <h3 className="font-display text-[15px] font-semibold text-[#F2F3F1]">
+                Human approval
               </h3>
-              <p className="text-[13px] sm:text-[14px] text-[#A0A3A8] leading-relaxed">
+              <p className="text-[13px] text-[#9B9FA1] leading-relaxed">
                 Pause before destructive compensation and show operators exactly what MCPx plans to remove.
               </p>
             </div>
@@ -1486,65 +1415,63 @@ export default function HomePage() {
       </div>
 
       {/* ============================================================ */}
-      {/* 5. SECTION 4: REFERENCE WORKFLOW & SAGA COMPENSATION */}
+      {/* 5. SECTION 4: BLUEPRINT REFERENCE DAG & SAGA ROLLBACK */}
       {/* ============================================================ */}
       <section
         id="reference-dag-section"
-        className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 max-w-6xl mx-auto border-t border-white/[0.06]"
+        className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 max-w-[1240px] mx-auto border-t border-white/[0.06] relative z-10"
       >
         <div className="space-y-8 sm:space-y-10">
-          <div className="max-w-2xl space-y-2.5">
-            <span className="text-[12px] font-mono text-[#A6F275] tracking-wide uppercase">
-              Reference implementation
+          <div className="max-w-2xl space-y-2">
+            <span className="text-[11px] font-mono text-[#A5F36B] tracking-wider uppercase">
+              [ 03 · REFERENCE TOPOLOGY ]
             </span>
-            <h2 className="font-display text-[24px] sm:text-[32px] md:text-[36px] font-bold text-[#F4F4F2] tracking-[-0.03em] leading-[1.1]">
+            <h2 className="font-display text-[24px] sm:text-[32px] md:text-[36px] font-bold text-[#F2F3F1] tracking-[-0.03em] leading-[1.1]">
               See the runtime under pressure.
             </h2>
-            <p className="text-[14px] sm:text-[16px] text-[#A0A3A8] leading-relaxed">
+            <p className="text-[14px] sm:text-[16px] text-[#9B9FA1] leading-relaxed">
               The included deployment workflow uses four independent WebMCP applications to demonstrate cross-origin execution, uncertainty recovery, durable state, and reverse Saga compensation.
             </p>
           </div>
 
-          {/* Architectural DAG Layout Container */}
-          <div className="dag-container p-5 sm:p-7 md:p-8 rounded-2xl bg-[#0C0D0E] border border-white/[0.06] space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.04]">
-              <div className="space-y-0.5">
-                <span className="text-[11px] font-mono text-[#73777D]">Live Scenario Execution</span>
-                <div className="text-[13.5px] sm:text-[14px] font-medium text-[#F4F4F2]">
-                  4-Service Microservices Stack Topology
-                </div>
+          {/* Blueprint Topology Frame */}
+          <div className="border border-white/[0.08] bg-[#0C0E0F] p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
+              <div className="space-y-0.5 font-mono text-[11px]">
+                <span className="text-[#65696B]">SCENARIO:</span>
+                <span className="text-[#F2F3F1] ml-2">4-SERVICE DEPLOYMENT WORKFLOW</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
                 <button
                   onClick={() => setDagCompensating(!dagCompensating)}
-                  className="px-3.5 py-2 rounded-lg bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 font-medium text-[12px] transition-colors cursor-pointer min-h-[36px]"
+                  className="px-3 py-1.5 rounded bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 font-mono text-[12px] transition-colors cursor-pointer"
                 >
                   {dagCompensating ? "Reset execution" : "Trigger Saga compensation"}
                 </button>
                 <Link
                   href="/app"
-                  className="px-3.5 py-2 rounded-lg bg-[#F4F4F2] text-[#050607] hover:bg-white font-medium text-[12px] transition-colors min-h-[36px] flex items-center"
+                  className="px-3 py-1.5 rounded bg-[#F2F3F1] text-[#080A0B] hover:bg-white font-mono text-[12px] transition-colors"
                 >
                   Run live in app
                 </Link>
               </div>
             </div>
 
-            {/* Visual DAG Flow */}
-            <div className="space-y-4 sm:space-y-5 max-w-2xl mx-auto py-2">
+            {/* Direct Grid DAG Schematic (No large cards) */}
+            <div className="space-y-4 max-w-xl mx-auto py-2">
               {/* Layer 1: Database */}
               <div className="flex justify-center">
-                <div className="dag-node-db w-full max-w-sm p-3.5 rounded-xl bg-[#050607] border border-white/[0.08] flex items-center justify-between transition-colors">
-                  <div className="space-y-0.5">
-                    <div className="text-[13px] font-semibold text-[#F4F4F2]">Database</div>
-                    <div className="text-[11px] text-[#73777D] font-mono">create_database()</div>
+                <div className="dag-node-db w-full max-w-sm border border-white/[0.08] bg-[#080A0B] p-3 flex items-center justify-between font-mono text-[11.5px]">
+                  <div>
+                    <span className="text-[10px] text-[#65696B] block">[01] DATABASE</span>
+                    <span className="text-[#F2F3F1]">create_database()</span>
                   </div>
                   <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-mono border transition-colors ${
+                    className={`px-2 py-0.5 text-[10px] border ${
                       dagCompensating
                         ? "bg-rose-950/60 text-rose-300 border-rose-500/40"
-                        : "bg-emerald-950/60 text-[#A6F275] border-[#A6F275]/30"
+                        : "bg-emerald-950/60 text-[#A5F36B] border-[#A5F36B]/30"
                     }`}
                   >
                     {dagCompensating ? "COMPENSATED" : "✓ COMMITTED"}
@@ -1553,21 +1480,21 @@ export default function HomePage() {
               </div>
 
               <div className="flex justify-center">
-                <div className="dag-line-1 h-5 w-px bg-white/[0.1]"></div>
+                <div className="dag-line-1 h-5 w-[1px] bg-white/[0.1]"></div>
               </div>
 
               {/* Layer 2: Backend */}
               <div className="flex justify-center">
-                <div className="dag-node-backend w-full max-w-sm p-3.5 rounded-xl bg-[#050607] border border-white/[0.08] flex items-center justify-between transition-colors">
-                  <div className="space-y-0.5">
-                    <div className="text-[13px] font-semibold text-[#F4F4F2]">Backend Compute</div>
-                    <div className="text-[11px] text-[#73777D] font-mono">deploy_backend()</div>
+                <div className="dag-node-backend w-full max-w-sm border border-white/[0.08] bg-[#080A0B] p-3 flex items-center justify-between font-mono text-[11.5px]">
+                  <div>
+                    <span className="text-[10px] text-[#65696B] block">[02] BACKEND</span>
+                    <span className="text-[#F2F3F1]">deploy_backend()</span>
                   </div>
                   <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-mono border transition-colors ${
+                    className={`px-2 py-0.5 text-[10px] border ${
                       dagCompensating
                         ? "bg-rose-950/60 text-rose-300 border-rose-500/40"
-                        : "bg-emerald-950/60 text-[#A6F275] border-[#A6F275]/30"
+                        : "bg-emerald-950/60 text-[#A5F36B] border-[#A5F36B]/30"
                     }`}
                   >
                     {dagCompensating ? "COMPENSATED" : "✓ BOUND"}
@@ -1575,53 +1502,42 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="dag-line-split flex justify-center items-center gap-24 sm:gap-40">
-                <span className="h-5 w-px bg-white/[0.1] -rotate-25 transform origin-top"></span>
-                <span className="h-5 w-px bg-white/[0.1] rotate-25 transform origin-top"></span>
+              <div className="dag-line-split flex justify-center items-center gap-24 sm:gap-36">
+                <span className="h-5 w-[1px] bg-white/[0.1] -rotate-25 transform origin-top"></span>
+                <span className="h-5 w-[1px] bg-white/[0.1] rotate-25 transform origin-top"></span>
               </div>
 
               {/* Layer 3: Routing & Frontend */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="dag-node-routing p-3.5 rounded-xl bg-[#050607] border border-amber-500/30 flex flex-col justify-between space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="dag-node-routing border border-amber-500/40 bg-[#080A0B] p-3 space-y-1 font-mono text-[11.5px]">
                   <div className="flex items-center justify-between">
-                    <div className="text-[13px] font-semibold text-[#F4F4F2]">Routing Gateway</div>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[9.5px] font-mono border font-medium ${
-                        dagCompensating
-                          ? "bg-rose-950/60 text-rose-300 border-rose-500/40"
-                          : "bg-emerald-950/60 text-[#A6F275] border-[#A6F275]/40"
-                      }`}
-                    >
-                      {dagCompensating ? "COMPENSATED" : "RECOVERED"}
-                    </span>
+                    <span className="text-[10px] text-[#65696B]">[03] ROUTING</span>
+                    <span className="text-[9.5px] text-[#A5F36B]">RECOVERED</span>
                   </div>
-                  <div className="text-[10.5px] font-mono text-[#A0A3A8]">
-                    IN_DOUBT → <span className="text-[#A6F275]">RECOVERED</span>
-                  </div>
+                  <div className="text-[#F2F3F1]">create_route()</div>
                 </div>
 
-                <div className="dag-node-frontend p-3.5 rounded-xl bg-[#050607] border border-rose-500/30 flex flex-col justify-between space-y-2.5">
+                <div className="dag-node-frontend border border-rose-500/40 bg-[#080A0B] p-3 space-y-1 font-mono text-[11.5px]">
                   <div className="flex items-center justify-between">
-                    <div className="text-[13px] font-semibold text-[#F4F4F2]">Frontend Host</div>
-                    <span className="px-2 py-0.5 rounded text-[9.5px] font-mono bg-rose-950/60 text-rose-300 border border-rose-500/40 font-medium">
-                      FAILED
-                    </span>
+                    <span className="text-[10px] text-[#65696B]">[04] FRONTEND</span>
+                    <span className="text-[9.5px] text-rose-400">FAILED</span>
                   </div>
-                  <div className="text-[10.5px] font-mono text-[#A0A3A8]">
-                    Rejected before commit (simulated failure)
-                  </div>
+                  <div className="text-[#F2F3F1]">deploy_frontend()</div>
                 </div>
               </div>
 
-              {/* Compensation Cascade */}
-              <div className="dag-approval-banner p-3.5 rounded-xl bg-[#08090B] border border-white/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-mono text-[#A0A3A8]">
-                <div className="flex items-center gap-2">
-                  <span className="text-amber-400">⚡ Human Approval Gate:</span>
-                  <span className="truncate">Routing → Backend → Database</span>
+              {/* Blueprint Human Approval State Panel */}
+              <div className="border border-white/[0.08] bg-[#080A0B] p-4 text-[11.5px] font-mono space-y-2">
+                <div className="flex items-center justify-between text-[#9B9FA1] border-b border-white/[0.06] pb-2">
+                  <span className="text-amber-400">HUMAN INTERVENTION REQUIRED</span>
+                  <span>ROLLBACK: 03 ← 02 ← 01</span>
                 </div>
-                <span className="text-[#A6F275] font-semibold">
-                  {dagCompensating ? "ROLLBACK COMPLETED" : "AWAITING CONFIRMATION"}
-                </span>
+                <div className="flex items-center justify-between text-[#65696B] text-[10.5px]">
+                  <span>Existing: Routing · Backend · Database</span>
+                  <span className="text-[#A5F36B]">
+                    {dagCompensating ? "ROLLBACK COMPLETED" : "AWAITING CONFIRMATION"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -1629,16 +1545,16 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 6. SECTION 5: EDITORIAL LIGHT SECTION ("Why MCPx") */}
+      {/* 6. SECTION 5: LIGHT EDITORIAL BLUEPRINT ("Why MCPx") */}
       {/* ============================================================ */}
       <section
         id="why-mcpx"
-        className="bg-[#F2F2EE] text-[#111210] py-16 sm:py-24 md:py-28 px-4 sm:px-6 md:px-8 border-y border-black/[0.06] selection:bg-[#111210] selection:text-[#F2F2EE] transition-colors duration-300"
+        className="bg-[#F2F2EE] text-[#111210] py-16 sm:py-24 md:py-28 px-4 sm:px-6 md:px-8 border-y border-black/[0.08] selection:bg-[#111210] selection:text-[#F2F2EE] transition-colors duration-300 relative z-10"
       >
-        <div className="max-w-6xl mx-auto space-y-10 sm:space-y-14">
-          <div className="max-w-2xl space-y-2.5">
-            <span className="text-[12px] font-mono text-[#4D7C0F] tracking-wide uppercase">
-              Why MCPx
+        <div className="max-w-[1240px] mx-auto space-y-10 sm:space-y-14">
+          <div className="max-w-2xl space-y-2">
+            <span className="text-[11px] font-mono text-[#4D7C0F] tracking-wider uppercase">
+              [ 04 · ARCHITECTURAL THESIS ]
             </span>
             <h2 className="font-display text-[26px] sm:text-[34px] md:text-[40px] font-bold text-[#111210] tracking-[-0.03em] leading-[1.1]">
               Reliability is a runtime concern.
@@ -1648,19 +1564,19 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Editorial Spacious Multi-Row Grid */}
-          <div className="space-y-10 sm:space-y-12">
-            {/* Row 1: Dual Editorial Statements */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 md:gap-16 pb-10 sm:pb-12 border-b border-black/[0.06]">
+          {/* Asymmetrical Editorial Grid (No rounded cards) */}
+          <div className="border border-black/[0.08] divide-y divide-black/[0.08] bg-[#F2F2EE]">
+            {/* Row 1: Dual Concepts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-black/[0.08]">
               {/* Left: Unknown is not failure */}
-              <div className="space-y-3.5 sm:space-y-4">
-                <h3 className="font-display text-[19px] sm:text-[22px] font-bold text-[#111210]">
+              <div className="p-6 sm:p-8 space-y-4">
+                <h3 className="font-display text-[20px] sm:text-[22px] font-bold text-[#111210]">
                   Unknown is not failure.
                 </h3>
                 <p className="text-[14px] text-[#4B5563] leading-relaxed">
                   When transport acks drop, operations enter authoritative inspection rather than being written off as errors.
                 </p>
-                <div className="pt-1 sm:pt-2 font-mono text-[11px] text-[#4B5563] space-y-1">
+                <div className="pt-2 font-mono text-[11px] text-[#4B5563] space-y-1">
                   <div className="font-semibold text-[#111210]">EXECUTING</div>
                   <div className="text-[#9CA3AF]">↓</div>
                   <div className="text-[#D97706] font-semibold">IN_DOUBT</div>
@@ -1671,15 +1587,15 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Right: Durable by default */}
-              <div className="space-y-3.5 sm:space-y-4">
-                <h3 className="font-display text-[19px] sm:text-[22px] font-bold text-[#111210]">
-                  Durable by default.
+              {/* Right: Durable execution */}
+              <div className="p-6 sm:p-8 space-y-4">
+                <h3 className="font-display text-[20px] sm:text-[22px] font-bold text-[#111210]">
+                  Durable execution
                 </h3>
                 <p className="text-[14px] text-[#4B5563] leading-relaxed">
                   Every node transition, attempt, and inspection event is durably committed to PostgreSQL before downstream progression.
                 </p>
-                <div className="pt-1 sm:pt-2 font-mono text-[11px] text-[#4B5563] space-y-1.5">
+                <div className="pt-2 font-mono text-[11px] text-[#4B5563] space-y-1">
                   <div className="font-semibold text-[#111210]">Transaction #18</div>
                   <div className="text-[#6B7280]">Event #01 · DISPATCHED</div>
                   <div className="text-[#6B7280]">Event #02 · IN_DOUBT</div>
@@ -1689,38 +1605,17 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Row 2: Center Feature Statement (No blind retry) */}
-            <div className="max-w-2xl mx-auto text-left md:text-center space-y-4 py-2 pb-10 sm:pb-12 border-b border-black/[0.06]">
-              <h3 className="font-display text-[19px] sm:text-[22px] font-bold text-[#111210]">
-                No blind retry.
-              </h3>
-              <p className="text-[14px] text-[#4B5563] max-w-lg mx-auto leading-relaxed">
-                Deterministic operation keys allow the runtime to query remote state before ever dispatching a repeated mutation.
-              </p>
-              <div className="pt-2 flex flex-wrap items-center justify-start md:justify-center gap-2 font-mono text-[11px] text-[#4B5563]">
-                <span className="px-2.5 py-1 rounded bg-white border border-black/[0.06] text-[#111210] font-medium">Execute</span>
-                <span>→</span>
-                <span className="px-2.5 py-1 rounded bg-white border border-black/[0.06] text-[#D97706]">Response lost</span>
-                <span>→</span>
-                <span className="px-2.5 py-1 rounded bg-white border border-black/[0.06] text-[#111210] font-medium">Inspect state</span>
-                <span>→</span>
-                <span className="px-2.5 py-1 rounded bg-white border border-black/[0.06] text-[#15803D]">Resource found</span>
-                <span>→</span>
-                <span className="px-2.5 py-1 rounded bg-white border border-black/[0.06] text-[#111210] font-semibold">No duplicate write</span>
-              </div>
-            </div>
-
-            {/* Row 3: Dual Bottom Statements */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 md:gap-16 pb-10 sm:pb-12 border-b border-black/[0.06]">
+            {/* Row 2: Dual Concepts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-black/[0.08]">
               {/* Left: Human-controlled rollback */}
-              <div className="space-y-3.5">
-                <h3 className="font-display text-[18px] sm:text-[20px] font-bold text-[#111210]">
+              <div className="p-6 sm:p-8 space-y-4">
+                <h3 className="font-display text-[20px] sm:text-[22px] font-bold text-[#111210]">
                   Human-controlled rollback
                 </h3>
                 <p className="text-[14px] text-[#4B5563] leading-relaxed">
                   Destructive Saga compensations require human verification before executing resource deletions across origins.
                 </p>
-                <div className="pt-1 font-mono text-[11px] text-[#4B5563] space-y-1">
+                <div className="pt-2 font-mono text-[11px] text-[#4B5563] space-y-1">
                   <div className="text-[10px] text-[#6B7280]">3 resources exist:</div>
                   <div className="font-medium text-[#111210]">Routing · Backend · Database</div>
                   <div className="text-[#D97706] font-semibold pt-1">⏸ Approve rollback required</div>
@@ -1728,14 +1623,14 @@ export default function HomePage() {
               </div>
 
               {/* Right: Crash recovery */}
-              <div className="space-y-3.5">
-                <h3 className="font-display text-[18px] sm:text-[20px] font-bold text-[#111210]">
+              <div className="p-6 sm:p-8 space-y-4">
+                <h3 className="font-display text-[20px] sm:text-[22px] font-bold text-[#111210]">
                   Crash recovery
                 </h3>
                 <p className="text-[14px] text-[#4B5563] leading-relaxed">
                   Browser refresh or process termination resumes smoothly from durable state without lost transaction context.
                 </p>
-                <div className="pt-1 font-mono text-[11px] text-[#4B5563] space-y-1">
+                <div className="pt-2 font-mono text-[11px] text-[#4B5563] space-y-1">
                   <div>Browser refreshed</div>
                   <div className="text-[#9CA3AF]">↓</div>
                   <div>Transaction restored from store</div>
@@ -1745,14 +1640,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Row 4: Bring your own service summary */}
-            <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 font-mono text-[11.5px] sm:text-[12px] text-[#4B5563]">
+            {/* Row 3: Full Width Bring Your Own Service Block */}
+            <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-mono text-[11.5px] text-[#4B5563]">
               <div>
                 <span className="text-[#111210] font-semibold">Bring your own WebMCP service</span>
                 <span className="text-[#6B7280] ml-2">· Connect compatible services without changing the runtime.</span>
               </div>
-              <div className="text-[#15803D] font-semibold text-[11.5px]">
-                billing.example.com → 6 tools → Ready
+              <div className="text-[#15803D] font-semibold">
+                billing.example.com → 6 tools → READY
               </div>
             </div>
           </div>
@@ -1760,70 +1655,73 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 7. SECTION 6: PRODUCT GENERALITY ("Your services. Your workflows.") */}
+      {/* 7. SECTION 6: BLUEPRINT PRODUCT FLOW ("Your services. Your workflows.") */}
       {/* ============================================================ */}
       <section
         id="generic-flow-section"
-        className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 max-w-6xl mx-auto border-b border-white/[0.06]"
+        className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 max-w-[1240px] mx-auto border-b border-white/[0.06] relative z-10"
       >
         <div className="space-y-8 sm:space-y-10">
-          <div className="max-w-2xl space-y-2.5">
-            <span className="text-[12px] font-mono text-[#A6F275] tracking-wide uppercase">
-              Generic Product Platform
+          <div className="max-w-2xl space-y-2">
+            <span className="text-[11px] font-mono text-[#A5F36B] tracking-wider uppercase">
+              [ 05 · GENERIC RUNTIME PIPELINE ]
             </span>
-            <h2 className="font-display text-[24px] sm:text-[32px] md:text-[36px] font-bold text-[#F4F4F2] tracking-[-0.03em] leading-[1.1]">
+            <h2 className="font-display text-[24px] sm:text-[32px] md:text-[36px] font-bold text-[#F2F3F1] tracking-[-0.03em] leading-[1.1]">
               Your services. Your workflows.
             </h2>
-            <p className="text-[14px] sm:text-[16px] text-[#A0A3A8] leading-relaxed">
+            <p className="text-[14px] sm:text-[16px] text-[#9B9FA1] leading-relaxed">
               The included deployment is only a reference workflow. Connect compatible WebMCP services without changing the MCPx runtime.
             </p>
           </div>
 
-          {/* Clean Horizontal/Vertical Progression Flow */}
-          <div className="p-5 sm:p-7 md:p-8 rounded-2xl bg-[#0C0D0E] border border-white/[0.06] space-y-6 sm:space-y-8 relative overflow-hidden">
-            {/* Animated Progression Line */}
-            <div className="generic-flow-progress-bar absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#A6F275] to-transparent origin-left scale-x-0" />
+          {/* Connected Blueprint Transformation Schematic */}
+          <div className="border border-white/[0.08] bg-[#0C0E0F] p-6 sm:p-8 space-y-8 relative">
+            <div className="generic-flow-progress-bar absolute top-0 left-0 right-0 h-[1.5px] bg-[#A5F36B] origin-left scale-x-0" />
 
-            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 text-[11.5px] sm:text-[12px] font-mono pb-5 sm:pb-6 border-b border-white/[0.06]">
-              <span className="text-[#F4F4F2]">Connect service</span>
-              <span className="text-[#73777D]">→</span>
-              <span className="text-[#F4F4F2]">Discover tools</span>
-              <span className="text-[#73777D]">→</span>
-              <span className="text-[#F4F4F2]">Define contract</span>
-              <span className="text-[#73777D]">→</span>
-              <span className="text-[#F4F4F2]">Build workflow</span>
-              <span className="text-[#73777D]">→</span>
-              <span className="text-[#A6F275] font-semibold">Run reliably</span>
+            {/* Horizontal Flow Blueprint */}
+            <div className="flex flex-wrap items-center justify-between gap-3 text-[11.5px] font-mono pb-6 border-b border-white/[0.06] text-[#9B9FA1]">
+              <span className="text-[#F2F3F1]">CONNECT SERVICE</span>
+              <span className="text-[#65696B]">───►</span>
+              <span className="text-[#F2F3F1]">DISCOVER TOOLS</span>
+              <span className="text-[#65696B]">───►</span>
+              <span className="text-[#F2F3F1]">DEFINE CONTRACT</span>
+              <span className="text-[#65696B]">───►</span>
+              <span className="text-[#F2F3F1]">CREATE WORKFLOW</span>
+              <span className="text-[#65696B]">───►</span>
+              <span className="text-[#A5F36B] font-semibold">RUN RELIABLY</span>
             </div>
 
-            {/* Realistic External Fixture Progression */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 font-mono text-[11.5px]">
-              <div className="p-4 rounded-xl bg-[#050607] border border-white/[0.04] space-y-2">
-                <div className="text-[#F4F4F2] font-semibold text-[13px]">Widget Factory</div>
-                <div className="text-[11px] text-[#A6F275]">9 tools discovered</div>
-                <div className="text-[#73777D] text-[10.5px] space-y-0.5 pt-1">
-                  <div className="truncate">create_widget</div>
-                  <div className="truncate">get_widget</div>
-                  <div className="truncate">delete_widget</div>
+            {/* Realistic Transformation Schematic */}
+            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/[0.06] border border-white/[0.06] bg-[#080A0B] font-mono text-[11.5px]">
+              <div className="p-5 space-y-2">
+                <div className="text-[#65696B] text-[10px]">[ STATE 01 ]</div>
+                <div className="text-[#F2F3F1] font-semibold text-[13px]">Widget Factory Service</div>
+                <div className="text-[#A5F36B] text-[11px]">9 tools discovered</div>
+                <div className="text-[#65696B] text-[10.5px] space-y-0.5 pt-1">
+                  <div>create_widget</div>
+                  <div>get_widget</div>
+                  <div>delete_widget</div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-[#050607] border border-white/[0.04] space-y-2">
-                <div className="text-[#F4F4F2] font-semibold text-[13px]">Create Widget Contract</div>
-                <div className="text-[11px] text-[#A6F275]">READY</div>
-                <div className="text-[#73777D] text-[10.5px] space-y-0.5 pt-1">
-                  <div className="truncate">Execute: create_widget</div>
-                  <div className="truncate">Inspect: get_widget</div>
-                  <div className="truncate">Compensate: delete_widget</div>
+              <div className="p-5 space-y-2">
+                <div className="text-[#65696B] text-[10px]">[ STATE 02 ]</div>
+                <div className="text-[#F2F3F1] font-semibold text-[13px]">Reliability Contract</div>
+                <div className="text-[#A5F36B] text-[11px]">READY</div>
+                <div className="text-[#65696B] text-[10.5px] space-y-0.5 pt-1">
+                  <div>Execute: create_widget</div>
+                  <div>Inspect: get_widget</div>
+                  <div>Compensate: delete_widget</div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-[#050607] border border-white/[0.04] space-y-2">
-                <div className="text-[#F4F4F2] font-semibold text-[13px]">Widget Publishing Workflow</div>
-                <div className="text-[11px] text-[#A6F275]">2 operations · Ready to run</div>
-                <div className="text-[#73777D] text-[10.5px] space-y-0.5 pt-1">
-                  <div className="truncate">Create Widget → Publish Catalog</div>
-                  <div className="text-[#A0A3A8] truncate">Deterministic operationKey bound</div>
+              <div className="p-5 space-y-2">
+                <div className="text-[#65696B] text-[10px]">[ STATE 03 ]</div>
+                <div className="text-[#F2F3F1] font-semibold text-[13px]">Workflow Pipeline</div>
+                <div className="text-[#A5F36B] text-[11px]">READY TO RUN</div>
+                <div className="text-[#65696B] text-[10.5px] space-y-0.5 pt-1">
+                  <div>Create Widget → Publish Catalog</div>
+                  <div className="text-[#9B9FA1]">Deterministic operationKey bound</div>
                 </div>
               </div>
             </div>
@@ -1832,25 +1730,25 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 8. SECTION 7: FINAL CALL TO ACTION */}
+      {/* 8. SECTION 7: FINAL CALL TO ACTION (Faded grid rest) */}
       {/* ============================================================ */}
       <section
         id="final-cta-section"
-        className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 max-w-4xl mx-auto text-center space-y-6"
+        className="py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 max-w-4xl mx-auto text-center space-y-6 relative z-10"
       >
-        <h2 className="font-display text-[26px] sm:text-[34px] md:text-[38px] font-bold text-[#F4F4F2] tracking-[-0.03em] leading-[1.08] overflow-hidden">
+        <h2 className="font-display text-[26px] sm:text-[34px] md:text-[38px] font-bold text-[#F2F3F1] tracking-[-0.03em] leading-[1.08] overflow-hidden">
           <span className="block overflow-hidden py-1">
             <span className="final-cta-line block">Build workflows that know what happened.</span>
           </span>
         </h2>
-        <p className="text-[14px] sm:text-[16px] text-[#A0A3A8] max-w-[480px] mx-auto leading-relaxed">
+        <p className="text-[14px] sm:text-[16px] text-[#9B9FA1] max-w-[480px] mx-auto leading-relaxed">
           Connect WebMCP services and run consequential actions with durable execution, authoritative reconciliation, and controlled rollback.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1 w-full sm:w-auto">
           <Link
             href="/app"
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-[13px] sm:text-[14px] font-medium bg-[#F4F4F2] text-[#050607] hover:bg-white transition-all cursor-pointer shadow-sm text-center min-h-[44px] flex items-center justify-center"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-md text-[13px] sm:text-[14px] font-medium bg-[#F2F3F1] text-[#080A0B] hover:bg-white transition-all cursor-pointer shadow-sm text-center min-h-[44px] flex items-center justify-center font-mono"
           >
             Open MCPx
           </Link>
@@ -1858,7 +1756,7 @@ export default function HomePage() {
             href="https://github.com"
             target="_blank"
             rel="noreferrer"
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-[13px] sm:text-[14px] font-medium text-[#F4F4F2] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer text-center min-h-[44px] flex items-center justify-center"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-md text-[13px] sm:text-[14px] font-medium text-[#F2F3F1] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] transition-all cursor-pointer text-center min-h-[44px] flex items-center justify-center font-mono"
           >
             GitHub
           </a>
@@ -1866,47 +1764,47 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 9. STRUCTURED FOOTER */}
+      {/* 9. STRUCTURED BLUEPRINT FOOTER */}
       {/* ============================================================ */}
-      <footer className="border-t border-white/[0.06] py-10 sm:py-12 px-4 sm:px-6 md:px-8 max-w-6xl mx-auto text-xs text-[#73777D]">
+      <footer className="border-t border-white/[0.06] py-10 sm:py-12 px-4 sm:px-6 md:px-8 max-w-[1240px] mx-auto text-xs text-[#65696B] relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 sm:pb-10 border-b border-white/[0.04]">
           <div className="md:col-span-2 space-y-2">
             <div className="flex items-center gap-2">
               <div className="grid grid-cols-2 gap-0.5 w-3.5 h-3.5">
-                <span className="w-1.5 h-1.5 rounded-[0.5px] bg-[#A6F275]"></span>
-                <span className="w-1.5 h-1.5 rounded-[0.5px] bg-white/80"></span>
-                <span className="w-1.5 h-1.5 rounded-[0.5px] bg-white/40"></span>
-                <span className="w-1.5 h-1.5 rounded-[0.5px] bg-white/80"></span>
+                <span className="w-1.5 h-1.5 bg-[#A5F36B]"></span>
+                <span className="w-1.5 h-1.5 bg-white/80"></span>
+                <span className="w-1.5 h-1.5 bg-white/40"></span>
+                <span className="w-1.5 h-1.5 bg-white/80"></span>
               </div>
-              <span className="text-[#F4F4F2] font-semibold text-[15px]">MCPx</span>
+              <span className="text-[#F2F3F1] font-semibold text-[15px]">MCPx</span>
             </div>
-            <p className="text-[13px] text-[#A0A3A8] max-w-sm leading-relaxed">
+            <p className="text-[13px] text-[#9B9FA1] max-w-sm leading-relaxed">
               Reliability runtime for WebMCP workflows. Durable transaction execution, authoritative reconciliation, and human-gated rollback.
             </p>
           </div>
 
           <div className="space-y-2">
-            <div className="text-[12px] font-semibold text-[#F4F4F2] uppercase tracking-wider">Navigation</div>
-            <div className="space-y-1.5 text-[13px] text-[#A0A3A8] flex flex-col">
-              <a href="#product" className="hover:text-[#F4F4F2] transition-colors py-1">Product</a>
-              <a href="#how-it-works" className="hover:text-[#F4F4F2] transition-colors py-1">How it works</a>
-              <Link href="/app" className="hover:text-[#F4F4F2] transition-colors py-1">Open app</Link>
+            <div className="text-[11px] font-mono text-[#F2F3F1] uppercase tracking-wider">[ NAVIGATION ]</div>
+            <div className="space-y-1.5 text-[13px] text-[#9B9FA1] flex flex-col font-mono">
+              <a href="#product" className="hover:text-[#F2F3F1] transition-colors py-1">Product</a>
+              <a href="#how-it-works" className="hover:text-[#F2F3F1] transition-colors py-1">How it works</a>
+              <Link href="/app" className="hover:text-[#F2F3F1] transition-colors py-1">Open app</Link>
             </div>
           </div>
 
           <div className="space-y-2">
-            <div className="text-[12px] font-semibold text-[#F4F4F2] uppercase tracking-wider">Resources</div>
-            <div className="space-y-1.5 text-[13px] text-[#A0A3A8] flex flex-col">
-              <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-[#F4F4F2] transition-colors py-1">GitHub Repository</a>
-              <Link href="/app/services/new" className="hover:text-[#F4F4F2] transition-colors py-1">Connect Service</Link>
-              <Link href="/app/workflows/new" className="hover:text-[#F4F4F2] transition-colors py-1">Workflow Builder</Link>
+            <div className="text-[11px] font-mono text-[#F2F3F1] uppercase tracking-wider">[ RESOURCES ]</div>
+            <div className="space-y-1.5 text-[13px] text-[#9B9FA1] flex flex-col font-mono">
+              <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-[#F2F3F1] transition-colors py-1">GitHub Repository</a>
+              <Link href="/app/services/new" className="hover:text-[#F2F3F1] transition-colors py-1">Connect Service</Link>
+              <Link href="/app/workflows/new" className="hover:text-[#F2F3F1] transition-colors py-1">Workflow Builder</Link>
             </div>
           </div>
         </div>
 
-        <div className="pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[12px] text-[#73777D]">
-          <span>Apache-2.0 Open Source License</span>
-          <span>WebMCP Reliability Runtime Architecture</span>
+        <div className="pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] font-mono text-[#65696B]">
+          <span>APACHE-2.0 OPEN SOURCE</span>
+          <span>WEBMCP RELIABILITY RUNTIME ARCHITECTURE</span>
         </div>
       </footer>
     </div>

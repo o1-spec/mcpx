@@ -108,32 +108,29 @@ export default function NewServicePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 sm:p-10 selection:bg-indigo-500 selection:text-white">
-      <div className="max-w-3xl mx-auto space-y-8">
-        <AppNav />
+    <div className="space-y-6 max-w-3xl">
+      {/* Dynamic Off-Screen WebMCP Host Frame */}
+      {normalizedOrigin && (
+        <WebMCPServiceFrame origin={normalizedOrigin} onLoad={handleIframeLoaded} />
+      )}
 
-        {/* Dynamic Off-Screen WebMCP Host Frame */}
-        {normalizedOrigin && (
-          <WebMCPServiceFrame origin={normalizedOrigin} onLoad={handleIframeLoaded} />
-        )}
-
-        {/* Header */}
-        <div className="space-y-1 border-b border-slate-800/80 pb-5">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/app/services"
-              className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              ← Services
-            </Link>
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-white font-sans">
-            Connect WebMCP service
-          </h1>
-          <p className="text-xs text-slate-400">
-            Connect an external web application to discover its exposed WebMCP capabilities.
-          </p>
+      {/* Header */}
+      <div className="space-y-1 border-b border-white/[0.06] pb-4">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/app/services"
+            className="text-xs font-mono text-[#969B9E] hover:text-[#F2F3F1] transition-colors"
+          >
+            ← Services
+          </Link>
         </div>
+        <h1 className="text-[17px] sm:text-[19px] font-bold tracking-tight text-[#F2F3F1] font-display">
+          Connect WebMCP Service
+        </h1>
+        <p className="text-[12.5px] text-[#969B9E]">
+          Connect an external web application to discover its exposed WebMCP capabilities.
+        </p>
+      </div>
 
         {/* Connection Form */}
         <form onSubmit={handleConnect} className="p-6 rounded-2xl border border-slate-800/80 bg-slate-900/30 space-y-5">
@@ -342,6 +339,5 @@ export default function NewServicePage() {
           )}
         </div>
       </div>
-    </div>
   );
 }
