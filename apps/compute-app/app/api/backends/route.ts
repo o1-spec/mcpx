@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { backendStore, BackendRecord } from "@/lib/store";
+import {
+  createComputeResource,
+  getComputeResource,
+  deleteComputeResource,
+  getAllActiveComputeResources,
+} from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -8,17 +13,19 @@ export async function GET(request: NextRequest) {
   console.log("[compute-app] GET operationKey =", operationKey);
 
   if (!operationKey) {
+    const backends = await getAllActiveComputeResources();
     return NextResponse.json({
       exists: false,
-      backends: Array.from(backendStore.values()),
+      backends,
     });
   }
 
-  const existing = backendStore.get(operationKey);
-  if (existing) {
+  const result = await getComputeResource(operationKey);
+  if (result.exists && result.backend) {
     return NextResponse.json({
       exists: true,
-      backend: existing,
+      backend: result.backend,
+      healthUrl: result.backend.healthUrl,
     });
   }
 
@@ -41,40 +48,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existing = backendStore.get(operationKey);
-    if (existing) {
-      return NextResponse.json({
-        status: "already_exists",
-        backend: existing,
-        healthUrl: existing.healthUrl,
-      });
-    }
-
     const computeOrigin = process.env.NEXT_PUBLIC_COMPUTE_ORIGIN || "http://localhost:3003";
-    const id = crypto.randomUUID();
-    const newBackend: BackendRecord = {
-      id,
+    const result = await createComputeResource(
       projectName,
-      databaseResourceId: databaseResourceId || "none",
+      databaseResourceId,
       operationKey,
-      healthUrl: `${computeOrigin}/runtime/${id}/health`,
-      createdAt: new Date().toISOString(),
-    };
-
-    backendStore.set(operationKey, newBackend);
+      computeOrigin
+    );
 
     return NextResponse.json(
       {
-        status: "created",
-        backend: newBackend,
-        healthUrl: newBackend.healthUrl,
+        status: result.status,
+        backend: result.backend,
+        healthUrl: result.healthUrl,
       },
-      { status: 201 }
+      { status: result.status === "created" ? 201 : 200 }
     );
-  } catch {
+  } catch (err: unknown) {
+    console.error("[compute-app] POST error:", err);
     return NextResponse.json(
-      { error: "Invalid JSON request body" },
-      { status: 400 }
+      { error: err instanceof Error ? err.message : "Internal Server Error" },
+      { status: 500 }
     );
   }
 }
@@ -101,31 +95,14 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  console.log("[compute-app] store before delete", [...backendStore.values()]);
-
-  if (backendStore.has(operationKey)) {
-    const existing = backendStore.get(operationKey);
-    const resourceId = existing?.id;
-    backendStore.delete(operationKey);
-
-    // Local authoritative post-deletion assertion
-    if (backendStore.has(operationKey)) {
-      throw new Error("BACKEND_COMPENSATION_PRECONDITION_FAILED: resource still in store after delete");
-    }
-
-    console.log("[compute-app] store after delete", [...backendStore.values()]);
-
-    return NextResponse.json({
-      status: "deleted",
-      operationKey,
-      resourceId,
-    });
+  try {
+    const result = await deleteComputeResource(operationKey);
+    return NextResponse.json(result);
+  } catch (err: unknown) {
+    console.error("[compute-app] DELETE error:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal Server Error" },
+      { status: 500 }
+    );
   }
-
-  console.log("[compute-app] store after delete (already absent)", [...backendStore.values()]);
-
-  return NextResponse.json({
-    status: "already_absent",
-    operationKey,
-  });
 }

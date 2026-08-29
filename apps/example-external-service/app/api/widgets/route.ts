@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  createRoutingResource,
-  getRoutingResource,
-  deleteRoutingResource,
-  getAllActiveRoutingResources,
+  createWidget,
+  getWidget,
+  deleteWidget,
+  getExampleStoreCounts,
 } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
@@ -11,59 +11,57 @@ export async function GET(request: NextRequest) {
   const operationKey = searchParams.get("operationKey");
 
   if (!operationKey) {
-    const routes = await getAllActiveRoutingResources();
+    const counts = await getExampleStoreCounts();
     return NextResponse.json({
       exists: false,
-      routes,
+      counts,
     });
   }
 
-  const result = await getRoutingResource(operationKey);
-  if (result.exists && result.route) {
+  const result = await getWidget(operationKey);
+  if (result.exists && result.widget) {
     return NextResponse.json({
       exists: true,
-      route: result.route,
-      routeUrl: result.routeUrl,
+      widget: result.widget,
+      resourceId: result.widget.id,
+      name: result.widget.name,
+      operationKey: result.widget.operationKey,
+      createdAt: result.widget.createdAt,
     });
   }
 
   return NextResponse.json({
     exists: false,
+    operationKey,
   });
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { projectName, targetUrl, operationKey } = body;
+    const { name, operationKey } = body;
 
-    if (!projectName || !targetUrl || !operationKey) {
+    if (!operationKey) {
       return NextResponse.json(
-        {
-          error: "Missing required fields: projectName, targetUrl, operationKey",
-        },
+        { error: "Missing required field 'operationKey'" },
         { status: 400 }
       );
     }
 
-    const routingOrigin = process.env.NEXT_PUBLIC_ROUTING_ORIGIN || "http://localhost:3001";
-    const result = await createRoutingResource(
-      projectName,
-      targetUrl,
-      operationKey,
-      routingOrigin
-    );
+    const result = await createWidget(name || "Widget", operationKey);
 
     return NextResponse.json(
       {
+        resourceId: result.widget.id,
+        name: result.widget.name,
+        operationKey: result.widget.operationKey,
+        created: true,
         status: result.status,
-        route: result.route,
-        routeUrl: result.routeUrl,
       },
       { status: result.status === "created" ? 201 : 200 }
     );
   } catch (err: unknown) {
-    console.error("[routing-app] POST error:", err);
+    console.error("[example-external-service] POST /api/widgets error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal Server Error" },
       { status: 500 }
@@ -86,16 +84,19 @@ export async function DELETE(request: NextRequest) {
 
   if (!operationKey) {
     return NextResponse.json(
-      { error: "Missing required parameter: operationKey" },
+      { error: "Missing required parameter 'operationKey'" },
       { status: 400 }
     );
   }
 
   try {
-    const result = await deleteRoutingResource(operationKey);
-    return NextResponse.json(result);
+    const result = await deleteWidget(operationKey);
+    return NextResponse.json({
+      deleted: result.deleted,
+      operationKey,
+    });
   } catch (err: unknown) {
-    console.error("[routing-app] DELETE error:", err);
+    console.error("[example-external-service] DELETE /api/widgets error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal Server Error" },
       { status: 500 }

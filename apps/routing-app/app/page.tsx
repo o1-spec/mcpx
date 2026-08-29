@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import WebMCPRegistrar from "@/components/WebMCPRegistrar";
-import type { RouteRecord } from "@/lib/store";
+import type { RouteRecord } from "@/lib/db";
 
 export default function RoutingAppPage() {
   const [routes, setRoutes] = useState<RouteRecord[]>([]);
@@ -77,7 +77,7 @@ export default function RoutingAppPage() {
               Exposed WebMCP tools ({status.tools.length})
             </span>
             <span className="text-xs text-slate-400">
-              Host: <code className="text-slate-300 font-mono">http://localhost:3000</code>
+              Coordinator: <code className="text-slate-300 font-mono">{process.env.NEXT_PUBLIC_MCPX_ORIGIN || "http://localhost:3000"}</code>
             </span>
           </div>
 

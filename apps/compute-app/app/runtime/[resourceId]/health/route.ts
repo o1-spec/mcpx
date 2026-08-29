@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { backendStore } from "@/lib/store";
+import { getComputeResourceById } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
@@ -9,9 +9,9 @@ export async function GET(
 
   console.log("[compute-app] GET /runtime/[resourceId]/health resourceId =", resourceId);
 
-  const backend = Array.from(backendStore.values()).find((b) => b.id === resourceId);
+  const res = await getComputeResourceById(resourceId);
 
-  if (!backend) {
+  if (!res.exists || !res.backend) {
     return NextResponse.json(
       {
         status: "not_found",
@@ -25,6 +25,8 @@ export async function GET(
       }
     );
   }
+
+  const backend = res.backend;
 
   return NextResponse.json(
     {

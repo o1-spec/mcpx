@@ -1,14 +1,9 @@
 import type { ToolDefinition } from "@/types/webmcp";
 
-export const widgetStore = new Map<
-  string,
-  { id: string; name: string; operationKey: string; createdAt: string }
->();
-
-export const publicationStore = new Map<
-  string,
-  { id: string; widgetId: string; operationKey: string; createdAt: string }
->();
+const getBaseUrl = () =>
+  typeof window !== "undefined"
+    ? ""
+    : process.env.NEXT_PUBLIC_EXAMPLE_SERVICE_ORIGIN || "http://localhost:3010";
 
 export const pingServiceTool: ToolDefinition = {
   name: "ping_service",
@@ -47,21 +42,38 @@ export const getStatusTool: ToolDefinition = {
     properties: {},
   },
   execute: async () => {
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            service: "example-external-service",
-            version: "1.0.0",
-            health: "healthy",
-            uptimeSeconds: Math.floor(process.uptime ? process.uptime() : 120),
-            storedWidgets: widgetStore.size,
-            storedPublications: publicationStore.size,
-          }),
-        },
-      ],
-    };
+    try {
+      const res = await fetch(`${getBaseUrl()}/api/health`);
+      const data = await res.json();
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              service: "example-external-service",
+              version: "1.0.0",
+              health: data.status || "healthy",
+              uptimeSeconds: Math.floor(process.uptime ? process.uptime() : 120),
+              storedWidgets: data.activeWidgets || 0,
+              storedPublications: data.activePublications || 0,
+            }),
+          },
+        ],
+      };
+    } catch {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              service: "example-external-service",
+              version: "1.0.0",
+              health: "healthy",
+            }),
+          },
+        ],
+      };
+    }
   },
 };
 
@@ -102,17 +114,21 @@ export const createWidgetTool: ToolDefinition = {
       throw new Error("Operation rejected by validation before commit");
     }
 
-    // Idempotent check
-    let record = widgetStore.get(params.operationKey);
-    if (!record) {
-      record = {
-        id: `wdg_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`,
-        name: params.name || "Widget",
+    const res = await fetch(`${getBaseUrl()}/api/widgets`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: params.name,
         operationKey: params.operationKey,
-        createdAt: new Date().toISOString(),
-      };
-      widgetStore.set(params.operationKey, record);
+      }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      throw new Error(errData.error || `Failed to create widget: HTTP ${res.status}`);
     }
+
+    const data = await res.json();
 
     if (params.failureMode === "drop-ack-after-commit") {
       throw new Error("Transport ACK lost after write committed (simulated network failure)");
@@ -122,12 +138,7 @@ export const createWidgetTool: ToolDefinition = {
       content: [
         {
           type: "text",
-          text: JSON.stringify({
-            resourceId: record.id,
-            name: record.name,
-            operationKey: record.operationKey,
-            created: true,
-          }),
+          text: JSON.stringify(data),
         },
       ],
     };
@@ -148,40 +159,35 @@ export const getWidgetTool: ToolDefinition = {
     required: ["operationKey"],
   },
   execute: async (args: unknown) => {
-    const params = (args || {}) as { operationKey?: string };
-    if (!params.operationKey) {
-      throw new Error("Missing required field 'operationKey'");
-    }
+    try {
+      const params = (args || {}) as { operationKey?: string };
+      if (!params.operationKey) {
+        throw new Error("Missing required field 'operationKey'");
+      }
 
-    const record = widgetStore.get(params.operationKey);
-    if (!record) {
+      const res = await fetch(`${getBaseUrl()}/api/widgets?operationKey=${encodeURIComponent(params.operationKey)}`);
+      const data = await res.json();
+
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify({
-              exists: false,
-              operationKey: params.operationKey,
-            }),
+            text: JSON.stringify(data),
+          },
+        ],
+      };
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ error: errorMsg }),
           },
         ],
       };
     }
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            exists: true,
-            operationKey: record.operationKey,
-            resourceId: record.id,
-            name: record.name,
-            createdAt: record.createdAt,
-          }),
-        },
-      ],
-    };
   },
 };
 
@@ -199,24 +205,37 @@ export const deleteWidgetTool: ToolDefinition = {
     required: ["operationKey"],
   },
   execute: async (args: unknown) => {
-    const params = (args || {}) as { operationKey?: string };
-    if (!params.operationKey) {
-      throw new Error("Missing required field 'operationKey'");
+    try {
+      const params = (args || {}) as { operationKey?: string };
+      if (!params.operationKey) {
+        throw new Error("Missing required field 'operationKey'");
+      }
+
+      const res = await fetch(`${getBaseUrl()}/api/widgets?operationKey=${encodeURIComponent(params.operationKey)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(data),
+          },
+        ],
+      };
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ error: errorMsg }),
+          },
+        ],
+      };
     }
-
-    widgetStore.delete(params.operationKey);
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            deleted: true,
-            operationKey: params.operationKey,
-          }),
-        },
-      ],
-    };
   },
 };
 
@@ -257,16 +276,21 @@ export const publishWidgetTool: ToolDefinition = {
       throw new Error("Publishing rejected by upstream service error");
     }
 
-    let record = publicationStore.get(params.operationKey);
-    if (!record) {
-      record = {
-        id: `pub_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`,
-        widgetId: params.widgetId || "unknown",
+    const res = await fetch(`${getBaseUrl()}/api/publications`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        widgetId: params.widgetId,
         operationKey: params.operationKey,
-        createdAt: new Date().toISOString(),
-      };
-      publicationStore.set(params.operationKey, record);
+      }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      throw new Error(errData.error || `Failed to publish widget: HTTP ${res.status}`);
     }
+
+    const data = await res.json();
 
     if (params.failureMode === "drop-ack-after-commit") {
       throw new Error("Transport ACK lost after publication committed");
@@ -276,12 +300,7 @@ export const publishWidgetTool: ToolDefinition = {
       content: [
         {
           type: "text",
-          text: JSON.stringify({
-            resourceId: record.id,
-            published: true,
-            widgetId: record.widgetId,
-            operationKey: record.operationKey,
-          }),
+          text: JSON.stringify(data),
         },
       ],
     };
@@ -302,40 +321,35 @@ export const getPublicationTool: ToolDefinition = {
     required: ["operationKey"],
   },
   execute: async (args: unknown) => {
-    const params = (args || {}) as { operationKey?: string };
-    if (!params.operationKey) {
-      throw new Error("Missing required field 'operationKey'");
-    }
+    try {
+      const params = (args || {}) as { operationKey?: string };
+      if (!params.operationKey) {
+        throw new Error("Missing required field 'operationKey'");
+      }
 
-    const record = publicationStore.get(params.operationKey);
-    if (!record) {
+      const res = await fetch(`${getBaseUrl()}/api/publications?operationKey=${encodeURIComponent(params.operationKey)}`);
+      const data = await res.json();
+
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify({
-              exists: false,
-              operationKey: params.operationKey,
-            }),
+            text: JSON.stringify(data),
+          },
+        ],
+      };
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ error: errorMsg }),
           },
         ],
       };
     }
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            exists: true,
-            operationKey: record.operationKey,
-            resourceId: record.id,
-            widgetId: record.widgetId,
-            createdAt: record.createdAt,
-          }),
-        },
-      ],
-    };
   },
 };
 
@@ -353,24 +367,37 @@ export const unpublishWidgetTool: ToolDefinition = {
     required: ["operationKey"],
   },
   execute: async (args: unknown) => {
-    const params = (args || {}) as { operationKey?: string };
-    if (!params.operationKey) {
-      throw new Error("Missing required field 'operationKey'");
+    try {
+      const params = (args || {}) as { operationKey?: string };
+      if (!params.operationKey) {
+        throw new Error("Missing required field 'operationKey'");
+      }
+
+      const res = await fetch(`${getBaseUrl()}/api/publications?operationKey=${encodeURIComponent(params.operationKey)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(data),
+          },
+        ],
+      };
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ error: errorMsg }),
+          },
+        ],
+      };
     }
-
-    publicationStore.delete(params.operationKey);
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            unpublished: true,
-            operationKey: params.operationKey,
-          }),
-        },
-      ],
-    };
   },
 };
 

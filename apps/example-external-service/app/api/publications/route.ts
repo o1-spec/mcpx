@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  createRoutingResource,
-  getRoutingResource,
-  deleteRoutingResource,
-  getAllActiveRoutingResources,
+  publishWidget,
+  getPublication,
+  unpublishWidget,
 } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
@@ -11,59 +10,55 @@ export async function GET(request: NextRequest) {
   const operationKey = searchParams.get("operationKey");
 
   if (!operationKey) {
-    const routes = await getAllActiveRoutingResources();
     return NextResponse.json({
       exists: false,
-      routes,
     });
   }
 
-  const result = await getRoutingResource(operationKey);
-  if (result.exists && result.route) {
+  const result = await getPublication(operationKey);
+  if (result.exists && result.publication) {
     return NextResponse.json({
       exists: true,
-      route: result.route,
-      routeUrl: result.routeUrl,
+      publication: result.publication,
+      resourceId: result.publication.id,
+      widgetId: result.publication.widgetId,
+      operationKey: result.publication.operationKey,
+      createdAt: result.publication.createdAt,
     });
   }
 
   return NextResponse.json({
     exists: false,
+    operationKey,
   });
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { projectName, targetUrl, operationKey } = body;
+    const { widgetId, operationKey } = body;
 
-    if (!projectName || !targetUrl || !operationKey) {
+    if (!operationKey) {
       return NextResponse.json(
-        {
-          error: "Missing required fields: projectName, targetUrl, operationKey",
-        },
+        { error: "Missing required field 'operationKey'" },
         { status: 400 }
       );
     }
 
-    const routingOrigin = process.env.NEXT_PUBLIC_ROUTING_ORIGIN || "http://localhost:3001";
-    const result = await createRoutingResource(
-      projectName,
-      targetUrl,
-      operationKey,
-      routingOrigin
-    );
+    const result = await publishWidget(widgetId || "unknown", operationKey);
 
     return NextResponse.json(
       {
+        resourceId: result.publication.id,
+        published: true,
+        widgetId: result.publication.widgetId,
+        operationKey: result.publication.operationKey,
         status: result.status,
-        route: result.route,
-        routeUrl: result.routeUrl,
       },
       { status: result.status === "created" ? 201 : 200 }
     );
   } catch (err: unknown) {
-    console.error("[routing-app] POST error:", err);
+    console.error("[example-external-service] POST /api/publications error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal Server Error" },
       { status: 500 }
@@ -86,16 +81,19 @@ export async function DELETE(request: NextRequest) {
 
   if (!operationKey) {
     return NextResponse.json(
-      { error: "Missing required parameter: operationKey" },
+      { error: "Missing required parameter 'operationKey'" },
       { status: 400 }
     );
   }
 
   try {
-    const result = await deleteRoutingResource(operationKey);
-    return NextResponse.json(result);
+    const result = await unpublishWidget(operationKey);
+    return NextResponse.json({
+      unpublished: result.deleted,
+      operationKey,
+    });
   } catch (err: unknown) {
-    console.error("[routing-app] DELETE error:", err);
+    console.error("[example-external-service] DELETE /api/publications error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal Server Error" },
       { status: 500 }

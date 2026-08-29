@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { routeStore } from "@/lib/store";
+import { getRoutingResourceByProjectName } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
@@ -9,12 +9,9 @@ export async function GET(
 
   console.log("[routing-app] GET /r/[projectName] projectName =", projectName);
 
-  // Look up the active route in routeStore by projectName
-  const route = Array.from(routeStore.values()).find(
-    (r) => r.projectName.toLowerCase() === projectName.toLowerCase()
-  );
+  const res = await getRoutingResourceByProjectName(projectName);
 
-  if (!route) {
+  if (!res.exists || !res.route) {
     return NextResponse.json(
       {
         status: "not_found",
@@ -28,6 +25,8 @@ export async function GET(
       }
     );
   }
+
+  const route = res.route;
 
   // Gateway Proxy: fetch target URL (e.g. compute backend runtime health)
   try {

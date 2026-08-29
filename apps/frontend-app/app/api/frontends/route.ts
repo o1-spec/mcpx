@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { frontendStore, FrontendRecord } from "@/lib/store";
+import {
+  createFrontendResource,
+  getFrontendResource,
+  deleteFrontendResource,
+  getAllActiveFrontendResources,
+} from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const operationKey = searchParams.get("operationKey");
 
   if (!operationKey) {
+    const frontends = await getAllActiveFrontendResources();
     return NextResponse.json({
       exists: false,
-      frontends: Array.from(frontendStore.values()),
+      frontends,
     });
   }
 
-  const existing = frontendStore.get(operationKey);
-  if (existing) {
+  const result = await getFrontendResource(operationKey);
+  if (result.exists && result.frontend) {
     return NextResponse.json({
       exists: true,
-      frontend: existing,
+      frontend: result.frontend,
     });
   }
 
@@ -37,37 +43,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existing = frontendStore.get(operationKey);
-    if (existing) {
-      return NextResponse.json({
-        status: "already_exists",
-        frontend: existing,
-      });
-    }
-
     const frontendOrigin = process.env.NEXT_PUBLIC_FRONTEND_ORIGIN || "http://localhost:3004";
-    const newFrontend: FrontendRecord = {
-      id: crypto.randomUUID(),
+    const result = await createFrontendResource(
       projectName,
-      backendResourceId: backendResourceId || "none",
+      backendResourceId,
       operationKey,
-      previewUrl: `${frontendOrigin}/preview/${projectName}`,
-      createdAt: new Date().toISOString(),
-    };
-
-    frontendStore.set(operationKey, newFrontend);
+      frontendOrigin
+    );
 
     return NextResponse.json(
       {
-        status: "created",
-        frontend: newFrontend,
+        status: result.status,
+        frontend: result.frontend,
       },
-      { status: 201 }
+      { status: result.status === "created" ? 201 : 200 }
     );
-  } catch {
+  } catch (err: unknown) {
+    console.error("[frontend-app] POST error:", err);
     return NextResponse.json(
-      { error: "Invalid JSON request body" },
-      { status: 400 }
+      { error: err instanceof Error ? err.message : "Internal Server Error" },
+      { status: 500 }
     );
   }
 }
@@ -92,14 +87,14 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  if (frontendStore.has(operationKey)) {
-    frontendStore.delete(operationKey);
-    return NextResponse.json({
-      status: "deleted",
-    });
+  try {
+    const result = await deleteFrontendResource(operationKey);
+    return NextResponse.json(result);
+  } catch (err: unknown) {
+    console.error("[frontend-app] DELETE error:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal Server Error" },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({
-    status: "already_absent",
-  });
 }
