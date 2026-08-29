@@ -5,8 +5,6 @@ import type { RegisteredTool } from "@/types/webmcp";
 import type { TransactionEvent } from "@/types/reliability";
 import {
   Transaction,
-  TransactionNode,
-  TransactionState,
   createTransactionNode,
   getRunnableNodes,
   getCompensableNodes,
@@ -344,16 +342,28 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const txFromUrl = urlParams.get("tx");
-    const txFromStorage = localStorage.getItem("mcpx_active_tx_id");
-    const activeId = txFromUrl || txFromStorage;
+    let isMounted = true;
+    const init = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const txFromUrl = urlParams.get("tx");
+      const txFromStorage = localStorage.getItem("mcpx_active_tx_id");
+      const activeId = txFromUrl || txFromStorage;
 
-    if (activeId) {
-      rehydrateTransaction(activeId);
-    } else {
-      setIsHydrating(false);
-    }
+      if (activeId) {
+        try {
+          await rehydrateTransaction(activeId);
+        } finally {
+          if (isMounted) setIsHydrating(false);
+        }
+      } else {
+        if (isMounted) setIsHydrating(false);
+      }
+    };
+
+    init();
+    return () => {
+      isMounted = false;
+    };
   }, [rehydrateTransaction]);
 
   const runDeployment = async (failureScenario = false) => {

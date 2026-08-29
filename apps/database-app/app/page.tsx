@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import WebMCPRegistrar from "@/components/WebMCPRegistrar";
 import type { DatabaseRecord } from "@/lib/store";
 
@@ -18,7 +18,7 @@ export default function DatabaseAppPage() {
     tools: ["create_database", "get_database", "delete_database"],
   });
 
-  const fetchDatabases = useCallback(async () => {
+  const fetchDatabases = async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/databases");
@@ -31,13 +31,36 @@ export default function DatabaseAppPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchDatabases();
-    const interval = setInterval(fetchDatabases, 2000);
-    return () => clearInterval(interval);
-  }, [fetchDatabases]);
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/databases");
+        const data = await res.json();
+        if (isMounted && data.databases && Array.isArray(data.databases)) {
+          setDatabases(data.databases);
+        }
+      } catch (err) {
+        console.error("Failed to poll databases:", err);
+      }
+    }, 2000);
+
+    fetch("/api/databases")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.databases && Array.isArray(data.databases)) {
+          setDatabases(data.databases);
+        }
+      })
+      .catch((err) => console.error("Initial fetchDatabases error:", err));
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans p-6 sm:p-10 selection:bg-accent-lime selection:text-background">

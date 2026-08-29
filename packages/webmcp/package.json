@@ -1,0 +1,12 @@
+{
+  "name": "@mcpx/webmcp",
+  "version": "0.1.0",
+  "description": "Shared WebMCP types, protocol definitions, and reliability status helpers",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "private": true,
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}

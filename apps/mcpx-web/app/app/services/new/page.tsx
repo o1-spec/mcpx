@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import WebMCPServiceFrame from "@/components/services/WebMCPServiceFrame";
 import { useConnectedServices, type DiscoveredToolSchema } from "@/hooks/useConnectedServices";
 import PageHeader from "@/components/ui/PageHeader";
 import Panel from "@/components/ui/Panel";
-import StatusPill from "@/components/ui/StatusPill";
 
 type ConnectionPhase =
   | "idle"

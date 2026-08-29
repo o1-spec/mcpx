@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listWorkflows, createWorkflow, getContract, getConnectedService, initCoordinatorDb } from "@/lib/db";
+import { listWorkflows, createWorkflow, getContract, initCoordinatorDb } from "@/lib/db";
 
 // Graph cycle detection helper
 function hasCycle(nodes: Array<{ stepKey: string; dependencies: string[] }>): boolean {

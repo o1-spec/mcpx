@@ -31,8 +31,23 @@ export function useConnectedServices() {
   }, []);
 
   useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
+    let isMounted = true;
+    fetch("/api/services")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted) setServices(data.services || []);
+      })
+      .catch((err) => {
+        if (isMounted) setError(err instanceof Error ? err.message : "Failed to load services");
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /**
    * Browser-native discovery for a specific origin via document.modelContext

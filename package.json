@@ -1,19 +1,24 @@
 {
   "name": "mcpx",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.1.0",
+  "description": "Reliable transaction runtime for WebMCP workflows with uncertainty recovery and verified compensation",
+  "private": true,
+  "license": "Apache-2.0",
+  "author": "MCPx Contributors",
   "scripts": {
     "dev": "pnpm -r --parallel dev",
-    "dev:all": "pnpm -r --parallel dev",
     "dev:mcpx": "pnpm --filter mcpx-web dev",
     "build": "pnpm -r build",
+    "lint": "pnpm -r --parallel lint",
+    "typecheck": "pnpm -r --parallel exec tsc --noEmit",
+    "test": "tsx tests/integration/reliability.test.ts",
+    "test:integration": "tsx tests/integration/reliability.test.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "bootstrap": "bash scripts/dev-bootstrap.sh"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.23.0"
+  "packageManager": "pnpm@10.23.0",
+  "devDependencies": {
+    "tsx": "^4.23.12"
+  }
 }

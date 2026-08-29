@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import WebMCPRegistrar from "@/components/WebMCPRegistrar";
 import type { FrontendRecord } from "@/lib/db";
 
@@ -18,7 +18,7 @@ export default function FrontendAppPage() {
     tools: ["deploy_frontend", "get_frontend", "delete_frontend"],
   });
 
-  const fetchFrontends = useCallback(async () => {
+  const fetchFrontends = async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/frontends");
@@ -31,13 +31,36 @@ export default function FrontendAppPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchFrontends();
-    const interval = setInterval(fetchFrontends, 2000);
-    return () => clearInterval(interval);
-  }, [fetchFrontends]);
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/frontends");
+        const data = await res.json();
+        if (isMounted && data.frontends && Array.isArray(data.frontends)) {
+          setFrontends(data.frontends);
+        }
+      } catch (err) {
+        console.error("Failed to poll frontends:", err);
+      }
+    }, 2000);
+
+    fetch("/api/frontends")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.frontends && Array.isArray(data.frontends)) {
+          setFrontends(data.frontends);
+        }
+      })
+      .catch((err) => console.error("Initial fetchFrontends error:", err));
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans p-6 sm:p-10 selection:bg-accent-lime selection:text-background">
@@ -46,28 +69,35 @@ export default function FrontendAppPage() {
         <header className="border-b border-white/8 pb-5 flex items-center justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
-              <span className="h-2 w-2 rounded-full bg-violet-400" />
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
               <h1 className="text-xl font-bold tracking-tight text-foreground font-sans">
-                Frontend Service
+                Frontend CDN &amp; Distribution Runtime
               </h1>
             </div>
-            <p className="text-xs text-muted">
-              Frontend preview host for WebMCP applications
+            <p className="text-xs text-subtle font-mono">
+              Port :3004 • Edge CDN &amp; Static Site Hosting
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs font-mono text-muted">
-            <span className="px-2.5 py-1 rounded bg-panel border border-white/9">
-              Port 3004
-            </span>
-          </div>
+          <span className="px-2.5 py-1 text-[11px] font-mono border border-white/8 bg-panel text-muted uppercase">
+            Service Active
+          </span>
         </header>
 
-        {/* WebMCP Registrar Component */}
-        <section className="space-y-2">
-          <span className="text-xs font-mono text-subtle uppercase tracking-wider block">
-            WebMCP STATUS
-          </span>
-          <WebMCPRegistrar onStatusChange={setStatus} />
+        {/* WebMCP Status */}
+        <WebMCPRegistrar onStatusChange={setStatus} />
+
+        {/* Deployments Section */}
+        <section className="bg-panel border border-white/8 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-foreground">Active Previews</h2>
+              <span className="px-1.5 py-0.5 text-[10px] font-mono bg-white/4 text-muted border border-white/6">
+                {frontends.length}
+              </span>
+            </div>
+          </div>
+
+          {databasesPlaceholder(frontends)}
         </section>
 
         {/* Exposed Tools */}
@@ -125,18 +155,14 @@ export default function FrontendAppPage() {
             </button>
           </div>
 
-          {databasesPlaceholder(frontends, fetchFrontends, loading)}
+          {databasesPlaceholder(frontends)}
         </section>
       </div>
     </div>
   );
 }
 
-function databasesPlaceholder(
-  frontends: FrontendRecord[],
-  fetchFrontends: () => void,
-  loading: boolean
-) {
+function databasesPlaceholder(frontends: FrontendRecord[]) {
   if (frontends.length === 0) {
     return (
       <div className="text-center py-8 text-subtle text-xs border border-dashed border-white/6 bg-background">

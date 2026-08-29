@@ -31,32 +31,34 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
-    if (!document.modelContext || typeof document.modelContext.registerTool !== "function") {
-      const errorMsg = "document.modelContext is not supported in this browser context.";
-      const updated = {
-        supported: false,
-        registered: false,
-        tools: ["deploy_backend", "get_backend", "delete_backend"],
-        error: errorMsg,
-      };
-      setStatus(updated);
-      onStatusChange?.(updated);
-      return;
-    }
-
     const controller = new AbortController();
     let isMounted = true;
 
     async function registerAllTools() {
+      if (!document.modelContext || typeof document.modelContext.registerTool !== "function") {
+        const errorMsg = "document.modelContext is not supported in this browser context.";
+        const updated = {
+          supported: false,
+          registered: false,
+          tools: ["deploy_backend", "get_backend", "delete_backend"],
+          error: errorMsg,
+        };
+        if (isMounted) {
+          setStatus(updated);
+          onStatusChange?.(updated);
+        }
+        return;
+      }
+
       try {
         const options = {
           signal: controller.signal,
           exposedTo: [mcpxOrigin],
         };
 
-        await document.modelContext!.registerTool(deployBackendTool, options);
-        await document.modelContext!.registerTool(getBackendTool, options);
-        await document.modelContext!.registerTool(deleteBackendTool, options);
+        await document.modelContext.registerTool(deployBackendTool, options);
+        await document.modelContext.registerTool(getBackendTool, options);
+        await document.modelContext.registerTool(deleteBackendTool, options);
 
         if (isMounted) {
           const updated = {

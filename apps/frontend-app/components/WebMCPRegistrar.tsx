@@ -31,38 +31,40 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
-    if (!document.modelContext || typeof document.modelContext.registerTool !== "function") {
-      const errorMsg = "document.modelContext is not supported in this browser context.";
-      const updated = {
-        supported: false,
-        registered: false,
-        tools: ["deploy_frontend", "get_frontend", "delete_frontend"],
-        error: errorMsg,
-      };
-      setStatus(updated);
-      onStatusChange?.(updated);
-      return;
-    }
-
     const controller = new AbortController();
     let isMounted = true;
 
     async function registerAllTools() {
+      if (!document.modelContext || typeof document.modelContext.registerTool !== "function") {
+        const errorMsg = "document.modelContext is not supported in this browser context.";
+        const updated = {
+          supported: false,
+          registered: false,
+          tools: ["publish_frontend", "get_frontend", "delete_frontend"],
+          error: errorMsg,
+        };
+        if (isMounted) {
+          setStatus(updated);
+          onStatusChange?.(updated);
+        }
+        return;
+      }
+
       try {
         const options = {
           signal: controller.signal,
           exposedTo: [mcpxOrigin],
         };
 
-        await document.modelContext!.registerTool(deployFrontendTool, options);
-        await document.modelContext!.registerTool(getFrontendTool, options);
-        await document.modelContext!.registerTool(deleteFrontendTool, options);
+        await document.modelContext.registerTool(deployFrontendTool, options);
+        await document.modelContext.registerTool(getFrontendTool, options);
+        await document.modelContext.registerTool(deleteFrontendTool, options);
 
         if (isMounted) {
           const updated = {
             supported: true,
             registered: true,
-            tools: ["deploy_frontend", "get_frontend", "delete_frontend"],
+            tools: ["publish_frontend", "get_frontend", "delete_frontend"],
           };
           setStatus(updated);
           onStatusChange?.(updated);

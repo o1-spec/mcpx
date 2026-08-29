@@ -49,43 +49,45 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
-    if (!document.modelContext || typeof document.modelContext.registerTool !== "function") {
-      const updated = {
-        supported: false,
-        registered: false,
-        tools: [
-          "ping_service",
-          "get_status",
-          "create_widget",
-          "get_widget",
-          "delete_widget",
-          "publish_widget",
-          "get_publication",
-          "unpublish_widget",
-          "send_notification",
-        ],
-        error: "document.modelContext unavailable (Browser WebMCP flag required)",
-      };
-      setStatus(updated);
-      onStatusChange?.(updated);
-      return;
-    }
-
     const controller = new AbortController();
     let isMounted = true;
 
     async function registerAllTools() {
+      if (!document.modelContext || typeof document.modelContext.registerTool !== "function") {
+        const updated = {
+          supported: false,
+          registered: false,
+          tools: [
+            "ping_service",
+            "get_status",
+            "create_widget",
+            "get_widget",
+            "delete_widget",
+            "publish_widget",
+            "get_publication",
+            "unpublish_widget",
+            "send_notification",
+          ],
+          error: "document.modelContext unavailable (Browser WebMCP flag required)",
+        };
+        if (isMounted) {
+          setStatus(updated);
+          onStatusChange?.(updated);
+        }
+        return;
+      }
+
       try {
         const options = {
           signal: controller.signal,
           exposedTo: [mcpxOrigin],
         };
 
-        await document.modelContext!.registerTool(pingServiceTool, options);
-        await document.modelContext!.registerTool(getStatusTool, options);
-        await document.modelContext!.registerTool(createWidgetTool, options);
-        await document.modelContext!.registerTool(getWidgetTool, options);
-        await document.modelContext!.registerTool(deleteWidgetTool, options);
+        await document.modelContext.registerTool(pingServiceTool, options);
+        await document.modelContext.registerTool(getStatusTool, options);
+        await document.modelContext.registerTool(createWidgetTool, options);
+        await document.modelContext.registerTool(getWidgetTool, options);
+        await document.modelContext.registerTool(deleteWidgetTool, options);
         await document.modelContext!.registerTool(publishWidgetTool, options);
         await document.modelContext!.registerTool(getPublicationTool, options);
         await document.modelContext!.registerTool(unpublishWidgetTool, options);

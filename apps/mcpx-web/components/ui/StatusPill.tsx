@@ -35,7 +35,7 @@ export default function StatusPill({
 
   let styles = "bg-white/4 text-muted border-white/8";
   let dotColor = "bg-[#A0A0A4]";
-  let label = status;
+  const label = status;
 
   switch (norm) {
     case "READY":

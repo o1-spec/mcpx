@@ -25,8 +25,24 @@ export function useReliabilityContracts(serviceId: string) {
   }, [serviceId]);
 
   useEffect(() => {
-    fetchContracts();
-  }, [fetchContracts]);
+    if (!serviceId) return;
+    let isMounted = true;
+    fetch(`/api/services/${encodeURIComponent(serviceId)}/contracts`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted) setContracts(data.contracts || []);
+      })
+      .catch((err) => {
+        if (isMounted) setError(err instanceof Error ? err.message : "Failed to load contracts");
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [serviceId]);
 
   const createContract = async (params: {
     name: string;

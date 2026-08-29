@@ -45,7 +45,9 @@ export default function HomePage() {
     // Check prefers-reduced-motion
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const prefersReduced = mediaQuery.matches;
-    setIsReducedMotion(prefersReduced);
+    queueMicrotask(() => {
+      setIsReducedMotion(prefersReduced);
+    });
 
     // Loader always runs on page load unless prefers-reduced-motion
     const shouldPlayLoader = !prefersReduced;

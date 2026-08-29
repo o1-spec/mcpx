@@ -1,500 +1,224 @@
 # MCPx
 
-**Reliable transactions for WebMCP workflows.**
+> **Reliable transactions for WebMCP workflows.**
 
-MCPx is a browser-native reliability runtime for multi-step WebMCP workflows.
+A transactional reliability runtime for browser-orchestrated agents operating over WebMCP (Web Model Context Protocol).
 
-WebMCP gives applications a structured way to expose actions to agents and browser orchestrators. MCPx adds the reliability layer needed when those actions span multiple applications and something goes wrong: a response disappears, the outcome of a write becomes uncertain, a downstream step fails, or previously completed work needs to be rolled back.
-
-MCPx models consequential operations as:
+[Try the Demo](http://localhost:3000) • [Architecture](./docs/architecture.md) • [Reliability Model](./docs/reliability-model.md) • [Service Contract Guide](./docs/service-contract.md) • [Interactive Walkthrough](./docs/demo.md)
 
 ```text
-execute
-   ↓
-inspect
-   ↓
-compensate
+EXECUTING  ──(Lost Transport ACK)──>  IN_DOUBT  ──(Authoritative Inspect)──>  RECOVERED
 ```
-
-and combines them into durable dependency-aware transactions.
-
-The result is a workflow runtime that can explicitly represent uncertainty, reconcile against authoritative application state, recover without blindly repeating writes, and perform human-approved reverse Saga compensation when a transaction cannot complete.
 
 ---
 
 ## Why MCPx?
 
-Consider a browser agent performing a multi-step deployment:
+In distributed browser-orchestrated agents:
+
+> **A network timeout or lost acknowledgement does NOT prove a write failed.**
 
 ```text
-Database
-   ↓
-Backend
-  /     \
-Routing  Frontend
+create_route() ──> [Remote Service Commits Write] ──x [ACK Lost in Transit]
+                          │
+                   Naive Retry: ⚠️ DUPLICATE WRITE!
+                          │
+                   MCPx Runtime:
+                     1. Enters IN_DOUBT
+                     2. Dispatches Authoritative Inspection (get_route)
+                     3. Resolves to RECOVERED without duplicate writes
 ```
 
-1. The database is created successfully.
-2. The backend is deployed successfully.
-3. The routing action is sent and the route is created — but the browser loses the acknowledgement.
+When an agent executes an external action, transport disruptions or browser tab throttling can drop responses after writes commit. A blind retry risks duplicate resources and data corruption. An uncoordinated abort leaves orphaned state.
 
-What should the runtime do?
-
-* It cannot safely assume the action failed.
-* Retrying immediately could create a duplicate resource.
-* Marking the transaction failed could also be incorrect because the route may already exist.
-
-MCPx represents this explicitly:
-
-```text
-EXECUTING
-    ↓
-IN_DOUBT
-    ↓
-RECONCILING
-    ↓
-RECOVERED
-```
-
-Instead of guessing, MCPx calls the application's authoritative inspection tool using the same operation identity.
-
-If the resource exists, MCPx recovers the node without repeating the mutation.
+MCPx eliminates this uncertainty by enforcing deterministic **Reliability Contracts**.
 
 ---
 
-## Why `IN_DOUBT` Exists
+## The Reliability Contract
 
-A timeout does not necessarily mean a write failed. There are at least two fundamentally different failure cases:
+Every consequential action is defined as a triad:
 
-### Confirmed Failure
-
-The application rejects the operation before committing any state:
-
-```text
-execute
-   ↓
-REJECTED_BEFORE_COMMIT
-   ↓
-FAILED
-```
-
-MCPx knows the resource was not created.
-
-### Uncertain Outcome
-
-The operation may have committed, but the caller never received the acknowledgement:
-
-```text
-execute
-   ↓
-side effect commits
-   ↓
-response disappears
-   ↓
-IN_DOUBT
-```
-
-In this case MCPx does **not** blindly retry the mutation. It asks the application that owns the resource:
-
-```text
-inspect(operationKey)
-```
-
-and uses that authoritative result to decide what actually happened:
-
-```text
-Resource exists
-    ↓
-RECOVERED
-
-Resource explicitly absent
-    ↓
-retry/manual policy may apply
-
-Inspection unavailable
-    ↓
-remain uncertain
-```
-
-This distinction is one of the main reliability guarantees MCPx is designed around.
-
----
-
-# Architecture
-
-MCPx currently runs as five web applications plus PostgreSQL.
-
-```text
-                         ┌─────────────────────┐
-                         │      mcpx-web       │
-                         │     Coordinator     │
-                         │       :3000         │
-                         └──────────┬──────────┘
-                                    │
-                         Browser-native WebMCP
-                                    │
-             ┌──────────────────────┼──────────────────────┐
-             │                      │                      │
-             ▼                      ▼                      ▼
-
-     ┌──────────────┐      ┌──────────────┐       ┌──────────────┐
-     │ Database App │      │ Compute App  │       │ Routing App  │
-     │    :3002     │      │    :3003     │       │    :3001     │
-     └──────────────┘      └──────────────┘       └──────────────┘
-             │                      │                      │
-             │                      │                      │
-             │                      └──────────┐           │
-             │                                 │           │
-             │                                 ▼           │
-             │                         ┌──────────────┐     │
-             │                         │ Frontend App │     │
-             │                         │    :3004     │     │
-             │                         └──────────────┘     │
-             │
-             ▼
-     ┌─────────────────┐
-     │   PostgreSQL    │
-     │ Docker :5435    │
-     └─────────────────┘
-```
-
-### `mcpx-web` (Coordinator)
-
-Responsible for:
-* Discovering WebMCP tools exposed by participating applications;
-* Managing the connected service registry and reliability contracts;
-* Compiling workflows into dependency-aware transaction nodes;
-* Executing DAG transactions browser-side via `document.modelContext`;
-* Tracking node and transaction state transitions;
-* Reconciling uncertain outcomes (`IN_DOUBT` → `RECONCILING` → `RECOVERED`);
-* Calculating reverse compensation order in topological sequence;
-* Requesting human approval before destructive rollback;
-* Persisting durable transaction and event state to PostgreSQL;
-* Recovering transactions seamlessly across browser reloads.
-
-The MCPx backend persists control-plane state only. Remote application mutations remain browser-side WebMCP operations.
-
----
-
-### `database-app` (:3002)
-
-Reference WebMCP database provider exposing:
-```text
-create_database
-get_database
-delete_database
-```
-* Provisions isolated PostgreSQL schemas: `mcpx_<resource-id>`.
-* `get_database` verifies schema presence directly against PostgreSQL's catalog.
-* `delete_database` performs `DROP SCHEMA ... CASCADE` and verifies absence before compensation completes.
-
----
-
-### `compute-app` (:3003)
-
-Reference compute provider exposing:
-```text
-deploy_backend
-get_backend
-delete_backend
-```
-* Successful backend resources expose live health endpoints: `/runtime/<resourceId>/health`.
-* Returns `HTTP 200` while active; returns `HTTP 404` after compensation.
-
----
-
-### `routing-app` (:3001)
-
-Reference routing provider exposing:
-```text
-create_route
-get_route
-delete_route
-```
-* Created routes are reachable at `/r/<projectName>`, proxying traffic to the backend runtime.
-* Route unbinding is verified absent upon compensation.
-
----
-
-### `frontend-app` (:3004)
-
-Reference frontend provider exposing:
-```text
-deploy_frontend
-get_frontend
-delete_frontend
-```
-* Produces live frontend preview deployments at `/preview/<projectName>`.
-
----
-
-# The Reliability Contract
-
-MCPx models each consequential operation as a **Reliability Contract**:
-
-```text
-Service: Routing
-
-Execute
-create_route
-
-Inspect
-get_route
-
-Compensate
-delete_route
-
-Operation identity
-operationKey
-```
-
-### Execute
-Performs the mutation idempotently for the configured operation identity:
-```typescript
-create_route({
-  projectName,
-  targetUrl,
-  operationKey
-})
-```
-
-### Inspect
-Returns authoritative application state for the operation:
-```typescript
-get_route({
-  operationKey
-})
-```
-Inspection answers what actually exists in the application owning the resource.
-
-### Compensate
-Reverses a previously completed operation:
-```typescript
-delete_route({
-  operationKey
-})
-```
-MCPx verifies authoritative absence after compensation before considering the rollback complete:
-$$\text{delete\_route} \longrightarrow \text{get\_route} \longrightarrow \text{exists: false} \longrightarrow \text{COMPENSATED}$$
-
-### Operation Identity
-Every transaction node receives a deterministic operation identity (e.g. `tx:82d2...:routing:create`). This identity links `execute`, `inspect`, and `compensate` to the same logical resource.
-
----
-
-# Transaction States
-
-MCPx defines explicit transaction and node states:
-
-### Node States
-* `PENDING`: Awaiting runnable upstream dependencies.
-* `EXECUTING`: Dispatched to WebMCP.
-* `SUCCEEDED`: Mutation confirmed created.
-* `IN_DOUBT`: Transport ACK lost / outcome uncertain.
-* `RECONCILING`: Querying authoritative inspection tool.
-* `RECOVERED`: Resource confirmed present without repeating mutation.
-* `FAILED`: Confirmed rejected before commit.
-* `COMPENSATING`: Executing reverse compensation.
-* `COMPENSATED`: Resource confirmed absent via authoritative inspection.
-
-### Transaction States
-* `EXECUTING`: DAG actively progressing.
-* `AWAITING_COMPENSATION_APPROVAL`: Safety intervention gate triggered.
-* `COMPENSATING`: Executing reverse rollback.
-* `COMMITTED`: All nodes successfully completed.
-* `COMPENSATED`: All created resources safely rolled back.
-
----
-
-# Reverse Saga Compensation
-
-When downstream execution fails:
-
-```text
-Database  ✓
-   ↓
-Backend   ✓
-  / \
- ↓   ↓
-Routing   Frontend
-RECOVERED FAILED
-```
-
-1. 3 resources exist (`Database`, `Backend`, `Routing`); `Frontend` never committed.
-2. MCPx triggers `AWAITING_COMPENSATION_APPROVAL`.
-3. Operator inspects the proposed rollback and approves.
-4. MCPx executes compensation in strict reverse dependency order:
-   $$\text{Routing} \longrightarrow \text{Backend} \longrightarrow \text{Database}$$
-5. Each node verifies absence before moving to `COMPENSATED`.
-
----
-
-# Connecting an External WebMCP Service
-
-MCPx allows connecting arbitrary WebMCP applications:
-
-1. Navigate to **Services** (`/app/services`) $\rightarrow$ **Connect service** (`/app/services/new`).
-2. Provide the application origin (e.g. `https://billing.example.com` or `http://localhost:3010`).
-3. MCPx loads the application offscreen with `allow="tools"` and discovers its tools via WebMCP browser context (`document.modelContext`).
-4. Connected services and tool metadata snapshots persist durably in PostgreSQL.
-
----
-
-# Creating a Reliability Contract
-
-1. Navigate to **Services** $\rightarrow$ select service $\rightarrow$ **Create reliability contract**.
-2. Map **Execute Tool**, **Inspect Tool**, and optional **Compensate Tool**.
-3. Specify the **Operation Identity Field** (e.g. `operationKey`).
-4. Confirm developer assertions (Idempotency, Authoritative Inspection, Retry-safe Compensation).
-5. MCPx validates the configuration without executing remote tools and marks the contract `READY`.
-
----
-
-# Composing & Running Custom Workflows
-
-1. Navigate to **Workflows** (`/app/workflows`) $\rightarrow$ **Create workflow** (`/app/workflows/new`).
-2. Add steps, map them to `READY` reliability contracts, and select dependencies.
-3. Live cycle detection ensures the graph is acyclic.
-4. Click **Run workflow**:
-   * Preflight checks confirm participating services are connected.
-   * Compiles the workflow into the unified `TransactionNode[]` engine.
-   * Injects deterministic operation identities (`tx:<txId>:<stepKey>`).
-   * Executes the DAG with full `IN_DOUBT` reconciliation, Saga compensation, and durable PostgreSQL event logging.
-
----
-
-# Running the Reference Demo
-
-### Happy Path
-Click **Run happy path** on `/app`.
-* All 4 microservices deploy successfully.
-* Transaction reaches `COMMITTED`.
-* Live preview, health endpoint, and routing gateway links become active.
-
-### Challenge Scenario
-Click **Run challenge** on `/app`.
-* **Routing**: Transport ACK dropped $\rightarrow$ `IN_DOUBT` $\rightarrow$ authoritative inspection reconciles ground truth $\rightarrow$ `RECOVERED` without repeating write.
-* **Frontend**: Rejected before commit $\rightarrow$ `FAILED`.
-* **Intervention Gate**: Prompts operator to approve rollback.
-* **Saga Rollback**: Safely rolls back `Routing` $\rightarrow$ `Backend` $\rightarrow$ `Database` in reverse dependency order and verifies all resources absent $\rightarrow$ `COMPENSATED`.
-
----
-
-# Running Locally
-
-### 1. Prerequisites
-* Node.js (v20+)
-* `pnpm`
-* Docker (for PostgreSQL)
-* Chrome / Chromium browser
-
-### 2. Install dependencies
-```bash
-pnpm install
-```
-
-### 3. Start PostgreSQL
-```bash
-docker compose up -d
-```
-PostgreSQL control plane runs on `localhost:5435`.
-
-### 4. Start all applications
-```bash
-pnpm --filter mcpx-web dev -p 3000
-pnpm --filter routing-app dev -p 3001
-pnpm --filter database-app dev -p 3002
-pnpm --filter compute-app dev -p 3003
-pnpm --filter frontend-app dev -p 3004
-```
-
-Then open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-# Ports Reference
-
-| Service | Origin | Description |
+| Action | WebMCP Tool | Semantic Role |
 | :--- | :--- | :--- |
-| **MCPx Web / Coordinator** | `http://localhost:3000` | Platform homepage, dashboard, service registry, workflow engine |
-| **Routing App** | `http://localhost:3001` | Gateway route microservice |
-| **Database App** | `http://localhost:3002` | PostgreSQL schema isolation provider |
-| **Compute App** | `http://localhost:3003` | Backend runtime & health microservice |
-| **Frontend App** | `http://localhost:3004` | Static preview hosting microservice |
-| **PostgreSQL** | `localhost:5435` | Durable transaction, event, and service store |
+| **`01. EXECUTE`** | `create_route` | Consequential mutation correlating on `operationKey`. |
+| **`02. INSPECT`** | `get_route` | Authoritative ground truth check querying backend storage. |
+| **`03. COMPENSATE`** | `delete_route` | Idempotent rollback handler for safe reverse compensation. |
 
 ---
 
-# Production Deployment
+## Architecture
 
-MCPx is designed for multi-origin production deployments where each service runs on its own domain or subdomain while maintaining zero-broker browser WebMCP delegation.
-
-### Target Architecture
-
+```text
+                                 ┌─────────────────────────────────────┐
+                                 │         MCPx Control Plane          │
+                                 │       (Coordinator / mcpx-web)      │
+                                 └─────────────────────────────────────┘
+                                            │               ▲
+                        postMessage JSON-RPC│               │ Durable Audit Log
+                                            ▼               ▼
+                             ┌───────────────────┐    ┌────────────────────┐
+                             │ WebMCP Iframe Hub │    │ PostgreSQL DB      │
+                             │ (Origin Isolation)│    │ (Port 5435)        │
+                             └───────────────────┘    └────────────────────┘
+                                      │
+         ┌────────────────────────────┼────────────────────────────┐
+         │                            │                            │
+         ▼                            ▼                            ▼
+┌───────────────────┐        ┌───────────────────┐        ┌───────────────────┐
+│ Database Service  │        │ Compute Service   │        │ Routing Service   │
+│ (Port 3002)       │        │ (Port 3003)       │        │ (Port 3001)       │
+└───────────────────┘        └───────────────────┘        └───────────────────┘
 ```
-                               ┌─────────────────────────────┐
-                               │  https://mcpx.domain.com    │
-                               │  (Coordinator & Control)   │
-                               └──────────────┬──────────────┘
-                                              │ document.modelContext
-                  ┌───────────────────────────┼───────────────────────────┐
-                  │                           │                           │
-                  ▼                           ▼                           ▼
-    ┌───────────────────────────┐┌───────────────────────────┐┌───────────────────────────┐
-    │ https://db.domain.com     ││ https://compute.domain.com││ https://routing.domain.com│
-    │ (PostgreSQL Provisioner)  ││ (Backend Runtime Host)    ││ (Gateway Route Manager)   │
-    └───────────────────────────┘└───────────────────────────┘└───────────────────────────┘
-```
 
-### Environment Variables
-
-| Variable | Required For | Example Value | Description |
-| :--- | :--- | :--- | :--- |
-| `DATABASE_URL` | `mcpx-web`, `database-app` | `postgresql://...` | Managed PostgreSQL connection string (Supabase, Neon, Railway) |
-| `NEXT_PUBLIC_MCPX_ORIGIN` | All Services | `https://mcpx.domain.com` | Origin allowed in `exposedTo` array for WebMCP tool calls |
-| `NEXT_PUBLIC_ROUTING_ORIGIN` | `mcpx-web`, `frontend-app` | `https://routing.domain.com` | Public URL for Routing Gateway service |
-| `NEXT_PUBLIC_DATABASE_ORIGIN` | `mcpx-web` | `https://database.domain.com` | Public URL for Database Provisioning service |
-| `NEXT_PUBLIC_COMPUTE_ORIGIN` | `mcpx-web`, `frontend-app` | `https://compute.domain.com` | Public URL for Compute Runtime service |
-| `NEXT_PUBLIC_FRONTEND_ORIGIN` | `mcpx-web` | `https://preview.domain.com` | Public URL for Frontend Preview service |
-| `NEXT_PUBLIC_EXAMPLE_SERVICE_ORIGIN` | `mcpx-web` | `https://example.domain.com` | Public URL for optional external fixture service |
-
-### Recommended Hosting Options
-
-#### Option 1: Vercel (Multi-Project Monorepo) — Recommended
-1. Create a managed PostgreSQL database (Neon / Supabase / Vercel Postgres).
-2. Connect your GitHub repository to Vercel.
-3. Create 5 separate Vercel projects pointing to the same repo, setting the **Root Directory** for each:
-   - Project 1: `apps/mcpx-web` $\rightarrow$ Assigned domain `mcpx.yourdomain.com`
-   - Project 2: `apps/routing-app` $\rightarrow$ Assigned domain `routing.yourdomain.com`
-   - Project 3: `apps/database-app` $\rightarrow$ Assigned domain `database.yourdomain.com`
-   - Project 4: `apps/compute-app` $\rightarrow$ Assigned domain `compute.yourdomain.com`
-   - Project 5: `apps/frontend-app` $\rightarrow$ Assigned domain `frontend.yourdomain.com`
-4. Set the environment variables in each project's Vercel Settings.
-5. Deploy.
-
-#### Option 2: Railway (Single Project, Multi-Service)
-1. Create a new Railway project and add a PostgreSQL database service.
-2. Add 5 GitHub repo services within the project with root directories `apps/<service-name>`.
-3. Generate public Railway domains for each service (`https://...up.railway.app`).
-4. Set cross-referencing origin environment variables.
-
-### Health Check Verification
-
-Every deployed service exposes a lightweight `/api/health` endpoint:
-- `GET https://mcpx.domain.com/api/health` $\rightarrow$ `{ "status": "healthy", "service": "mcpx-web", "database": "healthy" }`
-- `GET https://db.domain.com/api/health` $\rightarrow$ `{ "status": "healthy", "service": "database-app", "database": "healthy" }`
-- `GET https://compute.domain.com/api/health` $\rightarrow$ `{ "status": "healthy", "service": "compute-app" }`
-- `GET https://routing.domain.com/api/health` $\rightarrow$ `{ "status": "healthy", "service": "routing-app" }`
-- `GET https://frontend.domain.com/api/health` $\rightarrow$ `{ "status": "healthy", "service": "frontend-app" }`
+For deeper technical details, see [Architecture Specification](./docs/architecture.md) and [Reliability Model](./docs/reliability-model.md).
 
 ---
 
-# Design Principles
+## Reference Workflow Lifecycle
 
-1. **Unknown is not failure**: A dropped response after dispatch is `IN_DOUBT`, never assumed failed.
-2. **Inspect before retrying**: Query authoritative state before attempting mutations.
-3. **Compensation must be verified**: Confirm resource absence before marking rollback complete.
-4. **Durable before presentation**: Persist state transitions to PostgreSQL atomically before updating the UI.
-5. **Human control for destructive rollback**: Automatic reconciliation for safe recovery; operator approval required for deletion.
-6. **Browser is the WebMCP plane**: The coordinator orchestrates through WebMCP browser context without bypassing browser security boundaries.
+MCPx includes a 4-service reference scenario demonstrating the complete failure and recovery lifecycle:
 
+```text
+Database (Port 3002)
+   ↓
+Compute (Port 3003)
+   ↓
+Routing (Port 3001) ──> [Simulated ACK Loss] ──> IN_DOUBT ──> RECOVERED via get_route
+   ↓
+Frontend (Port 3004) ──> [Pre-Commit Rejection] ──> FAILED
+   ↓
+[Operator Approval Gate]
+   ↓
+Compensate in Reverse Order: Routing ──> Compute ──> Database (Verified Clean)
+```
+
+---
+
+## Generic Extensible Product
+
+MCPx is **not** hardcoded to reference services. You can connect any WebMCP-compliant web application:
+
+1. **Connect Service**: Enter any target origin URL (e.g. `http://localhost:3010`).
+2. **Discover Tools**: MCPx queries the origin's `document.modelContext` over postMessage JSON-RPC.
+3. **Define Contract**: Map execute, inspect, and compensation tools with correlation parameters.
+4. **Compose DAG**: Build multi-step workflows with step dependency bindings.
+5. **Run & Audit**: Execute with real-time state visualization and PostgreSQL persistence.
+
+See [Service Contract Guide](./docs/service-contract.md) to integrate your own services.
+
+---
+
+## Local Development & Quickstart
+
+### Prerequisites
+- **Node.js**: v20.x or later
+- **pnpm**: v10.x
+- **Docker**: For PostgreSQL container persistence
+- **Google Chrome**: With experimental WebMCP / Model Context enabled for browser RPC
+
+### 1. Bootstrap the Environment
+```bash
+# Clone the repository
+git clone https://github.com/your-org/mcpx.git
+cd mcpx
+
+# One-command bootstrap (copies .env, starts PostgreSQL, installs packages)
+pnpm run bootstrap
+```
+
+### 2. Start All Monorepo Services
+```bash
+pnpm dev
+```
+
+Visit **`http://localhost:3000`** in your browser.
+
+---
+
+## Monorepo Service Ports
+
+| Service | Port | Directory | Purpose |
+| :--- | :---: | :--- | :--- |
+| **`mcpx-web`** | `3000` | [`apps/mcpx-web`](./apps/mcpx-web) | Coordinator, DAG engine, dashboard & control plane |
+| **`routing-app`** | `3001` | [`apps/routing-app`](./apps/routing-app) | Reference Routing service with ACK-loss fault injection |
+| **`database-app`** | `3002` | [`apps/database-app`](./apps/database-app) | Reference PostgreSQL schema service |
+| **`compute-app`** | `3003` | [`apps/compute-app`](./apps/compute-app) | Reference Compute container deployment service |
+| **`frontend-app`** | `3004` | [`apps/frontend-app`](./apps/frontend-app) | Reference Frontend service with deliberate failure mode |
+| **`example-external`** | `3010` | [`apps/example-external-service`](./apps/example-external-service) | Generic 3rd-party WebMCP service |
+| **`PostgreSQL`** | `5435` | `docker-compose.yml` | Durable transaction state & audit event store |
+
+---
+
+## Environment Variables
+
+See [`.env.example`](./.env.example) for canonical defaults. Key variables include:
+
+- `DATABASE_URL`: Connection string for PostgreSQL control plane (default: `postgresql://mcpx:mcpx@localhost:5435/mcpx_control`).
+- `MCPX_PG_PORT`: Exposed PostgreSQL container port (default: `5435`).
+- `NEXT_PUBLIC_*_SERVICE_URL`: Base URLs for local reference services.
+
+---
+
+## Automated Verification & Tests
+
+Run the complete 12-scenario behavioral reliability test suite:
+
+```bash
+# Run behavioral test suite
+pnpm test
+
+# Run monorepo typecheck
+pnpm typecheck
+
+# Run linter
+pnpm lint
+
+# Build all monorepo workspaces
+pnpm -r build
+```
+
+---
+
+## Repository Structure
+
+```text
+mcpx/
+├── apps/
+│   ├── mcpx-web/                 # Control plane, DAG engine & UI
+│   ├── database-app/             # Database reference service
+│   ├── compute-app/              # Compute reference service
+│   ├── routing-app/              # Routing reference service
+│   ├── frontend-app/             # Frontend reference service
+│   └── example-external-service/ # Generic 3rd-party service
+├── packages/
+│   └── webmcp/                   # Shared WebMCP protocol definitions & status helpers
+├── tests/
+│   └── integration/              # 12-scenario reliability test suite
+├── docs/
+│   ├── architecture.md           # Deep architectural specification
+│   ├── reliability-model.md      # State machine & reconciliation model
+│   ├── service-contract.md       # 3rd-party integration guide
+│   └── demo.md                   # Evaluator walkthrough guide
+├── scripts/
+│   └── dev-bootstrap.sh          # One-command development bootstrap
+├── .github/
+│   └── workflows/ci.yml          # GitHub Actions CI workflow
+├── README.md
+├── CONTRIBUTING.md
+├── SECURITY.md
+└── LICENSE
+```
+
+---
+
+## Limitations
+
+- **Browser WebMCP Dependency**: Live browser tool execution relies on experimental WebMCP / Model Context browser flags or sandboxed iframe postMessage fallback.
+- **Scope**: MCPx provides application-level transaction orchestration and authoritative reconciliation; it does not replace database-level consensus protocols (e.g. Raft/Paxos) for internal database clusters.
+
+---
+
+## License
+
+This project is licensed under the [Apache-2.0 License](./LICENSE).

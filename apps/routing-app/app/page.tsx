@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import WebMCPRegistrar from "@/components/WebMCPRegistrar";
 import type { RouteRecord } from "@/lib/db";
 
@@ -18,7 +18,7 @@ export default function RoutingAppPage() {
     tools: ["create_route", "get_route", "delete_route"],
   });
 
-  const fetchRoutes = useCallback(async () => {
+  const fetchRoutes = async () => {
     try {
       setLoadingRoutes(true);
       const res = await fetch("/api/routes");
@@ -31,13 +31,36 @@ export default function RoutingAppPage() {
     } finally {
       setLoadingRoutes(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchRoutes();
-    const interval = setInterval(fetchRoutes, 2000);
-    return () => clearInterval(interval);
-  }, [fetchRoutes]);
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/routes");
+        const data = await res.json();
+        if (isMounted && data.routes && Array.isArray(data.routes)) {
+          setRoutes(data.routes);
+        }
+      } catch (err) {
+        console.error("Failed to poll routes:", err);
+      }
+    }, 2000);
+
+    fetch("/api/routes")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.routes && Array.isArray(data.routes)) {
+          setRoutes(data.routes);
+        }
+      })
+      .catch((err) => console.error("Initial fetchRoutes error:", err));
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans p-6 sm:p-10 selection:bg-accent-lime selection:text-background">

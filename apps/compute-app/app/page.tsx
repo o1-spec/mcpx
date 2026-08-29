@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import WebMCPRegistrar from "@/components/WebMCPRegistrar";
 import type { BackendRecord } from "@/lib/db";
 
@@ -18,7 +18,7 @@ export default function ComputeAppPage() {
     tools: ["deploy_backend", "get_backend", "delete_backend"],
   });
 
-  const fetchBackends = useCallback(async () => {
+  const fetchBackends = async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/backends");
@@ -31,13 +31,36 @@ export default function ComputeAppPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    fetchBackends();
-    const interval = setInterval(fetchBackends, 2000);
-    return () => clearInterval(interval);
-  }, [fetchBackends]);
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/backends");
+        const data = await res.json();
+        if (isMounted && data.backends && Array.isArray(data.backends)) {
+          setBackends(data.backends);
+        }
+      } catch (err) {
+        console.error("Failed to poll backends:", err);
+      }
+    }, 2000);
+
+    fetch("/api/backends")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.backends && Array.isArray(data.backends)) {
+          setBackends(data.backends);
+        }
+      })
+      .catch((err) => console.error("Initial fetchBackends error:", err));
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans p-6 sm:p-10 selection:bg-accent-lime selection:text-background">

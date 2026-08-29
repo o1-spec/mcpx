@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import WebMCPServiceFrame from "@/components/services/WebMCPServiceFrame";
@@ -31,7 +31,7 @@ export default function WorkflowDetailPage({
   const [isDeleting, setIsDeleting] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
 
-  const loadWorkflow = async () => {
+  const loadWorkflow = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/workflows/${encodeURIComponent(id)}`);
@@ -46,10 +46,29 @@ export default function WorkflowDetailPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    loadWorkflow();
+    let isMounted = true;
+    fetch(`/api/workflows/${encodeURIComponent(id)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.workflow) {
+          setWorkflow(data.workflow);
+          setEnrichedNodes(data.workflow.nodes || []);
+          setRecentRuns(data.recentRuns || []);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) setError(err instanceof Error ? err.message : "Failed to load workflow");
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   const {

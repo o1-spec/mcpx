@@ -31,30 +31,6 @@ export default function PreviewPage({
   const [backendHealth, setBackendHealth] = useState<BackendHealthResponse | null>(null);
   const [testingBackend, setTestingBackend] = useState(false);
 
-  const fetchFrontendInfo = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/frontends");
-      const data = await res.json();
-      const active = (data.frontends || []).find(
-        (f: FrontendAppDetails) =>
-          f.projectName.toLowerCase() === projectName.toLowerCase()
-      );
-
-      if (active) {
-        setFrontend(active);
-        setNotFound(false);
-      } else {
-        setFrontend(null);
-        setNotFound(true);
-      }
-    } catch {
-      setNotFound(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [projectName]);
-
   const routingOrigin = process.env.NEXT_PUBLIC_ROUTING_ORIGIN || "http://localhost:3001";
   const computeOrigin = process.env.NEXT_PUBLIC_COMPUTE_ORIGIN || "http://localhost:3003";
   const mcpxOrigin = process.env.NEXT_PUBLIC_MCPX_ORIGIN || "http://localhost:3000";
@@ -87,14 +63,33 @@ export default function PreviewPage({
   }, [projectName, routingOrigin, computeOrigin]);
 
   useEffect(() => {
-    fetchFrontendInfo();
-  }, [fetchFrontendInfo]);
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/frontends/${projectName}`);
+        if (res.status === 404) {
+          if (isMounted) setNotFound(true);
+          return;
+        }
+        const data = await res.json();
+        if (isMounted && data.frontend) {
+          setFrontend(data.frontend);
+          if (data.frontend.backendResourceId) {
+            testBackendConnection(data.frontend.backendResourceId);
+          }
+        }
+      } catch {
+        if (isMounted) setNotFound(true);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
 
-  useEffect(() => {
-    if (frontend?.backendResourceId) {
-      testBackendConnection(frontend.backendResourceId);
-    }
-  }, [frontend, testBackendConnection]);
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [projectName, testBackendConnection]);
 
   if (loading) {
     return (

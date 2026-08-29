@@ -24,8 +24,23 @@ export function useWorkflows() {
   }, []);
 
   useEffect(() => {
-    fetchWorkflows();
-  }, [fetchWorkflows]);
+    let isMounted = true;
+    fetch("/api/workflows")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted) setWorkflows(data.workflows || []);
+      })
+      .catch((err) => {
+        if (isMounted) setError(err instanceof Error ? err.message : "Failed to load workflows");
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const createNewWorkflow = async (params: {
     name: string;

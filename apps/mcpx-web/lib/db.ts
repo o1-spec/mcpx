@@ -834,9 +834,10 @@ export async function executeAtomicTransition(
           params.nodeId,
         ]
       );
-      if (nodeRes.rows.length > 0) {
-        updatedNode = nodeRes.rows[0];
+      if (nodeRes.rows.length === 0) {
+        throw new Error(`Node ${params.nodeId} not found on transaction ${params.transactionId}`);
       }
+      updatedNode = nodeRes.rows[0];
     }
 
     // 3. Update transactions (state + advance next_event_sequence)

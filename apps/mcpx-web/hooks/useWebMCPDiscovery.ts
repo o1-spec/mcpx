@@ -60,11 +60,11 @@ export function useWebMCPDiscovery() {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
     if (!document.modelContext) {
-      setIsSupported(false);
+      queueMicrotask(() => setIsSupported(false));
       return;
     }
 
-    setIsSupported(true);
+    queueMicrotask(() => setIsSupported(true));
 
     const handleToolChange = (event: Event) => {
       console.log("[mcpx-web] toolchange event received:", event);
@@ -75,7 +75,10 @@ export function useWebMCPDiscovery() {
       document.modelContext.addEventListener("toolchange", handleToolChange);
     }
 
-    discoverTools();
+    const initDiscovery = async () => {
+      await discoverTools();
+    };
+    initDiscovery();
 
     return () => {
       if (

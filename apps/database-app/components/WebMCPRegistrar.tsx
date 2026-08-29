@@ -31,32 +31,34 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
-    if (!document.modelContext || typeof document.modelContext.registerTool !== "function") {
-      const errorMsg = "document.modelContext is not supported in this browser context.";
-      const updated = {
-        supported: false,
-        registered: false,
-        tools: ["create_database", "get_database", "delete_database"],
-        error: errorMsg,
-      };
-      setStatus(updated);
-      onStatusChange?.(updated);
-      return;
-    }
-
     const controller = new AbortController();
     let isMounted = true;
 
     async function registerAllTools() {
+      if (!document.modelContext || typeof document.modelContext.registerTool !== "function") {
+        const errorMsg = "document.modelContext is not supported in this browser context.";
+        const updated = {
+          supported: false,
+          registered: false,
+          tools: ["create_database", "get_database", "delete_database"],
+          error: errorMsg,
+        };
+        if (isMounted) {
+          setStatus(updated);
+          onStatusChange?.(updated);
+        }
+        return;
+      }
+
       try {
         const options = {
           signal: controller.signal,
           exposedTo: [mcpxOrigin],
         };
 
-        await document.modelContext!.registerTool(createDatabaseTool, options);
-        await document.modelContext!.registerTool(getDatabaseTool, options);
-        await document.modelContext!.registerTool(deleteDatabaseTool, options);
+        await document.modelContext.registerTool(createDatabaseTool, options);
+        await document.modelContext.registerTool(getDatabaseTool, options);
+        await document.modelContext.registerTool(deleteDatabaseTool, options);
 
         if (isMounted) {
           const updated = {
