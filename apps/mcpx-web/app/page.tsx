@@ -119,47 +119,49 @@ export default function HomePage() {
         .fromTo(
           headerRef.current,
           { y: -12, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.7, ease: "power2.out" },
+          { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" },
           0
         )
         .fromTo(
           ".hero-eyebrow",
           { y: 10, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" },
+          { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" },
           0.1
         )
         .fromTo(
           ".hero-headline-line",
           { yPercent: 110 },
-          { yPercent: 0, duration: 0.85, stagger: 0.08, ease: "power3.out" },
-          0.2
+          { yPercent: 0, duration: 0.8, stagger: 0.08, ease: "power3.out" },
+          0.18
         )
         .fromTo(
           ".hero-supporting",
           { y: 12, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" },
-          0.45
+          { y: 0, opacity: 1, duration: 0.55, ease: "power2.out" },
+          0.4
         )
         .fromTo(
           ".hero-buttons",
           { y: 12, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" },
-          0.55
+          { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" },
+          0.5
         )
         .fromTo(
           ".hero-runtime-panel",
-          { y: 20, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
+          { y: 18, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.7, ease: "power3.out" },
           0.3
         )
         .fromTo(
           ".hero-proof-cell",
           { opacity: 0, y: 10 },
-          { opacity: 1, y: 0, duration: 0.5, stagger: 0.06, ease: "power2.out" },
-          0.65
+          { opacity: 1, y: 0, duration: 0.45, stagger: 0.05, ease: "power2.out" },
+          0.6
         );
 
-      // 4. Initial System Boot Loader
+      // ============================================================
+      // 4. INITIAL RUNTIME BOOT LOADER TIMELINE (~1.6s)
+      // ============================================================
       if (shouldPlayLoader && loaderRef.current) {
         const loaderTl = gsap.timeline({
           onComplete: () => {
@@ -176,25 +178,107 @@ export default function HomePage() {
         });
 
         loaderTl
-          .fromTo(
-            ".loader-grid-line",
-            { scaleX: 0, transformOrigin: "center center" },
-            { scaleX: 1, duration: 0.45, stagger: 0.05, ease: "power2.out" },
-            0.1
-          )
+          // 0.10s: Center node crosshairs appear
           .fromTo(
             ".loader-center-node",
-            { scale: 0.6, opacity: 0 },
-            { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" },
-            0.3
+            { scale: 0, opacity: 0 },
+            { scale: 1, opacity: 1, duration: 0.2, ease: "power2.out" },
+            0.05
+          )
+          // 0.25s: Grid coordinate lines draw outward
+          .fromTo(
+            ".loader-axis-h",
+            { scaleX: 0, transformOrigin: "center center" },
+            { scaleX: 1, duration: 0.3, ease: "power2.out" },
+            0.15
+          )
+          .fromTo(
+            ".loader-axis-v",
+            { scaleY: 0, transformOrigin: "center center" },
+            { scaleY: 1, duration: 0.3, ease: "power2.out" },
+            0.15
+          )
+          // 0.40s: MCPx geometric mark & wordmark assemble
+          .fromTo(
+            ".loader-brand-mark",
+            { scale: 0.88, opacity: 0 },
+            { scale: 1, opacity: 1, duration: 0.25, ease: "back.out(1.4)" },
+            0.35
           )
           .fromTo(
             ".loader-wordmark",
-            { opacity: 0, y: 6 },
-            { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" },
+            { opacity: 0, y: 4 },
+            { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" },
             0.45
           )
-          .to({}, { duration: 0.25 });
+          // 0.60s: Phase 1 — EXECUTE
+          .fromTo(
+            ".loader-stage-1",
+            { opacity: 0, x: -6 },
+            { opacity: 1, x: 0, duration: 0.18, ease: "power2.out" },
+            0.6
+          )
+          .fromTo(
+            ".loader-trace-line-1",
+            { scaleX: 0, transformOrigin: "left center" },
+            { scaleX: 1, duration: 0.18, ease: "power1.inOut" },
+            0.62
+          )
+          // 0.80s: Phase 2 — UNCERTAINTY (IN_DOUBT)
+          .fromTo(
+            ".loader-stage-2",
+            { opacity: 0, x: -6 },
+            { opacity: 1, x: 0, duration: 0.18, ease: "power2.out" },
+            0.8
+          )
+          .fromTo(
+            ".loader-trace-line-2",
+            { scaleX: 0, transformOrigin: "left center" },
+            { scaleX: 0.65, duration: 0.15, ease: "power1.inOut" },
+            0.82
+          )
+          // 1.00s: Phase 3 — INSPECT
+          .fromTo(
+            ".loader-stage-3",
+            { opacity: 0, x: -6 },
+            { opacity: 1, x: 0, duration: 0.18, ease: "power2.out" },
+            1.0
+          )
+          .fromTo(
+            ".loader-trace-line-3",
+            { scaleX: 0, transformOrigin: "left center" },
+            { scaleX: 1, duration: 0.18, ease: "power1.inOut" },
+            1.02
+          )
+          // 1.20s: Phase 4 — RECOVERED
+          .fromTo(
+            ".loader-stage-4",
+            { opacity: 0, x: -6 },
+            { opacity: 1, x: 0, duration: 0.18, ease: "power2.out" },
+            1.2
+          )
+          .fromTo(
+            ".loader-trace-line-4",
+            { scaleX: 0, transformOrigin: "left center" },
+            { scaleX: 1, duration: 0.18, ease: "power1.inOut" },
+            1.22
+          )
+          // 1.40s: Grid expansion into homepage
+          .to(
+            ".loader-trace-container",
+            { opacity: 0, y: -6, duration: 0.2, ease: "power2.in" },
+            1.4
+          )
+          .to(
+            ".loader-axis-h, .loader-axis-v",
+            { opacity: 0.05, duration: 0.25, ease: "power2.out" },
+            1.42
+          )
+          .to(
+            ".loader-brand-container",
+            { opacity: 0, scale: 0.94, duration: 0.2, ease: "power2.in" },
+            1.45
+          );
       }
 
       // 5. GSAP matchMedia Choreography
@@ -369,26 +453,103 @@ export default function HomePage() {
       />
 
       {/* ============================================================ */}
-      {/* INITIAL SYSTEM LOADER */}
+      {/* INITIAL RUNTIME BOOT LOADER — VERCEL/QUEUEWATCH DIRECTION */}
       {/* ============================================================ */}
       {showLoader && (
         <div
           ref={loaderRef}
           onClick={() => setShowLoader(false)}
-          className="fixed inset-0 z-[100] bg-[#070708] flex flex-col items-center justify-center select-none cursor-pointer p-4"
+          className="fixed inset-0 z-[100] bg-[#070708] flex flex-col items-center justify-center select-none cursor-pointer p-4 overflow-hidden"
         >
-          <div className="relative flex flex-col items-center justify-center space-y-5">
-            <div className="w-24 h-24 relative flex items-center justify-center">
-              <div className="loader-grid-line absolute w-full h-[1px] bg-white/20"></div>
-              <div className="loader-grid-line absolute h-full w-[1px] bg-white/20"></div>
-              <div className="loader-center-node w-5 h-5 bg-[#0C0E0F] border border-[#A5F36B] flex items-center justify-center z-10 shadow-[0_0_12px_rgba(165,243,107,0.3)]">
+          {/* Faint Background Coordinate Grid */}
+          <div className="absolute inset-0 pointer-events-none opacity-20">
+            <div className="w-full h-full max-w-[1320px] mx-auto border-x border-white/[0.1] grid grid-cols-4 md:grid-cols-8 divide-x divide-white/[0.08]" />
+          </div>
+
+          {/* Central Expanding Axis Lines */}
+          <div className="loader-axis-h absolute w-full h-[1px] bg-white/20 pointer-events-none"></div>
+          <div className="loader-axis-v absolute h-full w-[1px] bg-white/20 pointer-events-none"></div>
+
+          {/* Center Intersection Node */}
+          <div className="loader-center-node absolute w-3.5 h-3.5 bg-[#070708] border border-white/40 flex items-center justify-center z-10">
+            <span className="w-1 h-1 bg-[#A5F36B]"></span>
+          </div>
+
+          {/* Brand Mark & Title Container */}
+          <div className="loader-brand-container relative z-20 flex flex-col items-center space-y-3 pb-8">
+            <div className="loader-brand-mark flex items-center gap-2.5">
+              <div className="grid grid-cols-2 gap-0.5 w-4 h-4 items-center justify-center">
                 <span className="w-1.5 h-1.5 bg-[#A5F36B]"></span>
+                <span className="w-1.5 h-1.5 bg-[#F5F5F3] opacity-90"></span>
+                <span className="w-1.5 h-1.5 bg-[#F5F5F3] opacity-35"></span>
+                <span className="w-1.5 h-1.5 bg-[#F5F5F3] opacity-80"></span>
               </div>
+              <span className="font-bold text-[18px] tracking-tight text-[#F5F5F3] font-sans">
+                MCPx
+              </span>
             </div>
 
-            <div className="loader-wordmark flex items-center gap-2 font-mono text-[12px]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#A5F36B] animate-ping"></span>
-              <span className="font-bold text-[#F5F5F3] tracking-tight">MCPx // RUNTIME BOOT</span>
+            <div className="loader-wordmark font-mono text-[10.5px] tracking-wider text-[#A0A0A4] uppercase flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#A5F36B] animate-pulse"></span>
+              <span>WEBMCP RELIABILITY RUNTIME</span>
+            </div>
+          </div>
+
+          {/* Transaction Trace Sequence Container */}
+          <div className="loader-trace-container relative z-20 w-full max-w-sm sm:max-w-md border border-white/[0.09] bg-[#0B0C0E]/95 p-4 sm:p-5 font-mono text-[11.5px] space-y-3 shadow-2xl backdrop-blur-md">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2 text-[10px] text-[#66686D]">
+              <span>RUNTIME INITIALIZING</span>
+              <span>BOOT TRACE</span>
+            </div>
+
+            <div className="space-y-2.5">
+              {/* Phase 1: 01 / EXECUTE */}
+              <div className="loader-stage-1 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#66686D]">[ 01 ]</span>
+                  <span className="text-[#F5F5F3] font-semibold">EXECUTE</span>
+                  <span className="text-[#A0A0A4] text-[10.5px]">create_route()</span>
+                </div>
+                <div className="w-20 h-[1.5px] bg-white/10 relative overflow-hidden">
+                  <div className="loader-trace-line-1 absolute inset-0 bg-[#F5F5F3]"></div>
+                </div>
+              </div>
+
+              {/* Phase 2: 02 / OUTCOME UNKNOWN (IN_DOUBT) */}
+              <div className="loader-stage-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#66686D]">[ 02 ]</span>
+                  <span className="text-amber-300 font-semibold">IN_DOUBT</span>
+                  <span className="text-amber-400 text-[10px]">ACK LOST</span>
+                </div>
+                <div className="w-20 h-[1.5px] bg-white/10 relative overflow-hidden">
+                  <div className="loader-trace-line-2 absolute inset-0 bg-amber-400"></div>
+                </div>
+              </div>
+
+              {/* Phase 3: 03 / INSPECT */}
+              <div className="loader-stage-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#66686D]">[ 03 ]</span>
+                  <span className="text-cyan-300 font-semibold">INSPECT</span>
+                  <span className="text-cyan-400 text-[10.5px]">get_route(opKey)</span>
+                </div>
+                <div className="w-20 h-[1.5px] bg-white/10 relative overflow-hidden">
+                  <div className="loader-trace-line-3 absolute inset-0 bg-cyan-400"></div>
+                </div>
+              </div>
+
+              {/* Phase 4: 04 / RECOVER */}
+              <div className="loader-stage-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#66686D]">[ 04 ]</span>
+                  <span className="text-[#A5F36B] font-semibold">RECOVERED</span>
+                  <span className="text-[#A5F36B] text-[10px]">exists: true</span>
+                </div>
+                <div className="w-20 h-[1.5px] bg-white/10 relative overflow-hidden">
+                  <div className="loader-trace-line-4 absolute inset-0 bg-[#A5F36B]"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

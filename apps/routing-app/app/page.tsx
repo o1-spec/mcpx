@@ -40,23 +40,23 @@ export default function RoutingAppPage() {
   }, [fetchRoutes]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 sm:p-10 selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-[#070708] text-[#F5F5F3] font-sans p-6 sm:p-10 selection:bg-[#A5F36B] selection:text-[#070708]">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <header className="border-b border-slate-800 pb-5 flex items-center justify-between">
+        <header className="border-b border-white/[0.08] pb-5 flex items-center justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
               <span className="h-2 w-2 rounded-full bg-cyan-400"></span>
-              <h1 className="text-xl font-semibold tracking-tight text-white">
+              <h1 className="text-[20px] font-bold tracking-tight text-[#F5F5F3] font-sans">
                 Routing Service
               </h1>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-[12.5px] text-[#A0A0A4]">
               Gateway routing proxy for WebMCP microservices
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-            <span className="px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800">
+          <div className="flex items-center gap-2 text-[12px] font-mono text-[#A0A0A4]">
+            <span className="px-2.5 py-1 rounded bg-[#0B0C0E] border border-white/[0.09]">
               Port 3001
             </span>
           </div>
@@ -64,20 +64,20 @@ export default function RoutingAppPage() {
 
         {/* WebMCP Registrar Component */}
         <section className="space-y-2">
-          <span className="text-xs font-medium text-slate-400 uppercase tracking-wider block">
-            WebMCP status
+          <span className="text-[11px] font-mono text-[#66686D] uppercase tracking-wider block">
+            WebMCP STATUS
           </span>
           <WebMCPRegistrar onStatusChange={setStatus} />
         </section>
 
         {/* Exposed Tools */}
-        <section className="rounded-xl border border-slate-800/80 bg-slate-900/30 p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-300 uppercase tracking-wider">
-              Exposed WebMCP tools ({status.tools.length})
+        <section className="border border-white/[0.09] bg-[#0B0C0E] p-5 space-y-3 font-mono text-[12px]">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-2 text-[11px]">
+            <span className="font-bold text-[#F5F5F3] uppercase tracking-wider">
+              EXPOSED WEBMCP TOOLS ({status.tools.length})
             </span>
-            <span className="text-xs text-slate-400">
-              Coordinator: <code className="text-slate-300 font-mono">{process.env.NEXT_PUBLIC_MCPX_ORIGIN || "http://localhost:3000"}</code>
+            <span className="text-[#66686D]">
+              Coordinator: <code className="text-[#A0A0A4]">{process.env.NEXT_PUBLIC_MCPX_ORIGIN || "http://localhost:3000"}</code>
             </span>
           </div>
 
@@ -85,15 +85,15 @@ export default function RoutingAppPage() {
             {status.tools.map((toolName) => (
               <div
                 key={toolName}
-                className="flex items-center justify-between p-3 rounded-lg border border-slate-800/60 bg-slate-950/60"
+                className="flex items-center justify-between p-3 border border-white/[0.06] bg-[#070708]"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-cyan-400 text-xs">✓</span>
-                  <code className="text-xs font-mono text-slate-200">
+                  <code className="text-[12px] font-mono text-[#F5F5F3]">
                     {toolName}
                   </code>
                 </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-[#A0A0A4]">
                   {toolName === "create_route"
                     ? "POST"
                     : toolName === "get_route"
@@ -106,49 +106,49 @@ export default function RoutingAppPage() {
         </section>
 
         {/* Active Routes */}
-        <section className="rounded-xl border border-slate-800/80 bg-slate-900/30 p-5 space-y-3">
-          <div className="flex items-center justify-between">
+        <section className="border border-white/[0.09] bg-[#0B0C0E] p-5 space-y-3 font-mono text-[12px]">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-300 uppercase tracking-wider">
-                Active routes
+              <span className="text-[11px] font-bold text-[#F5F5F3] uppercase tracking-wider">
+                ACTIVE ROUTES
               </span>
-              <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800 text-slate-300">
+              <span className="px-2 py-0.5 rounded text-[10.5px] bg-[#070708] border border-white/[0.08] text-[#A0A0A4]">
                 {routes.length} active
               </span>
             </div>
             <button
               onClick={fetchRoutes}
               disabled={loadingRoutes}
-              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium cursor-pointer"
+              className="text-[11.5px] text-[#F5F5F3] hover:text-[#A5F36B] transition-colors font-medium cursor-pointer"
             >
-              {loadingRoutes ? "Refreshing..." : "Refresh"}
+              {loadingRoutes ? "Refreshing…" : "Refresh"}
             </button>
           </div>
 
           {routes.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 text-xs border border-dashed border-slate-800 rounded-lg">
+            <div className="text-center py-8 text-[#66686D] text-[12px] border border-dashed border-white/[0.06] bg-[#070708]">
               No active routes. Gateway routes are bound and unbound dynamically via WebMCP.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="overflow-x-auto border border-white/[0.06] bg-[#070708]">
+              <table className="w-full text-left text-[11.5px] border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 font-medium">
+                  <tr className="border-b border-white/[0.06] text-[#66686D] text-[10.5px] uppercase bg-[#070708]">
                     <th className="py-2.5 px-3">Operation key</th>
                     <th className="py-2.5 px-3">Project</th>
                     <th className="py-2.5 px-3">Target URL</th>
                     <th className="py-2.5 px-3">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/50 text-slate-300 font-mono text-[11px]">
+                <tbody className="divide-y divide-white/[0.04] text-[#A0A0A4]">
                   {routes.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-800/20">
-                      <td className="py-2.5 px-3 text-indigo-300">
+                    <tr key={r.id} className="hover:bg-white/[0.02]">
+                      <td className="py-2.5 px-3 text-amber-300 font-mono">
                         {r.operationKey}
                       </td>
-                      <td className="py-2.5 px-3 font-sans font-medium text-white">{r.projectName}</td>
-                      <td className="py-2.5 px-3 text-slate-400">{r.targetUrl}</td>
-                      <td className="py-2.5 px-3 text-emerald-400 font-sans">Active</td>
+                      <td className="py-2.5 px-3 font-sans font-medium text-[#F5F5F3]">{r.projectName}</td>
+                      <td className="py-2.5 px-3 text-[#A0A0A4] font-mono">{r.targetUrl}</td>
+                      <td className="py-2.5 px-3 text-[#A5F36B] font-mono text-[11px]">✓ Active</td>
                     </tr>
                   ))}
                 </tbody>

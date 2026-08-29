@@ -64,7 +64,7 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
           "unpublish_widget",
           "send_notification",
         ],
-        error: "document.modelContext unavailable in this context",
+        error: "document.modelContext unavailable (Browser WebMCP flag required)",
       };
       setStatus(updated);
       onStatusChange?.(updated);
@@ -112,7 +112,9 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
         }
       } catch (err: unknown) {
         if (controller.signal.aborted) return;
-        const errMsg = err instanceof Error ? err.message : String(err);
+
+        const errMsg = (err && typeof err === "object" && "message" in err) ? String(err.message) : String(err);
+
         if (isMounted) {
           const updated = {
             supported: true,
@@ -142,13 +144,13 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
       isMounted = false;
       controller.abort();
     };
-  }, [onStatusChange]);
+  }, [onStatusChange, mcpxOrigin]);
 
   return (
     <div
-      className={`rounded-xl border p-4 text-xs ${
+      className={`p-3.5 border font-mono text-[12px] ${
         status.registered
-          ? "border-emerald-500/30 bg-emerald-950/20 text-emerald-300"
+          ? "border-emerald-500/30 bg-[#0B0C0E] text-emerald-300"
           : status.error
           ? "border-rose-500/30 bg-rose-950/20 text-rose-300"
           : "border-amber-500/30 bg-amber-950/20 text-amber-300"

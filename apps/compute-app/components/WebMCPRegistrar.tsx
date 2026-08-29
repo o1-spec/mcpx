@@ -31,11 +31,8 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
-    console.log("[compute-app] origin:", window.location.origin);
-
     if (!document.modelContext || typeof document.modelContext.registerTool !== "function") {
       const errorMsg = "document.modelContext is not supported in this browser context.";
-      console.warn("[compute-app] " + errorMsg);
       const updated = {
         supported: false,
         registered: false,
@@ -58,15 +55,8 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
         };
 
         await document.modelContext!.registerTool(deployBackendTool, options);
-        console.log("[compute-app] registered", deployBackendTool.name);
-
         await document.modelContext!.registerTool(getBackendTool, options);
-        console.log("[compute-app] registered", getBackendTool.name);
-
         await document.modelContext!.registerTool(deleteBackendTool, options);
-        console.log("[compute-app] registered", deleteBackendTool.name);
-
-        console.log("[compute-app] all WebMCP tools registered");
 
         if (isMounted) {
           const updated = {
@@ -83,8 +73,6 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
         const errName = (err && typeof err === "object" && "name" in err) ? String(err.name) : "Error";
         const errMsg = (err && typeof err === "object" && "message" in err) ? String(err.message) : String(err);
         const fullDetails = `${errName}: ${errMsg}`;
-
-        console.error("[compute-app] tool registration failed:", err);
 
         if (isMounted) {
           const updated = {
@@ -106,13 +94,13 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
       isMounted = false;
       controller.abort();
     };
-  }, [onStatusChange]);
+  }, [onStatusChange, mcpxOrigin]);
 
   return (
     <div
-      className={`rounded-xl border p-4 text-sm ${
+      className={`p-3.5 border font-mono text-[12px] ${
         status.registered
-          ? "border-emerald-500/30 bg-emerald-950/20 text-emerald-300"
+          ? "border-emerald-500/30 bg-[#0B0C0E] text-emerald-300"
           : status.error
           ? "border-rose-500/30 bg-rose-950/20 text-rose-300"
           : "border-amber-500/30 bg-amber-950/20 text-amber-300"
@@ -120,7 +108,7 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
     >
       <div className="flex items-center gap-2 font-medium">
         <span
-          className={`h-2.5 w-2.5 rounded-full ${
+          className={`h-2 w-2 rounded-full ${
             status.registered
               ? "bg-emerald-400 animate-pulse"
               : status.error
@@ -139,7 +127,7 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
         </span>
       </div>
       {status.errorDetails && (
-        <div className="mt-2 text-xs text-rose-300 bg-rose-950/40 p-2.5 rounded border border-rose-500/30 font-mono break-all">
+        <div className="mt-2 text-[11px] text-rose-300 bg-[#070708] p-2.5 border border-rose-500/30 font-mono break-all">
           <span className="font-bold">Error details:</span> {status.errorDetails}
         </div>
       )}
