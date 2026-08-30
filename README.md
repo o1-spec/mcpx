@@ -2,6 +2,12 @@
 
 > **Reliable transactions for WebMCP workflows.**
 
+[![CI](https://github.com/o1-spec/mcpx/actions/workflows/ci.yml/badge.svg)](https://github.com/o1-spec/mcpx/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=next.js&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+
 A transactional reliability runtime for browser-orchestrated agents operating over WebMCP (Web Model Context Protocol).
 
 [Try the Demo](http://localhost:3000) • [Architecture](./docs/architecture.md) • [Reliability Model](./docs/reliability-model.md) • [Service Contract Guide](./docs/service-contract.md) • [Interactive Walkthrough](./docs/demo.md)
