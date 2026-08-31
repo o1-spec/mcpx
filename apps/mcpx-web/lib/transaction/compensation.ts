@@ -21,8 +21,18 @@ export async function compensateNode(
     };
   }
 
-  const compTool = tools.find((t) => t.name === node.compensateTool);
-  const inspTool = tools.find((t) => t.name === node.inspectTool);
+  let compTool = tools.find((t) => t.name === node.compensateTool);
+  let inspTool = tools.find((t) => t.name === node.inspectTool);
+
+  if ((!compTool || !inspTool) && document.modelContext && typeof document.modelContext.getTools === "function") {
+    try {
+      const refreshedTools = await document.modelContext.getTools();
+      if (!compTool) compTool = refreshedTools.find((t) => t.name === node.compensateTool);
+      if (!inspTool) inspTool = refreshedTools.find((t) => t.name === node.inspectTool);
+    } catch {
+      // ignore
+    }
+  }
 
   if (!compTool || !inspTool) {
     const error = `Tools required for compensation (${node.compensateTool}, ${node.inspectTool}) not discovered`;

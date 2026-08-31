@@ -20,7 +20,16 @@ export async function reconcileNode(
     };
   }
 
-  const tool = tools.find((t) => t.name === node.inspectTool);
+  let tool = tools.find((t) => t.name === node.inspectTool);
+  if (!tool && document.modelContext && typeof document.modelContext.getTools === "function") {
+    try {
+      const refreshedTools = await document.modelContext.getTools();
+      tool = refreshedTools.find((t) => t.name === node.inspectTool);
+    } catch {
+      // ignore
+    }
+  }
+
   if (!tool) {
     const error = `Inspection tool '${node.inspectTool}' not discovered`;
     return {

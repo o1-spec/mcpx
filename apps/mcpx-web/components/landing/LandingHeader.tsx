@@ -38,7 +38,7 @@ export const LandingHeader = forwardRef<HTMLElement, LandingHeaderProps>(
               Reliability
             </a>
             <a
-              href="https://github.com"
+              href="https://github.com/o1-spec/mcpx"
               target="_blank"
               rel="noreferrer"
               className="hover:opacity-100 transition-opacity"

@@ -31,7 +31,16 @@ export async function executeNode(
     };
   }
 
-  const tool = tools.find((t) => t.name === node.executeTool);
+  let tool = tools.find((t) => t.name === node.executeTool);
+  if (!tool && document.modelContext && typeof document.modelContext.getTools === "function") {
+    try {
+      const refreshedTools = await document.modelContext.getTools();
+      tool = refreshedTools.find((t) => t.name === node.executeTool);
+    } catch {
+      // ignore
+    }
+  }
+
   if (!tool) {
     const error = `Tool '${node.executeTool}' required for service '${node.service}' was not discovered`;
     return {

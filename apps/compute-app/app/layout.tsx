@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@/lib/webmcp-bridge";
 
 export const metadata: Metadata = {
   title: "Compute Service",
