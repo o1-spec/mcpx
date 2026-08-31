@@ -2,6 +2,8 @@
  * WebMCP & MCPx Core Protocol Types & Presentation Helpers
  */
 
+export * from "./bridge";
+
 export type TransactionNodeState =
   | "PENDING"
   | "EXECUTING"
