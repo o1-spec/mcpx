@@ -286,6 +286,11 @@ export async function createConnectedService(params: {
     const res = await client.query(
       `INSERT INTO connected_services (id, name, origin, last_discovered_tools, created_at, updated_at, last_discovered_at)
        VALUES ($1, $2, $3, $4, $5, $5, $5)
+       ON CONFLICT (origin) DO UPDATE SET
+         name = EXCLUDED.name,
+         last_discovered_tools = EXCLUDED.last_discovered_tools,
+         updated_at = EXCLUDED.updated_at,
+         last_discovered_at = EXCLUDED.last_discovered_at
        RETURNING id, name, origin, last_discovered_tools, created_at, updated_at, last_discovered_at`,
       [
         id,
