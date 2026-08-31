@@ -6,7 +6,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=next.js&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
+![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 
 A transactional reliability runtime for browser-orchestrated agents operating over WebMCP (Web Model Context Protocol).
 
@@ -27,17 +27,17 @@ In distributed browser-orchestrated agents:
 ```text
 create_route() ──> [Remote Service Commits Write] ──x [ACK Lost in Transit]
                           │
-                   Naive Retry: ⚠️ DUPLICATE WRITE!
+                   Naive Retry: ⚠️ RISK OF DUPLICATE SIDE EFFECTS!
                           │
                    MCPx Runtime:
                      1. Enters IN_DOUBT
                      2. Dispatches Authoritative Inspection (get_route)
-                     3. Resolves to RECOVERED without duplicate writes
+                     3. Resolves to RECOVERED without blindly reissuing the mutation
 ```
 
 When an agent executes an external action, transport disruptions or browser tab throttling can drop responses after writes commit. A blind retry risks duplicate resources and data corruption. An uncoordinated abort leaves orphaned state.
 
-MCPx eliminates this uncertainty by enforcing deterministic **Reliability Contracts**.
+MCPx reconciles uncertain outcomes by enforcing deterministic **Reliability Contracts**. For MCPx reference providers, stable operation keys make repeated calls idempotent for the same logical operation.
 
 ---
 
@@ -61,7 +61,7 @@ Every consequential action is defined as a triad:
                                  │       (Coordinator / mcpx-web)      │
                                  └─────────────────────────────────────┘
                                             │               ▲
-                        postMessage JSON-RPC│               │ Durable Audit Log
+                       browser WebMCP exec  │               │ Durable Audit Log
                                             ▼               ▼
                              ┌───────────────────┐    ┌────────────────────┐
                              │ WebMCP Iframe Hub │    │ PostgreSQL DB      │
@@ -96,17 +96,17 @@ Frontend (Port 3004) ──> [Pre-Commit Rejection] ──> FAILED
    ↓
 [Operator Approval Gate]
    ↓
-Compensate in Reverse Order: Routing ──> Compute ──> Database (Verified Clean)
+Compensate in Reverse Dependency Order: Routing ──> Compute ──> Database (Verified Clean)
 ```
 
 ---
 
 ## Generic Extensible Product
 
-MCPx is **not** hardcoded to reference services. You can connect any WebMCP-compliant web application:
+MCPx is **not** hardcoded to reference services. You can connect compatible WebMCP applications whose tools can be mapped into MCPx reliability contracts:
 
 1. **Connect Service**: Enter any target origin URL (e.g. `http://localhost:3010`).
-2. **Discover Tools**: MCPx queries the origin's `document.modelContext` over postMessage JSON-RPC.
+2. **Discover Tools**: MCPx queries the origin's `document.modelContext` via browser WebMCP discovery.
 3. **Define Contract**: Map execute, inspect, and compensation tools with correlation parameters.
 4. **Compose DAG**: Build multi-step workflows with step dependency bindings.
 5. **Run & Audit**: Execute with real-time state visualization and PostgreSQL persistence.
