@@ -64,9 +64,13 @@ export function useConnectedServices() {
       try {
         tools = await document.modelContext.getTools({ fromOrigins: [origin] });
       } catch {
-        // Fallback to all tools and filter by origin if origin parameter isn't supported
         const allTools = await document.modelContext.getTools();
-        tools = (allTools || []).filter((t: RegisteredTool) => t.origin === origin);
+        const norm = origin.replace(/\/$/, "");
+        tools = (allTools || []).filter((t: RegisteredTool) => {
+          if (!t.origin) return true; // If origin was not explicitly attached, include it
+          const tNorm = t.origin.replace(/\/$/, "");
+          return tNorm === norm || tNorm.includes(norm) || norm.includes(tNorm);
+        });
       }
 
       console.log(`[mcpx-discovery] origin ${origin} tools found:`, tools);

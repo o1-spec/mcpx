@@ -29,10 +29,13 @@ export default function NewServicePage() {
   const [expandedSchemaIndex, setExpandedSchemaIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [connectTimeoutId, setConnectTimeoutId] = useState<NodeJS.Timeout | null>(null);
+
   const handleConnect = (e: React.FormEvent) => {
     e.preventDefault();
     setStatusMessage(null);
     setDiscoveredTools([]);
+    if (connectTimeoutId) clearTimeout(connectTimeoutId);
 
     const trimmed = originInput.trim();
     if (!trimmed) {
@@ -52,6 +55,17 @@ export default function NewServicePage() {
       setNormalizedOrigin(origin);
       setPhase("connecting");
       setStatusMessage("Loading application in WebMCP host frame…");
+
+      const tid = setTimeout(() => {
+        setPhase((currentPhase) => {
+          if (currentPhase === "connecting") {
+            setStatusMessage(`Could not connect to ${origin}. Ensure the service is running and accessible.`);
+            return "failed";
+          }
+          return currentPhase;
+        });
+      }, 7000);
+      setConnectTimeoutId(tid);
     } catch {
       setPhase("failed");
       setStatusMessage("Invalid URL format. Please check the origin address.");
@@ -59,6 +73,7 @@ export default function NewServicePage() {
   };
 
   const handleIframeLoaded = async () => {
+    if (connectTimeoutId) clearTimeout(connectTimeoutId);
     if (!normalizedOrigin) return;
 
     setPhase("loaded");

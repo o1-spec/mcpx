@@ -1,4 +1,5 @@
 import "./globals.css";
+import "@/lib/webmcp-bridge";
 
 export const metadata = {
   title: "Example External Service",
