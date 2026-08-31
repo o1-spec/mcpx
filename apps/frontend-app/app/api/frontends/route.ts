@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createFrontendResource,
   getFrontendResource,
+  getFrontendResourceByProjectName,
   deleteFrontendResource,
   getAllActiveFrontendResources,
 } from "@/lib/db";
@@ -9,6 +10,24 @@ import {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const operationKey = searchParams.get("operationKey");
+  const projectName = searchParams.get("projectName");
+
+  if (projectName) {
+    const result = await getFrontendResourceByProjectName(projectName);
+    if (result.exists && result.frontend) {
+      return NextResponse.json({
+        exists: true,
+        frontend: result.frontend,
+      });
+    }
+    return NextResponse.json(
+      {
+        exists: false,
+        error: `No active frontend deployment found for project '${projectName}'`,
+      },
+      { status: 404 }
+    );
+  }
 
   if (!operationKey) {
     const frontends = await getAllActiveFrontendResources();
