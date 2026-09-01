@@ -1,4 +1,4 @@
-# @mcpx/sdk
+# @mcpxx/sdk
 
 Official TypeScript SDK for the **MCPx** reliable workflow orchestration runtime.
 
@@ -9,11 +9,11 @@ MCPx orchestrates multi-service WebMCP workflows across distributed web applicat
 ## Installation
 
 ```bash
-npm install @mcpx/sdk
+npm install @mcpxx/sdk@beta
 # or
-pnpm add @mcpx/sdk
+pnpm add @mcpxx/sdk@beta
 # or
-yarn add @mcpx/sdk
+yarn add @mcpxx/sdk@beta
 ```
 
 ---
