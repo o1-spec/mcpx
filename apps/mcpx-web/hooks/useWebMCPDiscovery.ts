@@ -5,6 +5,8 @@ import type { RegisteredTool } from "@/types/webmcp";
 import type { DiscoveredToolInfo } from "@/types/reliability";
 import { origins } from "@/lib/config/origins";
 
+import { ensureWebMCPBridge } from "@/lib/webmcp-bridge";
+
 export function useWebMCPDiscovery() {
   const [discoveredTools, setDiscoveredTools] = useState<DiscoveredToolInfo[]>([]);
   const [isSupported, setIsSupported] = useState<boolean | null>(null);
@@ -19,6 +21,8 @@ export function useWebMCPDiscovery() {
 
   const discoverTools = useCallback(async () => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    ensureWebMCPBridge();
 
     if (!document.modelContext || typeof document.modelContext.getTools !== "function") {
       setIsSupported(false);
@@ -67,6 +71,8 @@ export function useWebMCPDiscovery() {
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
+    ensureWebMCPBridge();
+
     if (!document.modelContext) {
       queueMicrotask(() => setIsSupported(false));
       return;
@@ -83,12 +89,13 @@ export function useWebMCPDiscovery() {
       document.modelContext.addEventListener("toolchange", handleToolChange);
     }
 
-    const initDiscovery = async () => {
-      await discoverTools();
-    };
-    initDiscovery();
+    discoverTools();
+    const pollInterval = setInterval(discoverTools, 1000);
+    const stopTimer = setTimeout(() => clearInterval(pollInterval), 8000);
 
     return () => {
+      clearInterval(pollInterval);
+      clearTimeout(stopTimer);
       if (
         document.modelContext &&
         typeof document.modelContext.removeEventListener === "function"
