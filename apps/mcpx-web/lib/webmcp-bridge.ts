@@ -315,11 +315,46 @@ export function ensureWebMCPBridge(): ModelContext | null {
   if ((document as unknown as { __mcpx_bridge_installed?: boolean }).__mcpx_bridge_installed) {
     return document.modelContext || null;
   }
+
   const existing = document.modelContext;
   const bridge = new WebMCPModelContext(existing);
-  document.modelContext = bridge;
+
+  // If document.modelContext exists natively (e.g. Chrome WebMCP flag enabled),
+  // augment its methods in-place so we don't attempt to overwrite the read-only getter on Document.prototype
+  if (existing && typeof existing === "object") {
+    try {
+      existing.registerTool = bridge.registerTool.bind(bridge);
+      existing.getTools = bridge.getTools.bind(bridge);
+      existing.executeTool = bridge.executeTool.bind(bridge);
+    } catch {
+      try {
+        Object.defineProperty(existing, "registerTool", { value: bridge.registerTool.bind(bridge), writable: true, configurable: true });
+        Object.defineProperty(existing, "getTools", { value: bridge.getTools.bind(bridge), writable: true, configurable: true });
+        Object.defineProperty(existing, "executeTool", { value: bridge.executeTool.bind(bridge), writable: true, configurable: true });
+      } catch {
+        // Fallback
+      }
+    }
+  }
+
+  // Attempt to set or define document.modelContext for polyfill environments
+  try {
+    Object.defineProperty(document, "modelContext", {
+      value: bridge,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    });
+  } catch {
+    try {
+      (document as unknown as Record<string, unknown>).modelContext = bridge;
+    } catch {
+      // Document getter is read-only native, augmented in-place above
+    }
+  }
+
   (document as unknown as { __mcpx_bridge_installed?: boolean }).__mcpx_bridge_installed = true;
-  return bridge;
+  return document.modelContext || bridge;
 }
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
