@@ -11,17 +11,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required field: runnerId" }, { status: 400 });
     }
 
+    const specificTxId = body.transactionId;
+
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
 
       // 1. Check for transactions in COMPENSATING state first (reverse compensation work)
       const compTxRes = await client.query(
-        `SELECT id FROM transactions WHERE state = 'COMPENSATING' ORDER BY updated_at ASC FOR UPDATE SKIP LOCKED LIMIT 1`
+        specificTxId
+          ? `SELECT id FROM transactions WHERE state = 'COMPENSATING' AND id = $1`
+          : `SELECT id FROM transactions WHERE state = 'COMPENSATING' ORDER BY updated_at DESC LIMIT 10`,
+        specificTxId ? [specificTxId] : []
       );
 
-      if (compTxRes.rows.length > 0) {
-        const txId = compTxRes.rows[0].id;
+      for (const compTxRow of compTxRes.rows) {
+        const txId = compTxRow.id;
         const nodesRes = await client.query(
           `SELECT id, service, label, origin, execute_tool, inspect_tool, compensate_tool,
                   state, operation_key, resource_id, dependencies, execute_args, claimed_by, lease_expires_at
@@ -78,7 +83,10 @@ export async function POST(request: NextRequest) {
 
       // 2. Check for transactions in ACTIVE state (forward DAG execution)
       const activeTxRes = await client.query(
-        `SELECT id FROM transactions WHERE state = 'ACTIVE' ORDER BY created_at ASC LIMIT 10`
+        specificTxId
+          ? `SELECT id FROM transactions WHERE state = 'ACTIVE' AND id = $1`
+          : `SELECT id FROM transactions WHERE state = 'ACTIVE' ORDER BY updated_at DESC, created_at DESC LIMIT 10`,
+        specificTxId ? [specificTxId] : []
       );
 
       for (const txRow of activeTxRes.rows) {
