@@ -197,7 +197,6 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
 
       async executeTool(tool: RegisteredTool, serializedArguments: string): Promise<ToolResult> {
         const toolName = tool.name;
-        const origin = tool.origin;
 
         // 1. If tool is local in current window
         if (this.registeredTools.has(toolName)) {

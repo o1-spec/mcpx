@@ -35,7 +35,11 @@ export function useWebMCPBrowserRunner() {
     isMountedRef.current = true;
     ensureWebMCPBridge();
     const activeRunnerId = `runner_${Math.random().toString(36).slice(2, 10)}`;
-    setRunnerId(activeRunnerId);
+    queueMicrotask(() => {
+      if (isMountedRef.current) {
+        setRunnerId(activeRunnerId);
+      }
+    });
 
     // 1. Heartbeat loop (every 5 seconds)
     const sendHeartbeat = async () => {
@@ -126,7 +130,7 @@ export function useWebMCPBrowserRunner() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      runnerId,
+                      runnerId: activeRunnerId,
                       transactionId,
                       nodeId: node.id,
                       action: "EXECUTE",
@@ -176,7 +180,7 @@ export function useWebMCPBrowserRunner() {
 
           // Development Proof Instrumentation
           console.log("[MCPx Browser Runner]", {
-            runnerId,
+            runnerId: activeRunnerId,
             tx: transactionId,
             node: node.id,
             origin: node.origin,
@@ -192,7 +196,7 @@ export function useWebMCPBrowserRunner() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                runnerId,
+                runnerId: activeRunnerId,
                 transactionId,
                 nodeId: node.id,
                 action: "EXECUTE",
@@ -253,7 +257,7 @@ export function useWebMCPBrowserRunner() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                runnerId,
+                runnerId: activeRunnerId,
                 transactionId,
                 nodeId: node.id,
                 action: "EXECUTE",
@@ -279,7 +283,7 @@ export function useWebMCPBrowserRunner() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  runnerId,
+                  runnerId: activeRunnerId,
                   transactionId,
                   nodeId: node.id,
                   action: "EXECUTE",
@@ -309,7 +313,7 @@ export function useWebMCPBrowserRunner() {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
-                        runnerId,
+                        runnerId: activeRunnerId,
                         transactionId,
                         nodeId: node.id,
                         action: "EXECUTE",
@@ -332,7 +336,7 @@ export function useWebMCPBrowserRunner() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                runnerId,
+                runnerId: activeRunnerId,
                 transactionId,
                 nodeId: node.id,
                 action: "EXECUTE",
@@ -401,7 +405,7 @@ export function useWebMCPBrowserRunner() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                runnerId,
+                runnerId: activeRunnerId,
                 transactionId,
                 nodeId: node.id,
                 action: "COMPENSATE",
