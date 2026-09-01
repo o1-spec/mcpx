@@ -6,7 +6,10 @@ export interface MCPxErrorOptions extends ErrorOptions {
 }
 
 /**
- * Base class for all errors thrown by the @mcpx/sdk client.
+ * Base class for all errors thrown by the @mcpxx/sdk client.
+ *
+ * Provides typed error codes and metadata to assist applications
+ * in implementing deterministic retry and fallback policies.
  */
 export class MCPxError extends Error {
   readonly code: string;

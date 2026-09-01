@@ -184,7 +184,7 @@ try {
 ## WebMCP Execution Model & Limitations
 
 - **Control Plane vs Worker Runtime**: The SDK communicates with the MCPx Control Plane API (`/api/v1/...`). 
-- **WebMCP Tool Dispatch**: WebMCP tools exposed by web applications across browser iframe boundaries (`document.modelContext`) are executed by active WebMCP runners (the MCPx Console or headless runner frame).
+- **WebMCP Tool Dispatch**: WebMCP tools exposed by web applications across browser iframe boundaries (`document.modelContext`) are executed by active WebMCP Browser Runners (such as the MCPx Dashboard at `/app`).
 - **ACID Durability**: Transactions initialized via the SDK are persisted in PostgreSQL and can be monitored simultaneously in both the terminal and the MCPx Console.
 
 ---

@@ -1,6 +1,8 @@
 # MCPx SDK Agent Demo
 
-This example demonstrates how an external Node.js backend application or AI Agent integrates with **MCPx** using `@mcpx/sdk`.
+This example demonstrates how an external Node.js backend application or AI Agent integrates with **MCPx** using `@mcpxx/sdk`.
+
+The SDK communicates with the MCPx Control Plane via HTTP and Server-Sent Events (SSE), enabling programmatic workflow dispatch, live execution monitoring, and automated compensation governance.
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "name": "sdk-agent-demo",
   "version": "0.1.0",
-  "description": "Example Node.js application demonstrating @mcpx/sdk programmatic workflow invocation and live event streaming",
+  "description": "Example Node.js application demonstrating @mcpxx/sdk programmatic workflow invocation and live event streaming",
   "main": "./src/index.ts",
   "scripts": {
     "start": "tsx src/index.ts",
