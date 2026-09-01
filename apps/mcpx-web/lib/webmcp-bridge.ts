@@ -216,30 +216,22 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
         // 2. If tool belongs to a child iframe, route request to the respective iframe
         if (typeof document !== "undefined") {
           const iframes = Array.from(document.querySelectorAll("iframe"));
-          const targetIframe = iframes.find((f) => {
-            try {
-              if (origin) {
-                const fOrigin = new URL(f.src).origin;
-                const oOrigin = new URL(origin).origin;
-                return fOrigin === oOrigin || f.src.includes(origin) || origin.includes(fOrigin);
-              }
-              return true;
-            } catch {
-              return false;
-            }
-          }) || iframes[0];
-
-          if (targetIframe && targetIframe.contentWindow) {
+          if (iframes.length > 0) {
             return new Promise((resolve, reject) => {
+              let resolved = false;
               const messageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
               const timer = setTimeout(() => {
-                window.removeEventListener("message", handler);
-                reject(new Error(`WebMCP tool execution for '${toolName}' timed out`));
-              }, 6000);
+                if (!resolved) {
+                  resolved = true;
+                  window.removeEventListener("message", handler);
+                  reject(new Error(`WebMCP tool execution for '${toolName}' timed out`));
+                }
+              }, 10000);
 
               const handler = (event: MessageEvent) => {
                 const data = event.data as { type?: string; messageId?: string; isError?: boolean; error?: string; result?: unknown } | undefined;
-                if (data?.type === "WEBMCP_EXECUTE_RESPONSE" && data.messageId === messageId) {
+                if (data?.type === "WEBMCP_EXECUTE_RESPONSE" && data.messageId === messageId && !resolved) {
+                  resolved = true;
                   clearTimeout(timer);
                   window.removeEventListener("message", handler);
                   if (data.isError) {
@@ -258,10 +250,17 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
               };
 
               window.addEventListener("message", handler);
-              targetIframe.contentWindow?.postMessage(
-                { type: "WEBMCP_EXECUTE_REQUEST", toolName, input: serializedArguments, messageId },
-                "*"
-              );
+
+              for (const iframe of iframes) {
+                try {
+                  iframe.contentWindow?.postMessage(
+                    { type: "WEBMCP_EXECUTE_REQUEST", toolName, input: serializedArguments, messageId },
+                    "*"
+                  );
+                } catch {
+                  // cross-frame dispatch guard
+                }
+              }
             });
           }
         }
