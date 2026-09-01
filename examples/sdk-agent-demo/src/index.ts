@@ -114,7 +114,7 @@ async function main() {
       console.log("\n---------------- Current Transaction Status -----------------");
       const currentTx = await mcpx.transactions.get(run.id);
       console.log(`Transaction State: ${currentTx.state}`);
-      console.log(`Nodes Pending:     ${currentTx.nodes.filter((n) => n.state === "PENDING").length}/${currentTx.nodes.length}`);
+      console.log(`Nodes Pending:     ${currentTx.nodes.filter((n: { state: string }) => n.state === "PENDING").length}/${currentTx.nodes.length}`);
       console.log("Verified: Transaction is safely persisted in PostgreSQL and waiting for WebMCP Browser Runner.");
       console.log("No unauthorized REST bypass occurred.");
     } else {
