@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { deployFrontendTool, getFrontendTool, deleteFrontendTool } from "@/lib/tools";
+import { ensureWebMCPBridge } from "@/lib/webmcp-bridge";
 
 interface WebMCPRegistrarProps {
   onStatusChange?: (status: {
@@ -31,6 +32,7 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
+    ensureWebMCPBridge();
     const controller = new AbortController();
     let isMounted = true;
 
@@ -40,7 +42,7 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
         const updated = {
           supported: false,
           registered: false,
-          tools: ["publish_frontend", "get_frontend", "delete_frontend"],
+          tools: ["deploy_frontend", "get_frontend", "delete_frontend"],
           error: errorMsg,
         };
         if (isMounted) {

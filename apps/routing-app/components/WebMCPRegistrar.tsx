@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createRouteTool, getRouteTool, deleteRouteTool } from "@/lib/tools";
+import { ensureWebMCPBridge } from "@/lib/webmcp-bridge";
 
 interface WebMCPRegistrarProps {
   onStatusChange?: (status: {
@@ -31,6 +32,7 @@ export default function WebMCPRegistrar({ onStatusChange }: WebMCPRegistrarProps
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
+    ensureWebMCPBridge();
     const controller = new AbortController();
     let isMounted = true;
 
