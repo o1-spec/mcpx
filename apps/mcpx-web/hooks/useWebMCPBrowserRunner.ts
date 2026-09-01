@@ -141,23 +141,36 @@ export function useWebMCPBrowserRunner() {
             }
           }
 
-          // Retrieve fresh native RegisteredTool by querying getTools({ fromOrigins: [node.origin] })
-          let tools: RegisteredTool[] = [];
-          try {
-            if (typeof document.modelContext.getTools === "function") {
-              tools = await document.modelContext.getTools();
-            }
-          } catch {
-            // fallback
-          }
-
+          // Retrieve fresh native RegisteredTool by querying getTools() with retry
           const normTargetOrigin = node.origin.replace(/\/+$/, "");
-          const nativeExecuteTool = tools.find((t) => {
-            const toolOrigin = (t.origin || "").replace(/\/+$/, "");
-            const nameMatches = t.name === node.executeTool;
-            const originMatches = !normTargetOrigin || !toolOrigin || toolOrigin === normTargetOrigin || (toolOrigin.includes("localhost") && normTargetOrigin.includes("localhost"));
-            return nameMatches && originMatches;
-          }) || tools.find((t) => t.name === node.executeTool);
+          let nativeExecuteTool: RegisteredTool | undefined;
+          let tools: RegisteredTool[] = [];
+
+          for (let attempt = 0; attempt < 6; attempt++) {
+            try {
+              if (typeof document.modelContext.getTools === "function") {
+                tools = await document.modelContext.getTools();
+              }
+            } catch {
+              // fallback
+            }
+
+            nativeExecuteTool =
+              tools.find((t) => {
+                const toolOrigin = (t.origin || "").replace(/\/+$/, "");
+                const nameMatches = t.name === node.executeTool;
+                const originMatches =
+                  !normTargetOrigin ||
+                  !toolOrigin ||
+                  toolOrigin === normTargetOrigin ||
+                  (toolOrigin.includes("localhost") && normTargetOrigin.includes("localhost")) ||
+                  (toolOrigin.includes("127.0.0.1") && normTargetOrigin.includes("localhost"));
+                return nameMatches && originMatches;
+              }) || tools.find((t) => t.name === node.executeTool);
+
+            if (nativeExecuteTool) break;
+            await new Promise((res) => setTimeout(res, 500));
+          }
 
           // Development Proof Instrumentation
           console.log("[MCPx Browser Runner]", {
