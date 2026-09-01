@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import StatusPill from "@/components/ui/StatusPill";
 import { useWebMCPBrowserRunner } from "@/hooks/useWebMCPBrowserRunner";
+import { origins } from "@/lib/config/origins";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -326,6 +327,28 @@ export default function AppLayout({ children }: AppShellProps) {
         <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-360 w-full mx-auto space-y-6">
           {children}
         </main>
+      </div>
+
+      {/* Persistent WebMCP Microservice Iframe Runner Host */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          right: 0,
+          width: "1px",
+          height: "1px",
+          opacity: 0.01,
+          pointerEvents: "none",
+          overflow: "hidden",
+          zIndex: -1,
+        }}
+        aria-hidden="true"
+      >
+        <iframe src={origins.database} allow="tools" title="Database WebMCP Service" />
+        <iframe src={origins.compute} allow="tools" title="Compute WebMCP Service" />
+        <iframe src={origins.routing} allow="tools" title="Routing WebMCP Service" />
+        <iframe src={origins.frontend} allow="tools" title="Frontend WebMCP Service" />
+        <iframe src={origins.exampleService} allow="tools" title="External WebMCP Service" />
       </div>
     </div>
   );
