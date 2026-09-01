@@ -7,6 +7,35 @@ import type { RegisteredTool } from "@/types/webmcp";
 import type { RuntimeNodeState } from "@/components/workflows/WorkflowRuntimePipeline";
 import type { EnrichedNode } from "@/components/workflows/WorkflowTopologyPanel";
 
+async function resolveNativeTool(
+  toolName: string,
+  origin?: string,
+  timeoutMs = 4000
+): Promise<RegisteredTool> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeoutMs) {
+    if (typeof document !== "undefined" && document.modelContext?.getTools) {
+      try {
+        const tools = await document.modelContext.getTools();
+        const found = (tools || []).find((t) => {
+          if (t.name !== toolName) return false;
+          if (!origin || !t.origin) return true;
+          const o1 = origin.replace(/\/$/, "");
+          const o2 = t.origin.replace(/\/$/, "");
+          return o1 === o2 || o1.includes(o2) || o2.includes(o1);
+        });
+        if (found) return found;
+      } catch {
+        // Retry
+      }
+    }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  throw new Error(
+    `WebMCP tool '${toolName}' not found or service at ${origin || "origin"} not yet registered in document.modelContext.`
+  );
+}
+
 export function useWorkflowRunner(
   workflow: WorkflowRecord | null,
   enrichedNodes: EnrichedNode[],
@@ -88,60 +117,53 @@ export function useWorkflowRunner(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(ev),
-      }).catch((e) => console.warn("[mcpx] log event sync warning:", e));
+      }).catch(console.error);
     };
 
     logEvent({
       id: crypto.randomUUID(),
       sequence: 1,
       type: "TRANSACTION_STARTED",
-      details: { workflowId: workflow.id, workflowName: workflow.name },
+      details: { workflowName: workflow.name, totalNodes: initialNodes.length },
       timestamp: new Date().toISOString(),
     });
 
     // 3. Dependency-Driven Topological Execution
-    const completedNodeIds = new Set<string>();
-    const nodeStateMap = new Map<string, RuntimeNodeState>(initialNodes.map((n) => [n.id, { ...n }]));
     const nodeOutputs = new Map<string, Record<string, unknown>>();
-
+    const completedNodeIds = new Set<string>();
     let currentNodes = [...initialNodes];
 
     const updateNodeState = async (
       nodeId: string,
       state: RuntimeNodeState["state"],
-      extra?: { resourceId?: string; error?: string; reason?: string }
+      extra?: Record<string, unknown>
     ) => {
-      const node = nodeStateMap.get(nodeId);
-      if (!node) return;
-      node.state = state;
-      if (extra?.resourceId) node.resourceId = extra.resourceId;
-      if (extra?.error) node.error = extra.error;
-
-      currentNodes = Array.from(nodeStateMap.values());
-      setRuntimeNodes([...currentNodes]);
+      currentNodes = currentNodes.map((n) => (n.id === nodeId ? { ...n, state, ...extra } : n));
+      setRuntimeNodes(currentNodes);
 
       await fetch(`/api/transactions/${createdTxId}/transition`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nodeId,
-          nodeState: state,
+          state,
           resourceId: extra?.resourceId,
-          lastError: extra?.error,
-          eventType: `NODE_${state}`,
-          eventPayload: { nodeLabel: node.label, service: node.service, ...extra },
+          error: extra?.error,
         }),
-      }).catch((e) => console.warn("[mcpx] transition sync warning:", e));
+      }).catch(console.error);
 
+      const node = currentNodes.find((n) => n.id === nodeId);
       logEvent({
         id: crypto.randomUUID(),
         sequence: events.length + 1,
         nodeId,
         type: `NODE_${state}`,
-        details: { label: node.label, service: node.service, ...extra },
+        details: { label: node?.label, service: node?.service, ...extra },
         timestamp: new Date().toISOString(),
       });
     };
+
+    const nodeStateMap = new Map(initialNodes.map((n) => [n.id, n]));
 
     while (completedNodeIds.size < currentNodes.length) {
       const runnable = Array.from(nodeStateMap.values()).filter(
@@ -169,22 +191,7 @@ export function useWorkflowRunner(
             throw new Error("WebMCP document.modelContext unavailable");
           }
 
-          let tools: RegisteredTool[] = [];
-          try {
-            tools = await document.modelContext.getTools();
-          } catch {
-            try {
-              tools = await document.modelContext.getTools({ fromOrigins: [node.origin] });
-            } catch {
-              tools = [];
-            }
-          }
-          const targetTool = tools.find((t) => t.name === node.executeTool) || {
-            name: node.executeTool,
-            description: node.executeTool,
-            origin: node.origin || (typeof window !== "undefined" ? window.location.origin : ""),
-            inputSchema: { type: "object" as const, properties: {} },
-          };
+          const targetTool = await resolveNativeTool(node.executeTool, node.origin, 4000);
 
           const payload: Record<string, unknown> = {
             [node.operationKeyField]: node.operationKey,
@@ -220,12 +227,7 @@ export function useWorkflowRunner(
             await new Promise((r) => setTimeout(r, 500));
             await updateNodeState(node.id, "RECONCILING");
 
-            const inspTool = tools.find((t) => t.name === node.inspectTool) || {
-              name: node.inspectTool,
-              description: node.inspectTool,
-              origin: node.origin || (typeof window !== "undefined" ? window.location.origin : ""),
-              inputSchema: { type: "object" as const, properties: {} },
-            };
+            const inspTool = await resolveNativeTool(node.inspectTool, node.origin, 4000);
 
             const inspRes = await document.modelContext.executeTool(
               inspTool,
@@ -292,28 +294,11 @@ export function useWorkflowRunner(
 
       try {
         if (document.modelContext?.executeTool) {
-          let tools: RegisteredTool[] = [];
-          try {
-            tools = await document.modelContext.getTools();
-          } catch {
-            try {
-              tools = await document.modelContext.getTools({ fromOrigins: [node.origin] });
-            } catch {
-              tools = [];
-            }
-          }
-          const compTool = tools.find((t) => t.name === node.compensateTool) || (node.compensateTool ? {
-            name: node.compensateTool,
-            description: node.compensateTool,
-            origin: node.origin || (typeof window !== "undefined" ? window.location.origin : ""),
-            inputSchema: { type: "object" as const, properties: {} },
-          } : null);
-          if (compTool) {
-            await document.modelContext.executeTool(
-              compTool,
-              JSON.stringify({ [node.operationKeyField]: node.operationKey })
-            );
-          }
+          const compTool = await resolveNativeTool(node.compensateTool, node.origin, 4000);
+          await document.modelContext.executeTool(
+            compTool,
+            JSON.stringify({ [node.operationKeyField]: node.operationKey })
+          );
         }
       } catch (err) {
         console.warn(`[mcpx-compensate] error compensating ${node.label}:`, err);
