@@ -313,7 +313,7 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
 export function ensureWebMCPBridge(): ModelContext | null {
   if (typeof window === "undefined" || typeof document === "undefined") return null;
   if ((document as unknown as { __mcpx_bridge_installed?: boolean }).__mcpx_bridge_installed) {
-    return document.modelContext;
+    return document.modelContext || null;
   }
   const existing = document.modelContext;
   const bridge = new WebMCPModelContext(existing);
