@@ -346,12 +346,10 @@ export function useDeploymentDemo(registeredToolsRef: RefObject<RegisteredTool[]
     const init = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const txFromUrl = urlParams.get("tx");
-      const txFromStorage = localStorage.getItem("mcpx_active_tx_id");
-      const activeId = txFromUrl || txFromStorage;
 
-      if (activeId) {
+      if (txFromUrl) {
         try {
-          await rehydrateTransaction(activeId);
+          await rehydrateTransaction(txFromUrl);
         } finally {
           if (isMounted) setIsHydrating(false);
         }
