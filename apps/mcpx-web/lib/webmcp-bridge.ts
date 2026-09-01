@@ -39,13 +39,17 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
       if (type === "WEBMCP_TOOL_REGISTERED") {
         const tool = (event.data?.tool || event.data) as RegisteredTool;
         if (tool && tool.name) {
-          this.remoteIframeTools.set(tool.name, {
-            name: tool.name,
-            description: tool.description,
-            inputSchema: tool.inputSchema,
-            origin: tool.origin || event.origin,
-          });
-          this.dispatchEvent(new Event("toolchange"));
+          const origin = tool.origin || event.origin;
+          const existing = this.remoteIframeTools.get(tool.name);
+          if (!existing || existing.origin !== origin) {
+            this.remoteIframeTools.set(tool.name, {
+              name: tool.name,
+              description: tool.description,
+              inputSchema: tool.inputSchema,
+              origin,
+            });
+            this.dispatchEvent(new Event("toolchange"));
+          }
         }
       }
 

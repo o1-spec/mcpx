@@ -18,6 +18,8 @@ export function useWebMCPDiscovery() {
   const databaseIframeRef = useRef<HTMLIFrameElement>(null);
   const computeIframeRef = useRef<HTMLIFrameElement>(null);
   const frontendIframeRef = useRef<HTMLIFrameElement>(null);
+  const lastDiscoveredNamesRef = useRef<string>("");
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const discoverTools = useCallback(async () => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
@@ -53,13 +55,16 @@ export function useWebMCPDiscovery() {
 
       registeredToolsRef.current = tools || [];
 
-      const toolInfos: DiscoveredToolInfo[] = (tools || []).map((t) => ({
-        name: t.name,
-        origin: t.origin,
-        description: t.description,
-      }));
-
-      setDiscoveredTools(toolInfos);
+      const namesKey = (tools || []).map((t) => `${t.origin}:${t.name}`).sort().join(",");
+      if (namesKey !== lastDiscoveredNamesRef.current) {
+        lastDiscoveredNamesRef.current = namesKey;
+        const toolInfos: DiscoveredToolInfo[] = (tools || []).map((t) => ({
+          name: t.name,
+          origin: t.origin,
+          description: t.description,
+        }));
+        setDiscoveredTools(toolInfos);
+      }
     } catch (err: unknown) {
       console.error("[mcpx-web] getTools error:", err);
       const errName = err && typeof err === "object" && "name" in err ? String(err.name) : "Error";
@@ -80,9 +85,11 @@ export function useWebMCPDiscovery() {
 
     queueMicrotask(() => setIsSupported(true));
 
-    const handleToolChange = (event: Event) => {
-      console.log("[mcpx-web] toolchange event received:", event);
-      discoverTools();
+    const handleToolChange = () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        discoverTools();
+      }, 150);
     };
 
     if (typeof document.modelContext.addEventListener === "function") {
@@ -92,12 +99,9 @@ export function useWebMCPDiscovery() {
     queueMicrotask(() => {
       discoverTools();
     });
-    const pollInterval = setInterval(discoverTools, 1000);
-    const stopTimer = setTimeout(() => clearInterval(pollInterval), 8000);
 
     return () => {
-      clearInterval(pollInterval);
-      clearTimeout(stopTimer);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       if (
         document.modelContext &&
         typeof document.modelContext.removeEventListener === "function"
