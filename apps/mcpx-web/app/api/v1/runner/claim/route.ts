@@ -53,15 +53,24 @@ export async function POST(request: NextRequest) {
           leaseExpiresAt: row.lease_expires_at,
         }));
 
-        // Find candidate for compensation: deepest dependent among SUCCEEDED / RECOVERED nodes
-        const compensable = nodes
-          .filter((n) => (n.state === "SUCCEEDED" || n.state === "RECOVERED") && n.compensateTool)
-          .filter((n) => !n.leaseExpiresAt || new Date(n.leaseExpiresAt).getTime() < Date.now() || n.claimedBy === runnerId);
+        // Find candidates for compensation: nodes in SUCCEEDED or RECOVERED state with compensateTool
+        const uncompensated = nodes.filter(
+          (n) => (n.state === "SUCCEEDED" || n.state === "RECOVERED") && n.compensateTool
+        );
 
-        if (compensable.length > 0) {
-          // Deepest dependent first (reverse topological order)
-          const targetNode = compensable[compensable.length - 1];
+        // A node is ready to compensate iff NO other uncompensated node depends on it (leaf in reverse DAG)
+        const readyToCompensate = uncompensated.filter((candidate) => {
+          const hasUncompensatedDependents = uncompensated.some(
+            (other) => other.id !== candidate.id && other.dependencies.includes(candidate.id)
+          );
+          return !hasUncompensatedDependents;
+        });
 
+        const targetNode = readyToCompensate.find(
+          (n) => !n.leaseExpiresAt || new Date(n.leaseExpiresAt).getTime() < Date.now() || n.claimedBy === runnerId
+        );
+
+        if (targetNode) {
           await client.query(
             `UPDATE transaction_nodes
              SET claimed_by = $1, lease_expires_at = NOW() + INTERVAL '30 seconds', updated_at = NOW()

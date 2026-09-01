@@ -1,6 +1,6 @@
 {
   "name": "@mcpx/sdk",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "description": "Official TypeScript SDK for the MCPx reliable workflow orchestration runtime",
   "type": "module",
   "main": "./dist/index.js",
