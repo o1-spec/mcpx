@@ -89,7 +89,9 @@ export function useWebMCPDiscovery() {
       document.modelContext.addEventListener("toolchange", handleToolChange);
     }
 
-    discoverTools();
+    queueMicrotask(() => {
+      discoverTools();
+    });
     const pollInterval = setInterval(discoverTools, 1000);
     const stopTimer = setTimeout(() => clearInterval(pollInterval), 8000);
 

@@ -52,10 +52,7 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
       if (type === "WEBMCP_EXECUTE_REQUEST" && toolName && messageId) {
         const tool = this.registeredTools.get(toolName);
         if (!tool) {
-          event.source?.postMessage(
-            { type: "WEBMCP_EXECUTE_RESPONSE", messageId, isError: true, error: `Tool ${toolName} not found` },
-            { targetOrigin: event.origin } as WindowPostMessageOptions
-          );
+          // Ignore if this frame does not own the requested tool
           return;
         }
 
