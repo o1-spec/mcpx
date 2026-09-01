@@ -201,7 +201,7 @@ export default function AppLayout({ children }: AppShellProps) {
             <div className="flex items-center justify-between text-xs">
               <span className="text-subtle">WebMCP Runner:</span>
               <span className="text-accent-lime font-mono text-[10.5px]">
-                {runnerId.slice(0, 10)}
+                {runnerId ? runnerId.slice(0, 10) : "ONLINE"}
               </span>
             </div>
             {isProcessing && (

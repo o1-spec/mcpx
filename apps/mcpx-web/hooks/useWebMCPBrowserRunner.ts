@@ -24,13 +24,15 @@ interface ClaimedWork {
 }
 
 export function useWebMCPBrowserRunner() {
-  const [runnerId] = useState(() => `runner_${Math.random().toString(36).slice(2, 10)}`);
+  const [runnerId, setRunnerId] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastExecutedNode, setLastExecutedNode] = useState<string | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
     isMountedRef.current = true;
+    const activeRunnerId = `runner_${Math.random().toString(36).slice(2, 10)}`;
+    setRunnerId(activeRunnerId);
 
     // 1. Heartbeat loop (every 5 seconds)
     const sendHeartbeat = async () => {
@@ -39,7 +41,7 @@ export function useWebMCPBrowserRunner() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            runnerId,
+            runnerId: activeRunnerId,
             metadata: {
               userAgent: navigator.userAgent,
               hasModelContext: typeof document !== "undefined" && Boolean(document.modelContext),
@@ -62,7 +64,7 @@ export function useWebMCPBrowserRunner() {
         const claimRes = await fetch("/api/v1/runner/claim", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ runnerId }),
+          body: JSON.stringify({ runnerId: activeRunnerId }),
         });
 
         if (!claimRes.ok) return;
