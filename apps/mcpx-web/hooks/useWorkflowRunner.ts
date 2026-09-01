@@ -181,7 +181,9 @@ export function useWorkflowRunner(
           }
           const targetTool = tools.find((t) => t.name === node.executeTool) || {
             name: node.executeTool,
-            origin: node.origin,
+            description: node.executeTool,
+            origin: node.origin || (typeof window !== "undefined" ? window.location.origin : ""),
+            inputSchema: { type: "object" as const, properties: {} },
           };
 
           const payload: Record<string, unknown> = {
@@ -218,10 +220,12 @@ export function useWorkflowRunner(
             await new Promise((r) => setTimeout(r, 500));
             await updateNodeState(node.id, "RECONCILING");
 
-            const inspTool = tools.find((t) => t.name === node.inspectTool);
-            if (!inspTool) {
-              throw new Error(`Inspect tool '${node.inspectTool}' not found during reconciliation`);
-            }
+            const inspTool = tools.find((t) => t.name === node.inspectTool) || {
+              name: node.inspectTool,
+              description: node.inspectTool,
+              origin: node.origin || (typeof window !== "undefined" ? window.location.origin : ""),
+              inputSchema: { type: "object" as const, properties: {} },
+            };
 
             const inspRes = await document.modelContext.executeTool(
               inspTool,
@@ -300,7 +304,9 @@ export function useWorkflowRunner(
           }
           const compTool = tools.find((t) => t.name === node.compensateTool) || (node.compensateTool ? {
             name: node.compensateTool,
-            origin: node.origin,
+            description: node.compensateTool,
+            origin: node.origin || (typeof window !== "undefined" ? window.location.origin : ""),
+            inputSchema: { type: "object" as const, properties: {} },
           } : null);
           if (compTool) {
             await document.modelContext.executeTool(
