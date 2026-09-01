@@ -35,28 +35,28 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
           if (type === "WEBMCP_EXECUTE_REQUEST" && toolName && messageId) {
             const tool = this.registeredTools.get(toolName);
             if (!tool) {
-              event.source?.postMessage(
+              (event.source as Window)?.postMessage(
                 { type: "WEBMCP_EXECUTE_RESPONSE", messageId, isError: true, error: `Tool ${toolName} not found` },
-                { targetOrigin: event.origin } as WindowPostMessageOptions
+                "*"
               );
               return;
             }
 
             try {
               const result = await tool.execute(input);
-              event.source?.postMessage(
+              (event.source as Window)?.postMessage(
                 { type: "WEBMCP_EXECUTE_RESPONSE", messageId, result },
-                { targetOrigin: event.origin } as WindowPostMessageOptions
+                "*"
               );
             } catch (err: unknown) {
-              event.source?.postMessage(
+              (event.source as Window)?.postMessage(
                 {
                   type: "WEBMCP_EXECUTE_RESPONSE",
                   messageId,
                   isError: true,
                   error: err instanceof Error ? err.message : String(err),
                 },
-                { targetOrigin: event.origin } as WindowPostMessageOptions
+                "*"
               );
             }
           }
