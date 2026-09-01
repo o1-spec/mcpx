@@ -358,6 +358,7 @@ async function runReliabilityTestSuite() {
     status: "READY",
   });
   assert.strictEqual(externalContract.status, "READY");
+  await pool.query("DELETE FROM connected_services WHERE id = $1", [externalService.id]);
   console.log("✓ PASS: Generic 3rd-party WebMCP service registered, contracted, and ready for workflows.\n");
 
   console.log("==================================================");
