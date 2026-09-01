@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { WorkflowRecord } from "@/lib/db";
 import type { TransactionEvent } from "@/types/reliability";
+import type { RegisteredTool } from "@/types/webmcp";
 import type { RuntimeNodeState } from "@/components/workflows/WorkflowRuntimePipeline";
 import type { EnrichedNode } from "@/components/workflows/WorkflowTopologyPanel";
 
@@ -168,7 +169,16 @@ export function useWorkflowRunner(
             throw new Error("WebMCP document.modelContext unavailable");
           }
 
-          const tools = await document.modelContext.getTools({ fromOrigins: [node.origin] });
+          let tools: RegisteredTool[] = [];
+          try {
+            tools = await document.modelContext.getTools();
+          } catch {
+            try {
+              tools = await document.modelContext.getTools({ fromOrigins: [node.origin] });
+            } catch {
+              tools = [];
+            }
+          }
           const targetTool = tools.find((t) => t.name === node.executeTool);
 
           if (!targetTool) {
@@ -279,7 +289,16 @@ export function useWorkflowRunner(
 
       try {
         if (document.modelContext?.executeTool) {
-          const tools = await document.modelContext.getTools({ fromOrigins: [node.origin] });
+          let tools: RegisteredTool[] = [];
+          try {
+            tools = await document.modelContext.getTools();
+          } catch {
+            try {
+              tools = await document.modelContext.getTools({ fromOrigins: [node.origin] });
+            } catch {
+              tools = [];
+            }
+          }
           const compTool = tools.find((t) => t.name === node.compensateTool);
           if (compTool) {
             await document.modelContext.executeTool(

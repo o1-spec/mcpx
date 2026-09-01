@@ -29,15 +29,23 @@ export function useWebMCPDiscovery() {
     setDiscoveryError(null);
 
     try {
-      // Query tools from configured reference microservice origins
-      const tools = await document.modelContext.getTools({
-        fromOrigins: [
-          origins.routing,
-          origins.database,
-          origins.compute,
-          origins.frontend,
-        ],
-      });
+      let tools: RegisteredTool[] = [];
+      try {
+        tools = await document.modelContext.getTools();
+      } catch {
+        try {
+          tools = await document.modelContext.getTools({
+            fromOrigins: [
+              origins.routing,
+              origins.database,
+              origins.compute,
+              origins.frontend,
+            ],
+          });
+        } catch {
+          tools = [];
+        }
+      }
 
       registeredToolsRef.current = tools || [];
 
