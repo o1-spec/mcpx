@@ -6,12 +6,16 @@ import { useState } from "react";
 import StatusPill from "@/components/ui/StatusPill";
 import { useWebMCPBrowserRunner } from "@/hooks/useWebMCPBrowserRunner";
 import { origins } from "@/lib/config/origins";
+import { ensureWebMCPBridge } from "@/lib/webmcp-bridge";
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
 export default function AppLayout({ children }: AppShellProps) {
+  if (typeof window !== "undefined") {
+    ensureWebMCPBridge();
+  }
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);

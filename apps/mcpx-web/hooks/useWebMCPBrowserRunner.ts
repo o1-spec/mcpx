@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { normalizeWebMCPResult } from "@/lib/webmcp-utils";
 import type { RegisteredTool } from "@/types/webmcp";
+import { ensureWebMCPBridge } from "@/lib/webmcp-bridge";
 
 interface ClaimedWork {
   transactionId: string;
@@ -32,6 +33,7 @@ export function useWebMCPBrowserRunner() {
 
   useEffect(() => {
     isMountedRef.current = true;
+    ensureWebMCPBridge();
     const activeRunnerId = `runner_${Math.random().toString(36).slice(2, 10)}`;
     setRunnerId(activeRunnerId);
 

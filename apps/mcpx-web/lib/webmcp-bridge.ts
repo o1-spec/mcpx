@@ -16,16 +16,14 @@ import type {
  * over standard window.postMessage semantics with origin scoping.
  */
 
-if (typeof window !== "undefined" && typeof document !== "undefined") {
-  if (!document.modelContext) {
-    class WebMCPModelContext extends EventTarget implements ModelContext {
-      private registeredTools = new Map<string, ToolDefinition & { origin?: string; exposedTo?: string[] }>();
-      private remoteIframeTools = new Map<string, RegisteredTool>();
+class WebMCPModelContext extends EventTarget implements ModelContext {
+  private registeredTools = new Map<string, ToolDefinition & { origin?: string; exposedTo?: string[] }>();
+  private remoteIframeTools = new Map<string, RegisteredTool>();
 
-      constructor() {
-        super();
-        this.initCrossFrameListener();
-      }
+  constructor() {
+    super();
+    this.initCrossFrameListener();
+  }
 
       private initCrossFrameListener() {
         window.addEventListener("message", async (event) => {
@@ -268,12 +266,18 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
           }
         }
 
-        throw new Error(`Tool '${toolName}' not found in any registered WebMCP context`);
-      }
-    }
-
-    document.modelContext = new WebMCPModelContext();
+    throw new Error(`Tool '${toolName}' not found in any registered WebMCP context`);
   }
 }
 
-export {};
+export function ensureWebMCPBridge(): ModelContext | null {
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  if (!document.modelContext) {
+    document.modelContext = new WebMCPModelContext();
+  }
+  return document.modelContext;
+}
+
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  ensureWebMCPBridge();
+}
