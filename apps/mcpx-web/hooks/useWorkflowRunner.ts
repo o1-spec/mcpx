@@ -54,21 +54,17 @@ export function useWorkflowRunner(
 
     setRuntimeNodes(initialNodes);
 
-    let createdTxId: string;
+    const txId = `tx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    let createdTxId: string = txId;
     try {
       const initRes = await fetch("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: txId,
           workflowId: workflow.id,
           scenario: workflow.name,
-          nodes: initialNodes.map((n) => ({
-            id: n.id,
-            label: n.label,
-            service: n.service,
-            operationKey: n.operationKey,
-            dependencies: n.dependencies,
-          })),
+          nodes: initialNodes,
         }),
       });
 

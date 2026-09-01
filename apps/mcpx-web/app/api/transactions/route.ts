@@ -30,9 +30,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { id, state = "CREATED", scenario, nodes = [] } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: "Missing transaction id" }, { status: 400 });
-    }
+    const txId = id || `tx_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
     const client = await pool.connect();
     try {
@@ -45,7 +43,7 @@ export async function POST(request: NextRequest) {
          ON CONFLICT (id) DO UPDATE 
          SET state = EXCLUDED.state, scenario = EXCLUDED.scenario, updated_at = NOW()
          RETURNING *`,
-        [id, state, scenario]
+        [txId, state, scenario]
       );
 
       // Insert nodes
@@ -62,15 +60,15 @@ export async function POST(request: NextRequest) {
               updated_at = NOW()`,
           [
             node.id,
-            id,
-            node.service,
-            node.label,
-            node.origin,
-            node.executeTool,
-            node.inspectTool,
-            node.compensateTool,
-            node.state,
-            node.operationKey,
+            txId,
+            node.service || "Service",
+            node.label || node.id,
+            node.origin || "",
+            node.executeTool || "",
+            node.inspectTool || "",
+            node.compensateTool || null,
+            node.state || "PENDING",
+            node.operationKey || `tx:key:${node.id}`,
             node.resourceId || null,
             JSON.stringify(node.dependencies || []),
             JSON.stringify(node.executeArgs || {}),
