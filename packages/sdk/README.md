@@ -21,7 +21,7 @@ yarn add @mcpxx/sdk@beta
 ## Quick Start
 
 ```ts
-import { MCPx } from "@mcpx/sdk";
+import { MCPx } from "@mcpxx/sdk";
 
 // 1. Initialize the MCPx client
 const mcpx = new MCPx({
@@ -159,7 +159,7 @@ import {
   MCPxConflictError,
   MCPxTimeoutError,
   MCPxConnectionError,
-} from "@mcpx/sdk";
+} from "@mcpxx/sdk";
 
 try {
   const run = await mcpx.workflows.run("non-existent-workflow");

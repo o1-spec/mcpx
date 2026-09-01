@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mcpx/sdk": "workspace:*"
+    "@mcpxx/sdk": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",

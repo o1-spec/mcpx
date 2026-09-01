@@ -1,4 +1,4 @@
-import { MCPx } from "@mcpx/sdk";
+import { MCPx } from "@mcpxx/sdk";
 
 async function main() {
   const endpoint = process.env.MCPX_URL || "http://localhost:3000";

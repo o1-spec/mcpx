@@ -13,7 +13,7 @@
     "typecheck": "pnpm -r --parallel exec tsc --noEmit",
     "test": "tsx tests/integration/reliability.test.ts",
     "test:integration": "tsx tests/integration/reliability.test.ts",
-    "test:sdk": "pnpm --filter @mcpx/sdk test",
+    "test:sdk": "pnpm --filter @mcpxx/sdk test",
     "demo:sdk": "pnpm --filter sdk-agent-demo start",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
