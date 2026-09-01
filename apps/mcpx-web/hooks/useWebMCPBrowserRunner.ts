@@ -27,6 +27,7 @@ export function useWebMCPBrowserRunner() {
   const [runnerId, setRunnerId] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastExecutedNode, setLastExecutedNode] = useState<string | null>(null);
+  const isProcessingRef = useRef(false);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export function useWebMCPBrowserRunner() {
 
     // 2. Work Claim & WebMCP Execution Loop (every 800ms)
     const pollAndExecuteWork = async () => {
-      if (!isMountedRef.current || isProcessing) return;
+      if (!isMountedRef.current || isProcessingRef.current) return;
 
       try {
         const claimRes = await fetch("/api/v1/runner/claim", {
@@ -73,6 +74,7 @@ export function useWebMCPBrowserRunner() {
 
         if (!work || !work.node) return;
 
+        isProcessingRef.current = true;
         setIsProcessing(true);
         setLastExecutedNode(`${work.action}: ${work.node.label}`);
 
@@ -85,7 +87,7 @@ export function useWebMCPBrowserRunner() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              runnerId,
+              runnerId: activeRunnerId,
               transactionId,
               nodeId: node.id,
               action,
@@ -93,6 +95,7 @@ export function useWebMCPBrowserRunner() {
               error: "document.modelContext unavailable in active browser window",
             }),
           });
+          isProcessingRef.current = false;
           setIsProcessing(false);
           return;
         }
@@ -395,6 +398,7 @@ export function useWebMCPBrowserRunner() {
       } catch (loopErr) {
         console.error("[MCPx Browser Runner] Worker claim loop error:", loopErr);
       } finally {
+        isProcessingRef.current = false;
         setIsProcessing(false);
       }
     };
@@ -406,7 +410,7 @@ export function useWebMCPBrowserRunner() {
       clearInterval(heartbeatInterval);
       clearInterval(claimInterval);
     };
-  }, [runnerId, isProcessing]);
+  }, []);
 
   return { runnerId, isProcessing, lastExecutedNode };
 }
