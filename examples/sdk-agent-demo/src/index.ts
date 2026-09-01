@@ -39,7 +39,9 @@ async function main() {
     return;
   }
 
-  const selectedWorkflow = workflows[0]!;
+  const selectedWorkflow =
+    workflows.find((w) => w.name === "Reference 4-Service Challenge Workflow") ||
+    workflows[0]!;
   console.log(`\n▶ Starting workflow: "${selectedWorkflow.name}"...`);
 
   // 3. Start Workflow Run via SDK
