@@ -113,10 +113,10 @@ export async function POST(request: NextRequest) {
           nodes.filter((n) => n.state === "SUCCEEDED" || n.state === "RECOVERED").map((n) => n.id)
         );
 
-        // Find runnable node whose dependencies are all satisfied and not currently claimed
+        // Find runnable node whose dependencies are all satisfied and not currently claimed (or expired lease)
         const runnableNode = nodes.find(
           (n) =>
-            n.state === "PENDING" &&
+            (n.state === "PENDING" || (n.state === "EXECUTING" && n.leaseExpiresAt && new Date(n.leaseExpiresAt).getTime() < Date.now())) &&
             n.dependencies.every((dep: string) => completedNodeIds.has(dep)) &&
             (!n.leaseExpiresAt || new Date(n.leaseExpiresAt).getTime() < Date.now() || n.claimedBy === runnerId)
         );

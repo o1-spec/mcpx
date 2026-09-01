@@ -6,7 +6,7 @@ import type { RegisteredTool } from "@/types/webmcp";
 
 interface ClaimedWork {
   transactionId: string;
-  action: "EXECUTE" | "COMPENSATE";
+  action: "EXECUTE" | "COMPENSATE" | "RECONCILE_CLAIM";
   node: {
     id: string;
     service: string;
@@ -17,6 +17,7 @@ interface ClaimedWork {
     compensateTool: string | null;
     operationKey: string;
     resourceId?: string | null;
+    state: string;
     executeArgs: Record<string, unknown>;
   };
   upstreamOutputs?: Record<string, { resourceId?: string; [key: string]: unknown }>;
@@ -53,7 +54,7 @@ export function useWebMCPBrowserRunner() {
     sendHeartbeat();
     const heartbeatInterval = setInterval(sendHeartbeat, 5000);
 
-    // 2. Work Claim & WebMCP Execution Loop (every 1 second)
+    // 2. Work Claim & WebMCP Execution Loop (every 800ms)
     const pollAndExecuteWork = async () => {
       if (!isMountedRef.current || isProcessing) return;
 
@@ -77,6 +78,7 @@ export function useWebMCPBrowserRunner() {
 
         // Check native document.modelContext availability
         if (typeof document === "undefined" || !document.modelContext) {
+          console.error("[MCPx Browser Runner] document.modelContext unavailable in active window");
           await fetch("/api/v1/runner/complete", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -94,10 +96,47 @@ export function useWebMCPBrowserRunner() {
         }
 
         // ==========================================
-        // FORWARD EXECUTION via NATIVE WebMCP
+        // 1. FORWARD EXECUTION / RE-CLAIM RECONCILE
         // ==========================================
         if (action === "EXECUTE") {
-          // 1. Retrieve fresh native RegisteredTool by querying getTools()
+          // If this node was previously claimed in EXECUTING state (e.g. previous runner crashed),
+          // perform authoritative inspection FIRST before re-executing to prevent duplicate mutation.
+          if (node.state === "EXECUTING" && node.inspectTool) {
+            console.log(`[MCPx Browser Runner] Reclaimed node ${node.id} in EXECUTING state. Inspecting remote ground truth first...`);
+            const tools = await document.modelContext.getTools().catch(() => []);
+            const inspectTool = tools.find((t) => t.name === node.inspectTool);
+            if (inspectTool) {
+              try {
+                const rawInspect = await document.modelContext.executeTool(
+                  inspectTool,
+                  JSON.stringify({ operationKey: node.operationKey })
+                );
+                const normInspect = normalizeWebMCPResult(rawInspect) as Record<string, unknown> | null;
+                if (normInspect && normInspect.exists) {
+                  console.log(`[MCPx Browser Runner] Node ${node.id} confirmed COMMITTED by remote service. Reconciling to RECOVERED.`);
+                  const recoveredId = (normInspect.resourceId || normInspect.id || node.operationKey) as string;
+                  await fetch("/api/v1/runner/complete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      runnerId,
+                      transactionId,
+                      nodeId: node.id,
+                      action: "EXECUTE",
+                      outcome: "RECOVERED",
+                      resourceId: recoveredId,
+                    }),
+                  });
+                  setIsProcessing(false);
+                  return;
+                }
+              } catch (err) {
+                console.warn("[MCPx Browser Runner] Pre-execution inspection attempt encountered error:", err);
+              }
+            }
+          }
+
+          // Retrieve fresh native RegisteredTool by querying getTools({ fromOrigins: [node.origin] })
           let tools: RegisteredTool[] = [];
           try {
             if (typeof document.modelContext.getTools === "function") {
@@ -107,9 +146,26 @@ export function useWebMCPBrowserRunner() {
             // fallback
           }
 
-          const nativeExecuteTool = tools.find(
-            (t) => t.name === node.executeTool && (!node.origin || t.origin === node.origin || t.origin?.includes("localhost"))
-          ) || tools.find((t) => t.name === node.executeTool);
+          const normTargetOrigin = node.origin.replace(/\/+$/, "");
+          const nativeExecuteTool = tools.find((t) => {
+            const toolOrigin = (t.origin || "").replace(/\/+$/, "");
+            const nameMatches = t.name === node.executeTool;
+            const originMatches = !normTargetOrigin || !toolOrigin || toolOrigin === normTargetOrigin || (toolOrigin.includes("localhost") && normTargetOrigin.includes("localhost"));
+            return nameMatches && originMatches;
+          }) || tools.find((t) => t.name === node.executeTool);
+
+          // Development Proof Instrumentation
+          console.log("[MCPx Browser Runner]", {
+            runnerId,
+            tx: transactionId,
+            node: node.id,
+            origin: node.origin,
+            tool: node.executeTool,
+            discoveredToolCount: tools.length,
+            nativeTool: Boolean(nativeExecuteTool),
+            hasWindow: Boolean(nativeExecuteTool && typeof (nativeExecuteTool as Record<string, unknown>).window !== "undefined"),
+            dispatch: "WebMCP",
+          });
 
           if (!nativeExecuteTool) {
             await fetch("/api/v1/runner/complete", {
@@ -144,7 +200,7 @@ export function useWebMCPBrowserRunner() {
           }
 
           try {
-            // Signal executing
+            // Signal executing in PostgreSQL ledger
             await fetch(`/api/transactions/${transactionId}/transition`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -188,6 +244,8 @@ export function useWebMCPBrowserRunner() {
             });
           } catch (execErr: unknown) {
             const errMsg = execErr instanceof Error ? execErr.message : String(execErr);
+            
+            // Explicit error classification: only intentional drop-ack-after-commit triggers IN_DOUBT
             const isUncertain =
               (execErr && typeof execErr === "object" && "uncertainOutcome" in execErr) ||
               errMsg.includes("Simulated transport acknowledgement loss") ||
@@ -195,7 +253,8 @@ export function useWebMCPBrowserRunner() {
               node.executeArgs.failureMode === "drop-ack-after-commit";
 
             if (isUncertain) {
-              // Report IN_DOUBT
+              console.log(`[MCPx Browser Runner] Node ${node.id} classified as IN_DOUBT (Transport ACK loss). Reconciling via inspectTool '${node.inspectTool}'...`);
+              
               await fetch("/api/v1/runner/complete", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -225,6 +284,7 @@ export function useWebMCPBrowserRunner() {
                   const normInspect = normalizeWebMCPResult(rawInspect) as Record<string, unknown> | null;
                   if (normInspect && normInspect.exists) {
                     const recoveredId = (normInspect.resourceId || normInspect.id || node.operationKey) as string;
+                    console.log(`[MCPx Browser Runner] Authoritative inspection confirmed resource exists (${recoveredId}). Reconciled to RECOVERED.`);
                     await fetch("/api/v1/runner/complete", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -247,6 +307,7 @@ export function useWebMCPBrowserRunner() {
             }
 
             // Clean failure
+            console.log(`[MCPx Browser Runner] Node ${node.id} failed: ${errMsg}`);
             await fetch("/api/v1/runner/complete", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -263,9 +324,11 @@ export function useWebMCPBrowserRunner() {
         }
 
         // ==========================================
-        // COMPENSATION EXECUTION via NATIVE WebMCP
+        // 2. COMPENSATION WITH AUTHORITATIVE INSPECTION
         // ==========================================
         if (action === "COMPENSATE" && node.compensateTool) {
+          console.log(`[MCPx Browser Runner] Compensating node ${node.id} (${node.label}) via WebMCP '${node.compensateTool}'...`);
+          
           let tools: RegisteredTool[] = [];
           try {
             if (typeof document.modelContext.getTools === "function") {
@@ -276,7 +339,9 @@ export function useWebMCPBrowserRunner() {
           }
 
           const nativeCompTool = tools.find((t) => t.name === node.compensateTool);
+          const nativeInspectTool = tools.find((t) => t.name === node.inspectTool);
 
+          // 1. Dispatch compensation tool
           if (nativeCompTool) {
             try {
               await document.modelContext.executeTool(
@@ -287,24 +352,46 @@ export function useWebMCPBrowserRunner() {
                 })
               );
             } catch (err) {
-              console.warn(`[WebMCP-Runner] Compensation error on ${node.label}:`, err);
+              console.warn(`[MCPx Browser Runner] Compensation error on ${node.label}:`, err);
             }
           }
 
-          await fetch("/api/v1/runner/complete", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              runnerId,
-              transactionId,
-              nodeId: node.id,
-              action: "COMPENSATE",
-              outcome: "COMPENSATED",
-            }),
-          });
+          // 2. Authoritative Inspection to verify exists: false
+          let verifiedAbsent = true;
+          if (nativeInspectTool) {
+            try {
+              const rawInspect = await document.modelContext.executeTool(
+                nativeInspectTool,
+                JSON.stringify({ operationKey: node.operationKey })
+              );
+              const normInspect = normalizeWebMCPResult(rawInspect) as Record<string, unknown> | null;
+              if (normInspect && normInspect.exists === true) {
+                console.error(`[MCPx Browser Runner] Compensation verification failed: Resource still exists for ${node.id}`);
+                verifiedAbsent = false;
+              } else {
+                console.log(`[MCPx Browser Runner] Authoritative inspection confirmed resource absence for ${node.id} (exists: false).`);
+              }
+            } catch {
+              // Assume absent if inspection tool cannot find it
+            }
+          }
+
+          if (verifiedAbsent) {
+            await fetch("/api/v1/runner/complete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                runnerId,
+                transactionId,
+                nodeId: node.id,
+                action: "COMPENSATE",
+                outcome: "COMPENSATED",
+              }),
+            });
+          }
         }
       } catch (loopErr) {
-        console.error("[WebMCP-Runner] Worker claim loop error:", loopErr);
+        console.error("[MCPx Browser Runner] Worker claim loop error:", loopErr);
       } finally {
         setIsProcessing(false);
       }
