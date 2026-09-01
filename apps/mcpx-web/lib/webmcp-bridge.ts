@@ -20,6 +20,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
   if (!document.modelContext) {
     class WebMCPModelContext extends EventTarget implements ModelContext {
       private registeredTools = new Map<string, ToolDefinition & { origin?: string; exposedTo?: string[] }>();
+      private remoteIframeTools = new Map<string, RegisteredTool>();
 
       constructor() {
         super();
@@ -34,6 +35,19 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
             input?: unknown;
             messageId?: string;
           };
+
+          if (type === "WEBMCP_TOOL_REGISTERED") {
+            const tool = (event.data?.tool || event.data) as RegisteredTool;
+            if (tool && tool.name) {
+              this.remoteIframeTools.set(tool.name, {
+                name: tool.name,
+                description: tool.description,
+                inputSchema: tool.inputSchema,
+                origin: tool.origin || event.origin,
+              });
+              this.dispatchEvent(new Event("toolchange"));
+            }
+          }
 
           if (type === "WEBMCP_EXECUTE_REQUEST" && toolName && messageId) {
             const tool = this.registeredTools.get(toolName);
@@ -103,18 +117,30 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 
       async getTools(options?: GetToolsOptions): Promise<RegisteredTool[]> {
         const toolsList: RegisteredTool[] = [];
+        const addedNames = new Set<string>();
 
         // 1. Collect locally registered tools
         this.registeredTools.forEach((tool) => {
-          toolsList.push({
-            name: tool.name,
-            description: tool.description,
-            inputSchema: tool.inputSchema,
-            origin: tool.origin || window.location.origin,
-          });
+          if (!addedNames.has(tool.name)) {
+            addedNames.add(tool.name);
+            toolsList.push({
+              name: tool.name,
+              description: tool.description,
+              inputSchema: tool.inputSchema,
+              origin: tool.origin || window.location.origin,
+            });
+          }
         });
 
-        // 2. If coordinator has child iframes, collect tools from iframes
+        // 2. Collect dynamically registered remote iframe tools
+        this.remoteIframeTools.forEach((tool) => {
+          if (!addedNames.has(tool.name)) {
+            addedNames.add(tool.name);
+            toolsList.push(tool);
+          }
+        });
+
+        // 3. If coordinator has child iframes, enumerate known tools
         if (typeof document !== "undefined") {
           const iframes = Array.from(document.querySelectorAll("iframe"));
           for (const iframe of iframes) {
@@ -123,31 +149,39 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
               if (options?.fromOrigins && !options.fromOrigins.includes(iframeOrigin)) {
                 continue;
               }
-              // Tools from reference ports
+              const addTool = (t: RegisteredTool) => {
+                if (!addedNames.has(t.name)) {
+                  addedNames.add(t.name);
+                  toolsList.push(t);
+                }
+              };
+
               if (iframeOrigin.includes(":3001")) {
-                toolsList.push(
-                  { name: "create_route", description: "Create route", origin: iframeOrigin },
-                  { name: "get_route", description: "Get route", origin: iframeOrigin },
-                  { name: "delete_route", description: "Delete route", origin: iframeOrigin }
-                );
+                addTool({ name: "create_route", description: "Create route", origin: iframeOrigin });
+                addTool({ name: "get_route", description: "Get route", origin: iframeOrigin });
+                addTool({ name: "delete_route", description: "Delete route", origin: iframeOrigin });
               } else if (iframeOrigin.includes(":3002")) {
-                toolsList.push(
-                  { name: "create_database", description: "Create database", origin: iframeOrigin },
-                  { name: "get_database", description: "Get database", origin: iframeOrigin },
-                  { name: "delete_database", description: "Delete database", origin: iframeOrigin }
-                );
+                addTool({ name: "create_database", description: "Create database", origin: iframeOrigin });
+                addTool({ name: "get_database", description: "Get database", origin: iframeOrigin });
+                addTool({ name: "delete_database", description: "Delete database", origin: iframeOrigin });
               } else if (iframeOrigin.includes(":3003")) {
-                toolsList.push(
-                  { name: "deploy_backend", description: "Deploy backend", origin: iframeOrigin },
-                  { name: "get_backend", description: "Get backend", origin: iframeOrigin },
-                  { name: "delete_backend", description: "Delete backend", origin: iframeOrigin }
-                );
+                addTool({ name: "deploy_backend", description: "Deploy backend", origin: iframeOrigin });
+                addTool({ name: "get_backend", description: "Get backend", origin: iframeOrigin });
+                addTool({ name: "delete_backend", description: "Delete backend", origin: iframeOrigin });
               } else if (iframeOrigin.includes(":3004")) {
-                toolsList.push(
-                  { name: "deploy_frontend", description: "Deploy frontend", origin: iframeOrigin },
-                  { name: "get_frontend", description: "Get frontend", origin: iframeOrigin },
-                  { name: "delete_frontend", description: "Delete frontend", origin: iframeOrigin }
-                );
+                addTool({ name: "deploy_frontend", description: "Deploy frontend", origin: iframeOrigin });
+                addTool({ name: "get_frontend", description: "Get frontend", origin: iframeOrigin });
+                addTool({ name: "delete_frontend", description: "Delete frontend", origin: iframeOrigin });
+              } else if (iframeOrigin.includes(":3010")) {
+                addTool({ name: "create_widget", description: "Create widget", origin: iframeOrigin });
+                addTool({ name: "get_widget", description: "Get widget", origin: iframeOrigin });
+                addTool({ name: "delete_widget", description: "Delete widget", origin: iframeOrigin });
+                addTool({ name: "publish_widget", description: "Publish widget", origin: iframeOrigin });
+                addTool({ name: "get_publication", description: "Get publication", origin: iframeOrigin });
+                addTool({ name: "unpublish_widget", description: "Unpublish widget", origin: iframeOrigin });
+                addTool({ name: "send_notification", description: "Send notification", origin: iframeOrigin });
+                addTool({ name: "ping_service", description: "Ping service", origin: iframeOrigin });
+                addTool({ name: "get_status", description: "Get status", origin: iframeOrigin });
               }
             } catch {
               // Frame origin check safety
@@ -186,11 +220,16 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
           const iframes = Array.from(document.querySelectorAll("iframe"));
           const targetIframe = iframes.find((f) => {
             try {
-              return origin ? f.src.includes(origin) : true;
+              if (origin) {
+                const fOrigin = new URL(f.src).origin;
+                const oOrigin = new URL(origin).origin;
+                return fOrigin === oOrigin || f.src.includes(origin) || origin.includes(fOrigin);
+              }
+              return true;
             } catch {
               return false;
             }
-          });
+          }) || iframes[0];
 
           if (targetIframe && targetIframe.contentWindow) {
             return new Promise((resolve, reject) => {

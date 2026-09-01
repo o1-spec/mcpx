@@ -179,11 +179,10 @@ export function useWorkflowRunner(
               tools = [];
             }
           }
-          const targetTool = tools.find((t) => t.name === node.executeTool);
-
-          if (!targetTool) {
-            throw new Error(`Tool '${node.executeTool}' not exposed by ${node.origin}`);
-          }
+          const targetTool = tools.find((t) => t.name === node.executeTool) || {
+            name: node.executeTool,
+            origin: node.origin,
+          };
 
           const payload: Record<string, unknown> = {
             [node.operationKeyField]: node.operationKey,
@@ -299,7 +298,10 @@ export function useWorkflowRunner(
               tools = [];
             }
           }
-          const compTool = tools.find((t) => t.name === node.compensateTool);
+          const compTool = tools.find((t) => t.name === node.compensateTool) || (node.compensateTool ? {
+            name: node.compensateTool,
+            origin: node.origin,
+          } : null);
           if (compTool) {
             await document.modelContext.executeTool(
               compTool,
