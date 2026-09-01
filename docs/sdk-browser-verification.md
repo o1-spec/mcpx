@@ -80,3 +80,10 @@ This document details the exact protocol for verifying that the MCPx SDK execute
 - [x] **No Deserialized Cloning**: The object passed into `document.modelContext.executeTool(tool, args)` is always a direct reference from `document.modelContext.getTools()`.
 - [x] **No Stale Frame Caching**: If an iframe reloads, tools are dynamically queried afresh.
 - [x] **Atomic Worker Leases**: When multiple browser tabs are open, `SELECT ... FOR UPDATE SKIP LOCKED` guarantees only one worker executes a given node at any time.
+
+---
+
+## 4. `executeTool` Compatibility Specification
+
+The Chrome WebMCP testing surface used by this project currently invokes `document.modelContext.executeTool()` with a live `RegisteredTool` plus serialized JSON arguments (`JSON.stringify(payload)`). MCPx keeps this browser-specific invocation behind its Browser Runner adapter (`useWebMCPBrowserRunner`). Child tool handlers support both serialized JSON strings and structured object arguments (`typeof input === "string" ? JSON.parse(input) : input`). Most crucially, the first parameter passed to `executeTool` is always the fresh native `RegisteredTool` instance returned directly from `document.modelContext.getTools()`, avoiding serialization and preserving live window/frame references.
+

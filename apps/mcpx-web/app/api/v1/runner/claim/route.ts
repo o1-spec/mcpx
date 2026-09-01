@@ -78,11 +78,11 @@ export async function POST(request: NextRequest) {
 
       // 2. Check for transactions in ACTIVE state (forward DAG execution)
       const activeTxRes = await client.query(
-        `SELECT id FROM transactions WHERE state = 'ACTIVE' ORDER BY created_at ASC FOR UPDATE SKIP LOCKED LIMIT 1`
+        `SELECT id FROM transactions WHERE state = 'ACTIVE' ORDER BY created_at ASC LIMIT 10`
       );
 
-      if (activeTxRes.rows.length > 0) {
-        const txId = activeTxRes.rows[0].id;
+      for (const txRow of activeTxRes.rows) {
+        const txId = txRow.id;
         const nodesRes = await client.query(
           `SELECT id, service, label, origin, execute_tool, inspect_tool, compensate_tool,
                   state, operation_key, resource_id, dependencies, execute_args, claimed_by, lease_expires_at
@@ -122,32 +122,34 @@ export async function POST(request: NextRequest) {
         );
 
         if (runnableNode) {
-          await client.query(
+          const updateRes = await client.query(
             `UPDATE transaction_nodes
              SET claimed_by = $1, lease_expires_at = NOW() + INTERVAL '30 seconds', updated_at = NOW()
-             WHERE transaction_id = $2 AND id = $3`,
+             WHERE transaction_id = $2 AND id = $3 AND (lease_expires_at IS NULL OR lease_expires_at < NOW() OR claimed_by = $1)`,
             [runnerId, txId, runnableNode.id]
           );
 
-          // Collect upstream dependency outputs
-          const upstreamOutputs: Record<string, { resourceId?: string; [key: string]: unknown }> = {};
-          for (const depId of runnableNode.dependencies) {
-            const depNode = nodes.find((n) => n.id === depId);
-            if (depNode?.resourceId) {
-              upstreamOutputs[depId] = { resourceId: depNode.resourceId };
+          if (updateRes.rowCount === 1) {
+            // Collect upstream dependency outputs
+            const upstreamOutputs: Record<string, { resourceId?: string; [key: string]: unknown }> = {};
+            for (const depId of runnableNode.dependencies) {
+              const depNode = nodes.find((n) => n.id === depId);
+              if (depNode?.resourceId) {
+                upstreamOutputs[depId] = { resourceId: depNode.resourceId };
+              }
             }
+
+            await client.query("COMMIT");
+
+            return NextResponse.json({
+              work: {
+                transactionId: txId,
+                action: "EXECUTE",
+                node: runnableNode,
+                upstreamOutputs,
+              },
+            });
           }
-
-          await client.query("COMMIT");
-
-          return NextResponse.json({
-            work: {
-              transactionId: txId,
-              action: "EXECUTE",
-              node: runnableNode,
-              upstreamOutputs,
-            },
-          });
         }
       }
 
