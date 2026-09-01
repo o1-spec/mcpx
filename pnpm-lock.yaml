@@ -293,7 +293,7 @@ importers:
 
   examples/sdk-agent-demo:
     dependencies:
-      '@mcpx/sdk':
+      '@mcpxx/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
     devDependencies:
