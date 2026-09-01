@@ -15,9 +15,11 @@ import type {
 
 class WebMCPModelContext extends EventTarget implements ModelContext {
   private registeredTools = new Map<string, ToolDefinition & { origin?: string; exposedTo?: string[] }>();
+  private nativeContext?: ModelContext;
 
-  constructor() {
+  constructor(nativeContext?: ModelContext) {
     super();
+    this.nativeContext = nativeContext;
     this.initCrossFrameListener();
   }
 
@@ -69,6 +71,14 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
       exposedTo: options?.exposedTo,
     });
 
+    if (this.nativeContext?.registerTool) {
+      try {
+        await this.nativeContext.registerTool(toolDef, options);
+      } catch {
+        // native fallback
+      }
+    }
+
     if (window.parent && window.parent !== window) {
       window.parent.postMessage(
         {
@@ -96,13 +106,39 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
 
   async getTools(options?: GetToolsOptions): Promise<RegisteredTool[]> {
     const toolsList: RegisteredTool[] = [];
+    const addedNames = new Set<string>();
+
+    if (this.nativeContext?.getTools) {
+      try {
+        const nativeTools = await this.nativeContext.getTools(options);
+        if (Array.isArray(nativeTools)) {
+          for (const nt of nativeTools) {
+            if (nt && nt.name && !addedNames.has(nt.name)) {
+              addedNames.add(nt.name);
+              toolsList.push({
+                name: nt.name,
+                description: nt.description,
+                inputSchema: nt.inputSchema,
+                origin: (nt as RegisteredTool).origin || window.location.origin,
+              });
+            }
+          }
+        }
+      } catch {
+        // Native getTools fallback
+      }
+    }
+
     this.registeredTools.forEach((tool) => {
-      toolsList.push({
-        name: tool.name,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        origin: tool.origin || window.location.origin,
-      });
+      if (!addedNames.has(tool.name)) {
+        addedNames.add(tool.name);
+        toolsList.push({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+          origin: tool.origin || window.location.origin,
+        });
+      }
     });
 
     if (options?.fromOrigins && options.fromOrigins.length > 0) {
@@ -126,16 +162,30 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
         };
       }
     }
+
+    if (this.nativeContext?.executeTool) {
+      try {
+        const nativeResult = await this.nativeContext.executeTool(tool, serializedArguments);
+        if (nativeResult) return nativeResult;
+      } catch {
+        // fallback
+      }
+    }
+
     throw new Error(`Tool '${toolName}' not found in registered WebMCP context`);
   }
 }
 
 export function ensureWebMCPBridge(): ModelContext | null {
   if (typeof window === "undefined" || typeof document === "undefined") return null;
-  if (!document.modelContext) {
-    document.modelContext = new WebMCPModelContext();
+  if ((document as unknown as { __mcpx_bridge_installed?: boolean }).__mcpx_bridge_installed) {
+    return document.modelContext;
   }
-  return document.modelContext;
+  const existing = document.modelContext;
+  const bridge = new WebMCPModelContext(existing);
+  document.modelContext = bridge;
+  (document as unknown as { __mcpx_bridge_installed?: boolean }).__mcpx_bridge_installed = true;
+  return bridge;
 }
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
