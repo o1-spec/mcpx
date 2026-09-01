@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import StatusPill from "@/components/ui/StatusPill";
+import { useWebMCPBrowserRunner } from "@/hooks/useWebMCPBrowserRunner";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -13,6 +14,9 @@ export default function AppLayout({ children }: AppShellProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+
+  // Active WebMCP Browser Runner Hook (claims work and executes native WebMCP tools)
+  const { runnerId, isProcessing, lastExecutedNode } = useWebMCPBrowserRunner();
 
   const isOverview = pathname === "/app";
   const isServices = pathname?.startsWith("/app/services");
@@ -194,6 +198,17 @@ export default function AppLayout({ children }: AppShellProps) {
               <span className="text-subtle">PostgreSQL:</span>
               <span className="text-muted">Port 5435</span>
             </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-subtle">WebMCP Runner:</span>
+              <span className="text-accent-lime font-mono text-[10.5px]">
+                {runnerId.slice(0, 10)}
+              </span>
+            </div>
+            {isProcessing && (
+              <div className="text-[10px] text-accent-cyan truncate animate-pulse">
+                ▶ {lastExecutedNode || "Executing WebMCP..."}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between px-1 text-xs">

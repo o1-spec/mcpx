@@ -65,6 +65,14 @@ export async function initCoordinatorDb(): Promise<void> {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY (transaction_id, id)
       );
+      ALTER TABLE transaction_nodes ADD COLUMN IF NOT EXISTS claimed_by VARCHAR(255);
+      ALTER TABLE transaction_nodes ADD COLUMN IF NOT EXISTS lease_expires_at TIMESTAMPTZ;
+
+      CREATE TABLE IF NOT EXISTS runner_workers (
+        id VARCHAR(255) PRIMARY KEY,
+        last_heartbeat_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        metadata JSONB NOT NULL DEFAULT '{}'
+      );
     `);
 
     await client.query(`

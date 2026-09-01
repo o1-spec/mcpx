@@ -8,7 +8,6 @@ import {
   pool,
   type WorkflowRecord,
 } from "@/lib/db";
-import { runWorkflowTransaction } from "@/lib/server-runner";
 
 export async function POST(
   request: NextRequest,
@@ -23,7 +22,6 @@ export async function POST(
     let workflow: WorkflowRecord | null = await getWorkflow(id);
 
     if (!workflow) {
-      // Look up by name or slug
       const all = await listWorkflows();
       workflow =
         all.find((w) => w.name.toLowerCase() === id.toLowerCase() || w.name.toLowerCase().replace(/\s+/g, "-") === id.toLowerCase()) || null;
@@ -63,6 +61,12 @@ export async function POST(
     try {
       await client.query("BEGIN");
 
+      // Check active runners
+      const runnerRes = await client.query(
+        `SELECT COUNT(*)::int as count FROM runner_workers WHERE last_heartbeat_at > NOW() - INTERVAL '20 seconds'`
+      );
+      const activeRunners = runnerRes.rows[0]?.count ?? 0;
+
       await client.query(
         `INSERT INTO transactions (id, state, scenario, workflow_id, next_event_sequence, created_at, updated_at)
          VALUES ($1, 'ACTIVE', $2, $3, 2, NOW(), NOW())`,
@@ -94,8 +98,17 @@ export async function POST(
       await client.query(
         `INSERT INTO transaction_events (id, transaction_id, sequence, event_type, payload, occurred_at)
          VALUES ($1, $2, 1, 'TRANSACTION_STARTED', $3, NOW())`,
-        [crypto.randomUUID(), txId, JSON.stringify({ workflowId: workflow.id, workflowName: workflow.name, totalNodes: enrichedNodes.length })]
+        [crypto.randomUUID(), txId, JSON.stringify({ workflowId: workflow.id, workflowName: workflow.name, totalNodes: enrichedNodes.length, activeRunners })]
       );
+
+      if (activeRunners === 0) {
+        await client.query(
+          `INSERT INTO transaction_events (id, transaction_id, sequence, event_type, payload, occurred_at)
+           VALUES ($1, $2, 2, 'RUNNER_WAITING', $3, NOW())`,
+          [crypto.randomUUID(), txId, JSON.stringify({ message: "Waiting for active browser WebMCP runner..." })]
+        );
+        await client.query(`UPDATE transactions SET next_event_sequence = 3 WHERE id = $1`, [txId]);
+      }
 
       await client.query("COMMIT");
     } catch (err) {
@@ -104,11 +117,6 @@ export async function POST(
     } finally {
       client.release();
     }
-
-    // Launch DAG execution asynchronously
-    runWorkflowTransaction(txId, workflow, runtimeInput).catch((e) => {
-      console.error(`[mcpx-v1] execution error in background for ${txId}:`, e);
-    });
 
     return NextResponse.json(
       {

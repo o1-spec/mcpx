@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pool, initCoordinatorDb } from "@/lib/db";
-import { compensateTransaction } from "@/lib/server-runner";
+import { pool, initCoordinatorDb, executeAtomicTransition } from "@/lib/db";
 
 export async function POST(
   request: NextRequest,
@@ -28,9 +27,12 @@ export async function POST(
       client.release();
     }
 
-    // Launch compensation in background
-    compensateTransaction(transactionId, reason).catch((e) => {
-      console.error(`[mcpx-v1] error during compensation for ${transactionId}:`, e);
+    // Atomic transition to COMPENSATING state and emit sequence event
+    await executeAtomicTransition({
+      transactionId,
+      txState: "COMPENSATING",
+      eventType: "TRANSACTION_COMPENSATING",
+      eventPayload: { reason },
     });
 
     return NextResponse.json({
@@ -39,7 +41,6 @@ export async function POST(
         ...txRow,
         state: "COMPENSATING",
         updatedAt: new Date().toISOString(),
-        nodes: [],
       },
     });
   } catch (err: unknown) {
