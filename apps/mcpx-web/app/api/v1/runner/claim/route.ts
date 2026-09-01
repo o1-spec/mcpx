@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       const compTxRes = await client.query(
         specificTxId
           ? `SELECT id FROM transactions WHERE state = 'COMPENSATING' AND id = $1`
-          : `SELECT id FROM transactions WHERE state = 'COMPENSATING' ORDER BY updated_at DESC LIMIT 10`,
+          : `SELECT id FROM transactions WHERE state = 'COMPENSATING' AND (workflow_id IS NOT NULL OR id NOT LIKE 'tx:demo-%') ORDER BY updated_at DESC LIMIT 10`,
         specificTxId ? [specificTxId] : []
       );
 
@@ -90,11 +90,11 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 2. Check for transactions in ACTIVE state (forward DAG execution)
+      // 2. Check for transactions in ACTIVE state (forward DAG execution for workflow runs)
       const activeTxRes = await client.query(
         specificTxId
           ? `SELECT id FROM transactions WHERE state = 'ACTIVE' AND id = $1`
-          : `SELECT id FROM transactions WHERE state = 'ACTIVE' ORDER BY updated_at DESC, created_at DESC LIMIT 10`,
+          : `SELECT id FROM transactions WHERE state = 'ACTIVE' AND (workflow_id IS NOT NULL OR id NOT LIKE 'tx:demo-%') ORDER BY updated_at DESC, created_at DESC LIMIT 10`,
         specificTxId ? [specificTxId] : []
       );
 
