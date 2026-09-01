@@ -142,6 +142,51 @@ Visit **`http://localhost:3000`** in your browser.
 
 ---
 
+## TypeScript SDK (`@mcpx/sdk`)
+
+External applications and AI agents integrate with MCPx programmatically via the official [`@mcpx/sdk`](./packages/sdk):
+
+```bash
+pnpm add @mcpx/sdk
+```
+
+### Programmatic Agent Invocation
+
+```ts
+import { MCPx } from "@mcpx/sdk";
+
+const mcpx = new MCPx({
+  endpoint: process.env.MCPX_URL || "http://localhost:3000",
+  apiKey: process.env.MCPX_API_KEY,
+});
+
+// Start a workflow run
+const run = await mcpx.workflows.run("deploy-application", {
+  projectName: "storefront",
+  environment: "production",
+});
+
+console.log(`Transaction ID: ${run.id}`);
+console.log(`Console Debug:  ${run.consoleUrl}`);
+
+// Stream live state transitions
+for await (const event of run.events()) {
+  console.log(`[${event.nodeLabel || "tx"}] -> ${event.type}`);
+}
+
+// Await terminal outcome
+const result = await run.wait();
+console.log(`Final status: ${result.status}`);
+```
+
+To run the live SDK integration demo:
+
+```bash
+pnpm demo:sdk
+```
+
+---
+
 ## Monorepo Service Ports
 
 | Service | Port | Directory | Purpose |

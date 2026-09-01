@@ -291,6 +291,34 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  examples/sdk-agent-demo:
+    dependencies:
+      '@mcpx/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.5
+        version: 22.20.1
+      tsx:
+        specifier: ^4.23.12
+        version: 4.23.12
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/sdk:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.5
+        version: 22.20.1
+      tsx:
+        specifier: ^4.23.12
+        version: 4.23.12
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/webmcp:
     devDependencies:
       typescript:
@@ -949,6 +977,9 @@ packages:
 
   '@types/node@20.19.43':
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
+
+  '@types/node@22.20.1':
+    resolution: {integrity: sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q==}
 
   '@types/pg@8.23.1':
     resolution: {integrity: sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A==}
@@ -3013,6 +3044,10 @@ snapshots:
   '@types/json5@0.0.29': {}
 
   '@types/node@20.19.43':
+    dependencies:
+      undici-types: 6.21.0
+
+  '@types/node@22.20.1':
     dependencies:
       undici-types: 6.21.0
 
