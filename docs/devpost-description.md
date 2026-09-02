@@ -73,7 +73,7 @@ Native WebMCP Layer (iframes with allow="tools")
 ## Demo Scenario: The 4-Service Resilience Challenge
 
 1. **Database Service**: Executes `create_database` $\rightarrow$ `SUCCEEDED` (PostgreSQL schema created).
-2. **Compute Service**: Executes `deploy_backend` $\rightarrow$ `SUCCEEDED` (Workload container deployed).
+2. **Compute Service**: Executes `deploy_backend` $\rightarrow$ `SUCCEEDED` (reference workload/runtime resource deployed).
 3. **Routing Service (Deliberate Transport ACK Loss)**:
    - `create_route` commits the ingress route.
    - MCPx intentionally injects a simulated transport drop before acknowledgement.

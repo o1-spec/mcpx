@@ -53,7 +53,7 @@ MCPx is a transactional reliability runtime for browser-orchestrated agents oper
   - If the remote resource does not exist: transition to `FAILED`.
 
 ### 2.4 Compensation & Rollback Engine
-- **LIFO Compensation**: When a downstream step suffers a confirmed terminal failure, completed upstream steps are compensated in reverse topological order.
+- **reverse topological compensation**: When a downstream step suffers a confirmed terminal failure, completed upstream steps are compensated in reverse topological order.
 - **Safety Gate**: Destructive rollbacks require operator approval before executing compensating mutations.
 - **Absence Verification**: After invoking the `compensate` tool, MCPx queries the `inspect` tool to authoritatively prove that the remote resource was destroyed.
 
@@ -70,7 +70,7 @@ MCPx is a transactional reliability runtime for browser-orchestrated agents oper
 | **mcpx-web** | `3000` | Control plane, DAG engine, UI | Coordinator |
 | **routing-app** | `3001` | Ingress routing & proxy gateway | `create_route` / `get_route` / `delete_route` |
 | **database-app** | `3002` | Schema & database provisioning | `create_database` / `get_database` / `delete_database` |
-| **compute-app** | `3003` | Backend container workload deployment | `deploy_backend` / `get_backend` / `delete_backend` |
+| **compute-app** | `3003` | Backend reference workload resource deployment | `deploy_backend` / `get_backend` / `delete_backend` |
 | **frontend-app** | `3004` | Frontend client & UI hosting | `deploy_frontend` / `get_frontend` / `delete_frontend` |
 | **example-external** | `3010` | 3rd-party widget & registry provider | `create_widget` / `get_widget` / `delete_widget` |
 | **PostgreSQL** | `5435` | Durable audit log & transaction state | `mcpx_control` |

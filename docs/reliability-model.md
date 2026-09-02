@@ -9,7 +9,7 @@ This document specifies the transaction state machine, uncertainty resolution se
 In distributed systems and WebMCP browser orchestration:
 > **A timeout or lost acknowledgement does NOT prove a write failed.**
 
-If a remote service commits a write to its storage engine but the network packet or postMessage response frame is lost:
+If a remote service commits a write to its storage engine but the network packet or transport response frame is lost:
 1. A **naive retry** will execute a duplicate write, resulting in resource duplication, double billing, or corrupted states.
 2. A **naive abort** leaves orphaned external resources running indefinitely.
 
@@ -77,7 +77,7 @@ When a node enters `IN_DOUBT`:
 When an unrecoverable failure occurs in step $N$:
 1. Execution halts immediately across all concurrent branches.
 2. All upstream completed steps ($1 \dots N-1$) are identified.
-3. Steps are sorted in **reverse topological dependency order** (LIFO).
+3. Steps are sorted in **reverse topological dependency order** (reverse topological order).
 4. If configured with a safety gate, MCPx halts in `AWAITING_COMPENSATION_APPROVAL` for operator review.
 5. Upon approval, each compensating tool is executed sequentially.
 6. Following each compensation RPC, an inspect query is executed to verify **authoritative absence** (`exists: false`) before declaring the step `COMPENSATED`.

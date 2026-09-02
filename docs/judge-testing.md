@@ -17,15 +17,15 @@ MCPx uses the standard browser WebMCP APIs and is designed for WebMCP-capable br
 
 ## 2. Live Public Deployment URLs
 
-- **MCPx Control Plane & Coordinator**: `<MCPX_PUBLIC_URL>` (or `http://localhost:3000` for local evaluation)
-- **FileFlow AI Operator**: `<FILEFLOW_PUBLIC_URL>` (or `http://localhost:3005` for local evaluation)
+- **MCPx Control Plane & Coordinator**: `https://mcpx-mcpx-web.vercel.app` (or `https://mcpx-mcpx-web.vercel.app` for local evaluation)
+- **FileFlow AI Operator**: `<FILEFLOW_PUBLIC_URL>` (or `https://file-flow-test.vercel.app` for local evaluation)
 
 ---
 
 ## 3. Step-by-Step Testing Walkthrough
 
 ### Step 1: Verify the WebMCP Browser Runner
-1. Open the MCPx Dashboard at `http://localhost:3000/app` (or `<MCPX_PUBLIC_URL>/app`).
+1. Open the MCPx Dashboard at `https://mcpx-mcpx-web.vercel.app/app` (or `https://mcpx-mcpx-web.vercel.app/app`).
 2. Look at the bottom-left sidebar status indicator:
    - Verify `WebMCP Runner: runner_...` has a **green ACTIVE** dot.
    - This indicates your browser tab is registered as an active WebMCP execution runner.
@@ -33,7 +33,7 @@ MCPx uses the standard browser WebMCP APIs and is designed for WebMCP-capable br
 ---
 
 ### Step 2: Run the Flagship Workflow from FileFlow
-1. Open the FileFlow Operator at `http://localhost:3005/operator` (or `<FILEFLOW_PUBLIC_URL>/operator`).
+1. Open the FileFlow Operator at `https://file-flow-test.vercel.app/operator` (or `<FILEFLOW_PUBLIC_URL>/operator`).
 2. In the AI prompt input box at the bottom, paste:
    ```text
    Provision a production processing workspace called invoices-prod with four workers.
@@ -72,7 +72,7 @@ Watch the live DAG visualization in FileFlow:
 ---
 
 ### Step 5: Inspect the Durable Transaction in MCPx
-1. Click the **View in MCPx** button in FileFlow (or open `http://localhost:3000/app/transactions`).
+1. Click the **View in MCPx** button in FileFlow (or open `https://mcpx-mcpx-web.vercel.app/app/transactions`).
 2. Observe the full immutable transaction ledger, including:
    - Monotonic event sequence numbers (`#1` to `#16`)
    - Explicit `IN_DOUBT` and `RECONCILING` transition audit logs
@@ -83,7 +83,7 @@ Watch the live DAG visualization in FileFlow:
 ## 4. Troubleshooting
 
 - **Browser Runner shows "WAITING" or "OFFLINE"**:
-  - Make sure `http://localhost:3000/app` is open in an active browser tab with `#enable-webmcp-testing` enabled.
+  - Make sure `https://mcpx-mcpx-web.vercel.app/app` is open in an active browser tab with `#enable-webmcp-testing` enabled.
   - The Browser Runner claims work from the coordinator and dispatches native `document.modelContext.executeTool()` calls in that tab.
 - **Database Connection**:
   - For local runs, ensure Docker is running with `docker compose up -d postgres`.

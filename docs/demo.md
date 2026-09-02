@@ -16,22 +16,22 @@ pnpm db:up
 pnpm dev
 ```
 
-Open **`http://localhost:3000`** in your browser.
+Open **`https://mcpx-mcpx-web.vercel.app`** in your browser.
 
 ---
 
 ## 2. Walkthrough Scenario: The Challenge Workflow
 
 ### Step 1: Navigate to the Overview / Workflows
-- In the MCPx dashboard, open **Workflows** (`http://localhost:3000/app/workflows`).
+- In the MCPx dashboard, open **Workflows** (`https://mcpx-mcpx-web.vercel.app/app/workflows`).
 - Select the preconfigured **Reference Infrastructure Deployment Pipeline**.
 
 ### Step 2: Observe the 4-Service DAG Topology
 The pipeline consists of four distinct WebMCP services:
-1. **Database Service** (`http://localhost:3002`): Provision PostgreSQL schema.
-2. **Compute Service** (`http://localhost:3003`): Deploy microservice container.
-3. **Routing Service** (`http://localhost:3001`): Provision ingress gateway (*with simulated drop-ACK failure*).
-4. **Frontend Service** (`http://localhost:3004`): Deploy CDN distribution (*with deliberate validation failure*).
+1. **Database Service** (`https://mcpx-database-app.vercel.app`): Provision PostgreSQL schema.
+2. **Compute Service** (`https://mcpx-compute-app.vercel.app`): Deploy microservice container.
+3. **Routing Service** (`https://mcpx-routing-app.vercel.app`): Provision ingress gateway (*with simulated drop-ACK failure*).
+4. **Frontend Service** (`https://mcpx-frontend-app.vercel.app`): Deploy CDN distribution (*with deliberate validation failure*).
 
 ### Step 3: Trigger Execution
 - Click **"Execute Workflow"**.
@@ -48,7 +48,7 @@ The pipeline consists of four distinct WebMCP services:
 - The control plane pauses and presents the **Rollback Approval Safety Gate**.
 - The card clearly enumerates:
   - **Existing committed resources** to be destroyed: Routing, Compute, Database.
-  - **Execution sequence**: LIFO order (Routing $\rightarrow$ Compute $\rightarrow$ Database).
+  - **Execution sequence**: reverse dependency order (Routing $\rightarrow$ Compute $\rightarrow$ Database).
 - Click **"Approve Rollback"**.
 - Observe each compensating tool execute in reverse order, verifying absence at each step until reaching `COMPENSATED`.
 

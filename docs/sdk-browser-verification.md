@@ -6,14 +6,14 @@ This document details the exact protocol for verifying that the MCPx SDK execute
 
 ## 1. Prerequisites & Environment
 
-- **Browser**: Google Chrome 128+ with Model Context / WebMCP flags enabled.
+- **Browser**: Google Chrome 149+ with Model Context / WebMCP flags enabled.
 - **Flags**: `chrome://flags/#enable-model-context-api` or equivalent experimental WebMCP browser runtime.
 - **Origins**:
-  - Coordinator: `http://localhost:3000`
-  - Routing Service: `http://localhost:3001`
-  - Database Service: `http://localhost:3002`
-  - Compute Service: `http://localhost:3003`
-  - Frontend Service: `http://localhost:3004`
+  - Coordinator: `https://mcpx-mcpx-web.vercel.app`
+  - Routing Service: `https://mcpx-routing-app.vercel.app`
+  - Database Service: `https://mcpx-database-app.vercel.app`
+  - Compute Service: `https://mcpx-compute-app.vercel.app`
+  - Frontend Service: `https://mcpx-frontend-app.vercel.app`
   - Example External Service: `http://localhost:3010`
 - **Database**: PostgreSQL on `localhost:5435` (`mcpx_control`).
 
@@ -24,7 +24,7 @@ This document details the exact protocol for verifying that the MCPx SDK execute
 ### Test Scenario 1: No Browser Runner (Server/DB Only)
 
 1. Ensure all microservices and PostgreSQL are running (`pnpm dev`).
-2. Close all browser windows/tabs visiting `http://localhost:3000`.
+2. Close all browser windows/tabs visiting `https://mcpx-mcpx-web.vercel.app`.
 3. In terminal, run:
    ```bash
    pnpm demo:sdk
@@ -41,10 +41,10 @@ This document details the exact protocol for verifying that the MCPx SDK execute
 ### Test Scenario 2: Real Chrome WebMCP Runner Execution
 
 1. Open Chrome with WebMCP testing enabled.
-2. Navigate to **`http://localhost:3000/app`**.
+2. Navigate to **`https://mcpx-mcpx-web.vercel.app/app`**.
 3. Verify that the sidebar indicates `WebMCP Runner: ONLINE (runner_...)`.
 4. Verify embedded microservice iframes are loaded with `allow="tools"`.
-5. Open Chrome DevTools Console on `http://localhost:3000/app`.
+5. Open Chrome DevTools Console on `https://mcpx-mcpx-web.vercel.app/app`.
 6. In terminal, execute:
    ```bash
    pnpm demo:sdk
@@ -62,7 +62,7 @@ This document details the exact protocol for verifying that the MCPx SDK execute
 
 ### Test Scenario 3: Real Chrome Challenge Scenario (In-Doubt Reconcile + Reverse Compensation)
 
-1. With `http://localhost:3000/app` open in Chrome, initiate the challenge workflow (Routing drop-ACK + Frontend deliberate rejection).
+1. With `https://mcpx-mcpx-web.vercel.app/app` open in Chrome, initiate the challenge workflow (Routing drop-ACK + Frontend deliberate rejection).
 2. **Execution Steps Observed**:
    - `create_database` $\rightarrow$ WebMCP `executeTool` succeeds.
    - `create_backend` $\rightarrow$ WebMCP `executeTool` succeeds.
