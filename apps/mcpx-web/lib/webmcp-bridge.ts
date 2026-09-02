@@ -250,15 +250,39 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
       try {
         const nativeResult = await this.nativeContext.executeTool(tool, serializedArguments);
         if (nativeResult) return nativeResult;
-      } catch {
-        // Fall through to iframe cross-origin dispatch
+      } catch (nativeErr: unknown) {
+        const errMsg = nativeErr instanceof Error ? nativeErr.message : String(nativeErr);
+        // If native context actually executed the tool and the tool itself threw an error
+        // (such as simulated ACK loss, precondition error, or schema validation), rethrow immediately.
+        if (
+          errMsg.includes("ERR_CONNECTION_RESET") ||
+          errMsg.includes("Simulated transport acknowledgement loss") ||
+          errMsg.includes("REJECTED_BEFORE_COMMIT") ||
+          errMsg.includes("CHAOS_PRECONDITION_FAILED") ||
+          (nativeErr && typeof nativeErr === "object" && "name" in nativeErr && (nativeErr as { name: string }).name === "NetworkError")
+        ) {
+          throw nativeErr;
+        }
+        // Otherwise fall through to iframe cross-origin dispatch if native context did not recognize tool
       }
     }
 
     // 3. If tool belongs to a child iframe, route request to the respective iframe
     if (typeof document !== "undefined") {
-      const iframes = Array.from(document.querySelectorAll("iframe"));
-      if (iframes.length > 0) {
+      const allIframes = Array.from(document.querySelectorAll("iframe"));
+      const toolOrigin = (tool.origin || "").replace(/\/+$/, "");
+      
+      // Filter to matching iframe if origin is known, or deduplicate by src
+      const targetIframes = toolOrigin
+        ? allIframes.filter((f) => {
+            const src = (f.src || "").replace(/\/+$/, "");
+            return src.startsWith(toolOrigin) || (src.includes("localhost") && toolOrigin.includes("localhost") && src.split(":")[2] === toolOrigin.split(":")[2]);
+          })
+        : allIframes;
+
+      const iframesToDispatch = targetIframes.length > 0 ? [targetIframes[0]] : allIframes.slice(0, 1);
+
+      if (iframesToDispatch.length > 0) {
         return new Promise((resolve, reject) => {
           let resolved = false;
           const messageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -293,7 +317,7 @@ class WebMCPModelContext extends EventTarget implements ModelContext {
 
           window.addEventListener("message", handler);
 
-          for (const iframe of iframes) {
+          for (const iframe of iframesToDispatch) {
             try {
               iframe.contentWindow?.postMessage(
                 { type: "WEBMCP_EXECUTE_REQUEST", toolName, input: serializedArguments, messageId },
