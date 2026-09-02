@@ -33,7 +33,7 @@ export const deployBackendTool: ToolDefinition = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          projectName: args?.projectName,
+          projectName: args?.projectName || args?.workspaceName || args?.name || "invoices-prod",
           databaseResourceId: args?.databaseResourceId,
           operationKey: args?.operationKey,
         }),

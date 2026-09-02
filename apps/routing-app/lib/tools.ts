@@ -41,13 +41,16 @@ export const createRouteTool: ToolDefinition = {
       );
     }
 
+    const projectName = args?.projectName || args?.workspaceName || args?.name || "invoices-prod";
+    const targetUrl = args?.targetUrl || `https://${projectName}.internal`;
+
     // 1. Commit route to own API
     const res = await fetch("/api/routes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        projectName: args?.projectName,
-        targetUrl: args?.targetUrl,
+        projectName,
+        targetUrl,
         operationKey: args?.operationKey,
       }),
     });

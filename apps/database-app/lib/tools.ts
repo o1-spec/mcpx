@@ -28,7 +28,7 @@ export const createDatabaseTool: ToolDefinition = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: args?.name,
+          name: args?.name || args?.workspaceName || args?.projectName || "invoices-prod",
           operationKey: args?.operationKey,
         }),
       });

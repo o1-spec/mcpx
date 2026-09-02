@@ -46,7 +46,7 @@ export const deployFrontendTool: ToolDefinition = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        projectName: args?.projectName,
+        projectName: args?.projectName || args?.workspaceName || args?.name || "invoices-prod",
         backendResourceId: args?.backendResourceId,
         operationKey: args?.operationKey,
       }),
