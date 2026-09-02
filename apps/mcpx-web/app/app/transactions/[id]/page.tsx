@@ -52,22 +52,44 @@ export default function TransactionDetailPage({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/v1/transactions/${txId}`)
-      .then(async (res) => {
+    let timer: NodeJS.Timeout | null = null;
+    let isCancelled = false;
+
+    async function loadTx() {
+      try {
+        const res = await fetch(`/api/v1/transactions/${txId}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || `HTTP ${res.status}`);
         }
-        return res.json();
-      })
-      .then((data) => {
-        setTx(data.transaction);
-        setEvents(data.events || []);
-      })
-      .catch((err) => {
-        setError(err.message);
-      })
-      .finally(() => setLoading(false));
+        const data = await res.json();
+        if (!isCancelled) {
+          setTx(data.transaction);
+          setEvents(data.events || []);
+          setError(null);
+          setLoading(false);
+
+          // Auto-poll every 800ms while transaction is in progress
+          const currentState = (data.transaction?.state || "").toUpperCase();
+          const isTerminal = ["COMMITTED", "COMPENSATED", "REJECTED"].includes(currentState);
+          if (!isTerminal) {
+            timer = setTimeout(loadTx, 800);
+          }
+        }
+      } catch (err: unknown) {
+        if (!isCancelled) {
+          setError(err instanceof Error ? err.message : String(err));
+          setLoading(false);
+        }
+      }
+    }
+
+    loadTx();
+
+    return () => {
+      isCancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [txId]);
 
   if (loading) {
