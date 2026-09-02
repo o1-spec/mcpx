@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import StatusPill from "@/components/ui/StatusPill";
 import { useWebMCPBrowserRunner } from "@/hooks/useWebMCPBrowserRunner";
 import { origins } from "@/lib/config/origins";
@@ -19,6 +19,21 @@ export default function AppLayout({ children }: AppShellProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [isWebMCPAvailable, setIsWebMCPAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+    const hasNative =
+      "modelContext" in Document.prototype ||
+      Boolean(
+        document.modelContext &&
+          typeof document.modelContext.getTools === "function" &&
+          !(document as unknown as { __mcpx_polyfill_only?: boolean }).__mcpx_polyfill_only
+      );
+    queueMicrotask(() => {
+      setIsWebMCPAvailable(hasNative);
+    });
+  }, []);
 
   // Active WebMCP Browser Runner Hook (claims work and executes native WebMCP tools)
   const { runnerId, isProcessing, lastExecutedNode } = useWebMCPBrowserRunner();
@@ -264,6 +279,18 @@ export default function AppLayout({ children }: AppShellProps) {
 
           {/* Right utility actions */}
           <div className="flex items-center gap-3">
+            {origins.fileflowOperator && (
+              <a
+                href={origins.fileflowOperator}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-panel border border-white/10 hover:border-white/20 text-xs font-mono text-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <span>Open AI Operator</span>
+                <span className="text-subtle">↗</span>
+              </a>
+            )}
+
             {/* Quick search shortcut */}
             <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded bg-panel border border-white/8 text-xs font-mono text-subtle">
               <svg className="w-3 h-3 text-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -287,6 +314,16 @@ export default function AppLayout({ children }: AppShellProps) {
         {/* Mobile Flyout Drawer */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-panel border-b border-white/8 p-4 space-y-3 font-mono text-xs z-30">
+            {origins.fileflowOperator && (
+              <a
+                href={origins.fileflowOperator}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block py-2 text-accent-cyan hover:underline"
+              >
+                Open AI Operator ↗
+              </a>
+            )}
             <Link
               href="/app"
               onClick={() => setMobileMenuOpen(false)}
@@ -329,6 +366,20 @@ export default function AppLayout({ children }: AppShellProps) {
 
         {/* Main Content Area */}
         <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-360 w-full mx-auto space-y-6">
+          {isWebMCPAvailable === false && (
+            <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs font-mono flex items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-start sm:items-center gap-2.5">
+                <span className="text-amber-400 font-bold shrink-0">⚠️ Notice:</span>
+                <span>
+                  WebMCP is unavailable in this browser. Use ChatGPT’s WebMCP-capable browser or Chrome 149+ with{" "}
+                  <code className="bg-white/10 px-1 py-0.5 rounded text-amber-100 font-semibold select-all">
+                    chrome://flags/#enable-webmcp-testing
+                  </code>{" "}
+                  enabled.
+                </span>
+              </div>
+            </div>
+          )}
           {children}
         </main>
       </div>

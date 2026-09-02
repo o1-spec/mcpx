@@ -5,6 +5,7 @@ export const origins = {
   compute: process.env.NEXT_PUBLIC_COMPUTE_ORIGIN || "http://localhost:3003",
   frontend: process.env.NEXT_PUBLIC_FRONTEND_ORIGIN || "http://localhost:3004",
   exampleService: process.env.NEXT_PUBLIC_EXAMPLE_SERVICE_ORIGIN || "http://localhost:3010",
+  fileflowOperator: process.env.NEXT_PUBLIC_FILEFLOW_OPERATOR_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:3005/operator"),
 };
 
 export interface ReferenceServiceConfig {

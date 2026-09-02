@@ -6,15 +6,12 @@ This guide allows an evaluator to test the complete MCPx WebMCP reliability work
 
 ## 1. Browser Setup (Important)
 
-MCPx uses the native browser WebMCP standard (`document.modelContext`).
+MCPx uses the standard browser WebMCP APIs and is designed for WebMCP-capable browsers. Chrome with the WebMCP testing flag (`chrome://flags/#enable-webmcp-testing`) is currently verified; ChatGPT in-app browser compatibility should be verified against the deployed application.
 
-### Option A: Google Chrome / Chrome Canary (Recommended)
-1. Open Chrome Canary (or Chrome with Model Context support).
+### Chrome / Chrome Canary Setup:
+1. Open Chrome (or Chrome Canary).
 2. Navigate to: `chrome://flags/#enable-webmcp-testing`
 3. Set the flag to **Enabled** and relaunch Chrome.
-
-### Option B: ChatGPT In-App Browser
-- Native WebMCP is supported out of the box.
 
 ---
 

@@ -205,8 +205,8 @@ The reference challenge scenario coordinates 4 independent microservices with de
 - **MCPx Control Plane**: `<MCPX_PUBLIC_URL>` (or `http://localhost:3000/app` locally)
 
 ### Quick Evaluation Steps:
-1. Open Google Chrome Canary with `chrome://flags/#enable-webmcp-testing` enabled (or ChatGPT in-app browser).
-2. Open the MCPx Dashboard and confirm the **WebMCP Runner** shows green **ACTIVE**.
+1. MCPx uses the standard browser WebMCP APIs and is designed for WebMCP-capable browsers. Chrome with the WebMCP testing flag (`chrome://flags/#enable-webmcp-testing`) is currently verified; ChatGPT in-app browser compatibility should be verified against the deployed application.
+2. Open the MCPx Dashboard at `<MCPX_PUBLIC_URL>/app` and confirm the **WebMCP Runner** shows green **ACTIVE**.
 3. Open FileFlow Operator and paste:
    ```text
    Provision a production processing workspace called invoices-prod with four workers.
