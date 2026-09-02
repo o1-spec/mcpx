@@ -9,25 +9,26 @@ This document details the architectural topology, communication primitives, and 
 MCPx is a transactional reliability runtime for browser-orchestrated agents operating over WebMCP (Web Model Context Protocol).
 
 ```text
-                                 +-------------------------------------+
-                                 |         MCPx Control Plane          |
-                                 |       (Coordinator / mcpx-web)      |
-                                 +-------------------------------------+
-                                            |               ^
-                        postMessage JSON-RPC|               | Durable Events & State
-                                            v               v
-                             +-------------------+    +--------------------+
-                             | WebMCP Iframe Hub |    | PostgreSQL DB      |
-                             | (Origin Isolation)|    | (Port 5435)        |
-                             +-------------------+    +--------------------+
-                                      |
-         +----------------------------+----------------------------+
-         |                            |                            |
-         v                            v                            v
-+-------------------+        +-------------------+        +-------------------+
-| Database Service  |        | Compute Service   |        | Routing Service   |
-| (Port 3002)       |        | (Port 3003)       |        | (Port 3001)       |
-+-------------------+        +-------------------+        +-------------------+
+                                 ┌─────────────────────────────────────┐
+                                 │         MCPx Control Plane          │
+                                 │       (Coordinator / mcpx-web)      │
+                                 └─────────────────────────────────────┘
+                                            │               ▲
+                        browser WebMCP exec │               │ Durable Events & State
+                     (document.modelContext)│               │ (PostgreSQL WAL)
+                                            ▼               ▼
+                              ┌───────────────────┐   ┌────────────────────┐
+                              │ WebMCP Iframe Hub │   │ PostgreSQL DB      │
+                              │ (allow="tools")   │   │ (Port 5435)        │
+                              └───────────────────┘   └────────────────────┘
+                                       │
+          ┌────────────────────────────┼────────────────────────────┐
+          │                            │                            │
+          ▼                            ▼                            ▼
+┌───────────────────┐        ┌───────────────────┐        ┌───────────────────┐
+│ Database Service  │        │ Compute Service   │        │ Routing Service   │
+│ (Port 3002)       │        │ (Port 3003)       │        │ (Port 3001)       │
+└───────────────────┘        └───────────────────┘        └───────────────────┘
 ```
 
 ---
@@ -35,9 +36,9 @@ MCPx is a transactional reliability runtime for browser-orchestrated agents oper
 ## 2. Core Subsystems
 
 ### 2.1 WebMCP Discovery & Transport
-- **Transport Mechanism**: `window.postMessage` utilizing JSON-RPC 2.0 frames.
+- **Transport Mechanism**: Native browser WebMCP standard `document.modelContext`.
 - **Protocol Object**: `document.modelContext` exposing `getTools({ fromOrigins })` and `executeTool(tool, args)`.
-- **Sandbox Isolation**: Each target service runs within a sandboxed `<iframe>` restricting untrusted DOM mutation while granting authorized postMessage tool execution.
+- **Sandbox Isolation**: Each target service runs within a sandboxed `<iframe>` with `allow="tools"` and `exposedTo` restricting unauthorized DOM mutation while granting authorized WebMCP tool execution.
 
 ### 2.2 DAG Workflow Scheduler
 - **Topological Sorting**: Multi-step workflows declare step dependencies forming a Directed Acyclic Graph (DAG).
@@ -67,9 +68,9 @@ MCPx is a transactional reliability runtime for browser-orchestrated agents oper
 | Service | Port | Responsibility | Reference Contract |
 | :--- | :---: | :--- | :--- |
 | **mcpx-web** | `3000` | Control plane, DAG engine, UI | Coordinator |
-| **routing-app** | `3001` | Routing gateway provisioning | `create_route` / `get_route` / `delete_route` |
-| **database-app** | `3002` | Schema & database provisioning | `provision_database` / `get_database` / `deprovision_database` |
-| **compute-app** | `3003` | Backend service deployment | `deploy_backend` / `get_deployment` / `rollback_deployment` |
-| **frontend-app** | `3004` | Frontend CDN & UI deployment | `publish_frontend` / `get_frontend` / `unpublish_frontend` |
+| **routing-app** | `3001` | Ingress routing & proxy gateway | `create_route` / `get_route` / `delete_route` |
+| **database-app** | `3002` | Schema & database provisioning | `create_database` / `get_database` / `delete_database` |
+| **compute-app** | `3003` | Backend container workload deployment | `deploy_backend` / `get_backend` / `delete_backend` |
+| **frontend-app** | `3004` | Frontend client & UI hosting | `deploy_frontend` / `get_frontend` / `delete_frontend` |
 | **example-external** | `3010` | 3rd-party widget & registry provider | `create_widget` / `get_widget` / `delete_widget` |
 | **PostgreSQL** | `5435` | Durable audit log & transaction state | `mcpx_control` |
