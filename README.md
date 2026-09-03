@@ -18,6 +18,17 @@ A reliability and orchestration runtime for consequential multi-step WebMCP (Web
 - **MCPx SDK (`@mcpxx/sdk`)**: [https://www.npmjs.com/package/@mcpxx/sdk](https://www.npmjs.com/package/@mcpxx/sdk)
 - **Source Code**: [https://github.com/o1-spec/mcpx](https://github.com/o1-spec/mcpx)
 
+## Reference WebMCP Services
+
+MCPx includes four independent reference services used to demonstrate multi-step WebMCP execution:
+
+- **Database Service**: [https://mcpx-database-app.vercel.app](https://mcpx-database-app.vercel.app)
+- **Compute Service**: [https://mcpx-compute-app.vercel.app](https://mcpx-compute-app.vercel.app)
+- **Routing Service**: [https://mcpx-routing-app.vercel.app](https://mcpx-routing-app.vercel.app)
+- **Frontend Service**: [https://mcpx-frontend-app.vercel.app](https://mcpx-frontend-app.vercel.app)
+
+These services expose their capabilities through WebMCP and are orchestrated by the MCPx browser runner during the challenge workflow.
+
 ---
 
 ```text
