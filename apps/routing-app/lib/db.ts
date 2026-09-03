@@ -8,14 +8,16 @@ const globalForDb = globalThis as unknown as {
 };
 
 const isProduction = process.env.NODE_ENV === "production";
+const needsSsl = connectionString.includes("sslmode=require") || isProduction;
 
 export const pool =
   globalForDb.__mcpxRoutingDbPool ??
   new Pool({
     connectionString,
-    max: isProduction ? 1 : 10,
-    idleTimeoutMillis: isProduction ? 1000 : 30000,
+    max: isProduction ? 3 : 10,
+    idleTimeoutMillis: isProduction ? 2000 : 30000,
     connectionTimeoutMillis: 5000,
+    ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
   });
 
 globalForDb.__mcpxRoutingDbPool = pool;

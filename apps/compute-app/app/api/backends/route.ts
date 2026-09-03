@@ -7,31 +7,37 @@ import {
 } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const operationKey = searchParams.get("operationKey");
+  try {
+    const { searchParams } = new URL(request.url);
+    const operationKey = searchParams.get("operationKey");
 
-  console.log("[compute-app] GET operationKey =", operationKey);
+    if (!operationKey) {
+      const backends = await getAllActiveComputeResources();
+      return NextResponse.json({
+        exists: false,
+        backends,
+      });
+    }
 
-  if (!operationKey) {
-    const backends = await getAllActiveComputeResources();
+    const result = await getComputeResource(operationKey);
+    if (result.exists && result.backend) {
+      return NextResponse.json({
+        exists: true,
+        backend: result.backend,
+        healthUrl: result.backend.healthUrl,
+      });
+    }
+
     return NextResponse.json({
       exists: false,
-      backends,
     });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal error";
+    return NextResponse.json(
+      { exists: false, backends: [], error: message },
+      { status: 200 }
+    );
   }
-
-  const result = await getComputeResource(operationKey);
-  if (result.exists && result.backend) {
-    return NextResponse.json({
-      exists: true,
-      backend: result.backend,
-      healthUrl: result.backend.healthUrl,
-    });
-  }
-
-  return NextResponse.json({
-    exists: false,
-  });
 }
 
 export async function POST(request: NextRequest) {

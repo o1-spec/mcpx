@@ -7,29 +7,37 @@ import {
 } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const operationKey = searchParams.get("operationKey");
+  try {
+    const { searchParams } = new URL(request.url);
+    const operationKey = searchParams.get("operationKey");
 
-  if (!operationKey) {
-    const routes = await getAllActiveRoutingResources();
+    if (!operationKey) {
+      const routes = await getAllActiveRoutingResources();
+      return NextResponse.json({
+        exists: false,
+        routes,
+      });
+    }
+
+    const result = await getRoutingResource(operationKey);
+    if (result.exists && result.route) {
+      return NextResponse.json({
+        exists: true,
+        route: result.route,
+        routeUrl: result.routeUrl,
+      });
+    }
+
     return NextResponse.json({
       exists: false,
-      routes,
     });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal error";
+    return NextResponse.json(
+      { exists: false, routes: [], error: message },
+      { status: 200 }
+    );
   }
-
-  const result = await getRoutingResource(operationKey);
-  if (result.exists && result.route) {
-    return NextResponse.json({
-      exists: true,
-      route: result.route,
-      routeUrl: result.routeUrl,
-    });
-  }
-
-  return NextResponse.json({
-    exists: false,
-  });
 }
 
 export async function POST(request: NextRequest) {

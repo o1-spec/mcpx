@@ -8,46 +8,54 @@ import {
 } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const operationKey = searchParams.get("operationKey");
-  const projectName = searchParams.get("projectName");
+  try {
+    const { searchParams } = new URL(request.url);
+    const operationKey = searchParams.get("operationKey");
+    const projectName = searchParams.get("projectName");
 
-  if (projectName) {
-    const result = await getFrontendResourceByProjectName(projectName);
+    if (projectName) {
+      const result = await getFrontendResourceByProjectName(projectName);
+      if (result.exists && result.frontend) {
+        return NextResponse.json({
+          exists: true,
+          frontend: result.frontend,
+        });
+      }
+      return NextResponse.json(
+        {
+          exists: false,
+          error: `No active frontend deployment found for project '${projectName}'`,
+        },
+        { status: 404 }
+      );
+    }
+
+    if (!operationKey) {
+      const frontends = await getAllActiveFrontendResources();
+      return NextResponse.json({
+        exists: false,
+        frontends,
+      });
+    }
+
+    const result = await getFrontendResource(operationKey);
     if (result.exists && result.frontend) {
       return NextResponse.json({
         exists: true,
         frontend: result.frontend,
       });
     }
-    return NextResponse.json(
-      {
-        exists: false,
-        error: `No active frontend deployment found for project '${projectName}'`,
-      },
-      { status: 404 }
-    );
-  }
 
-  if (!operationKey) {
-    const frontends = await getAllActiveFrontendResources();
     return NextResponse.json({
       exists: false,
-      frontends,
     });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal error";
+    return NextResponse.json(
+      { exists: false, frontends: [], error: message },
+      { status: 200 }
+    );
   }
-
-  const result = await getFrontendResource(operationKey);
-  if (result.exists && result.frontend) {
-    return NextResponse.json({
-      exists: true,
-      frontend: result.frontend,
-    });
-  }
-
-  return NextResponse.json({
-    exists: false,
-  });
 }
 
 export async function POST(request: NextRequest) {
