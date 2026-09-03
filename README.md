@@ -11,7 +11,14 @@
 
 A reliability and orchestration runtime for consequential multi-step WebMCP (Web Model Context Protocol) workflows.
 
-[Live Demo](#live-demo) • [How MCPx Uses WebMCP](#how-mcpx-uses-webmcp) • [Reliability Semantics](#reliability-semantics) • [Judge Testing Guide](./docs/judge-testing.md) • [Devpost Description](./docs/devpost-description.md) • [Architecture](./docs/architecture.md)
+## Links
+
+- **MCPx Live App**: [https://mcpx-mcpx-web.vercel.app/app](https://mcpx-mcpx-web.vercel.app/app)
+- **FileFlow Operator**: [https://file-flow-test.vercel.app/operator](https://file-flow-test.vercel.app/operator)
+- **MCPx SDK (`@mcpxx/sdk`)**: [https://www.npmjs.com/package/@mcpxx/sdk](https://www.npmjs.com/package/@mcpxx/sdk)
+- **Source Code**: [https://github.com/o1-spec/mcpx](https://github.com/o1-spec/mcpx)
+
+---
 
 ```text
 EXECUTING  ──(Lost Transport ACK)──>  IN_DOUBT  ──(Authoritative Inspection)──>  RECOVERED
@@ -276,7 +283,9 @@ Visit **`http://localhost:3000`** in your browser.
 
 ## TypeScript SDK (`@mcpxx/sdk`)
 
-External applications integrate with MCPx via [`@mcpxx/sdk`](https://www.npmjs.com/package/@mcpxx/sdk):
+MCPx provides `@mcpxx/sdk` for external applications and AI agents that want to delegate consequential workflows to the MCPx reliability runtime.
+
+- **npm package**: [https://www.npmjs.com/package/@mcpxx/sdk](https://www.npmjs.com/package/@mcpxx/sdk)
 
 ```bash
 npm install @mcpxx/sdk@beta
