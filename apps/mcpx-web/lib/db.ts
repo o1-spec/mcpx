@@ -70,6 +70,15 @@ export async function initCoordinatorDb(): Promise<void> {
       ALTER TABLE transaction_nodes ADD COLUMN IF NOT EXISTS claimed_by VARCHAR(255);
       ALTER TABLE transaction_nodes ADD COLUMN IF NOT EXISTS lease_expires_at TIMESTAMPTZ;
 
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'uq_tx_node'
+        ) THEN
+          ALTER TABLE transaction_nodes ADD CONSTRAINT uq_tx_node UNIQUE (transaction_id, id);
+        END IF;
+      END $$;
+
       CREATE TABLE IF NOT EXISTS runner_workers (
         id VARCHAR(255) PRIMARY KEY,
         last_heartbeat_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
