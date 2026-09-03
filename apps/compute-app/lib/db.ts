@@ -7,18 +7,18 @@ const globalForDb = globalThis as unknown as {
   __mcpxComputeDbPool?: Pool;
 };
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const pool =
   globalForDb.__mcpxComputeDbPool ??
   new Pool({
     connectionString,
-    max: 10,
-    idleTimeoutMillis: 30000,
+    max: isProduction ? 1 : 10,
+    idleTimeoutMillis: isProduction ? 1000 : 30000,
     connectionTimeoutMillis: 5000,
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.__mcpxComputeDbPool = pool;
-}
+globalForDb.__mcpxComputeDbPool = pool;
 
 export interface BackendRecord {
   id: string;

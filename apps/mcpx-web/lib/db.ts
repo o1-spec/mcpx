@@ -7,18 +7,18 @@ const globalForWebDb = globalThis as unknown as {
   __mcpxWebDbPool?: Pool;
 };
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const pool =
   globalForWebDb.__mcpxWebDbPool ??
   new Pool({
     connectionString,
-    max: 10,
-    idleTimeoutMillis: 30000,
+    max: isProduction ? 1 : 10,
+    idleTimeoutMillis: isProduction ? 1000 : 30000,
     connectionTimeoutMillis: 5000,
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForWebDb.__mcpxWebDbPool = pool;
-}
+globalForWebDb.__mcpxWebDbPool = pool;
 
 let isInitialized = false;
 

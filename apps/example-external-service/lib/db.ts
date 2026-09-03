@@ -4,21 +4,21 @@ const connectionString =
   process.env.DATABASE_URL || "postgresql://mcpx:mcpx@localhost:5435/mcpx_control";
 
 const globalForDb = globalThis as unknown as {
-  __mcpxExampleDbPool?: Pool;
+  __mcpxExternalDbPool?: Pool;
 };
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const pool =
-  globalForDb.__mcpxExampleDbPool ??
+  globalForDb.__mcpxExternalDbPool ??
   new Pool({
     connectionString,
-    max: 10,
-    idleTimeoutMillis: 30000,
+    max: isProduction ? 1 : 10,
+    idleTimeoutMillis: isProduction ? 1000 : 30000,
     connectionTimeoutMillis: 5000,
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.__mcpxExampleDbPool = pool;
-}
+globalForDb.__mcpxExternalDbPool = pool;
 
 export interface WidgetRecord {
   id: string;

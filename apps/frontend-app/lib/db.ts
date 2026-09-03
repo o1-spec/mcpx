@@ -7,18 +7,18 @@ const globalForDb = globalThis as unknown as {
   __mcpxFrontendDbPool?: Pool;
 };
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const pool =
   globalForDb.__mcpxFrontendDbPool ??
   new Pool({
     connectionString,
-    max: 10,
-    idleTimeoutMillis: 30000,
+    max: isProduction ? 1 : 10,
+    idleTimeoutMillis: isProduction ? 1000 : 30000,
     connectionTimeoutMillis: 5000,
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.__mcpxFrontendDbPool = pool;
-}
+globalForDb.__mcpxFrontendDbPool = pool;
 
 export interface FrontendRecord {
   id: string;
