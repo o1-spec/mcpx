@@ -49,6 +49,9 @@ export async function initRoutingAppDb(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         deleted_at TIMESTAMPTZ
       );
+      ALTER TABLE routing_resources ADD COLUMN IF NOT EXISTS project_name VARCHAR(255) DEFAULT 'default';
+      ALTER TABLE routing_resources ADD COLUMN IF NOT EXISTS target_url TEXT DEFAULT '';
+      ALTER TABLE routing_resources ADD COLUMN IF NOT EXISTS route_url TEXT DEFAULT '';
     `);
     isInitialized = true;
   } finally {

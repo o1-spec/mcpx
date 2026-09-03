@@ -49,6 +49,9 @@ export async function initComputeAppDb(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         deleted_at TIMESTAMPTZ
       );
+      ALTER TABLE compute_resources ADD COLUMN IF NOT EXISTS project_name VARCHAR(255) DEFAULT 'default';
+      ALTER TABLE compute_resources ADD COLUMN IF NOT EXISTS database_resource_id VARCHAR(255);
+      ALTER TABLE compute_resources ADD COLUMN IF NOT EXISTS health_url TEXT DEFAULT '';
     `);
     isInitialized = true;
   } finally {

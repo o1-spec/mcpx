@@ -49,6 +49,9 @@ export async function initFrontendAppDb(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         deleted_at TIMESTAMPTZ
       );
+      ALTER TABLE frontend_resources ADD COLUMN IF NOT EXISTS project_name VARCHAR(255) DEFAULT 'default';
+      ALTER TABLE frontend_resources ADD COLUMN IF NOT EXISTS backend_resource_id VARCHAR(255);
+      ALTER TABLE frontend_resources ADD COLUMN IF NOT EXISTS preview_url TEXT DEFAULT '';
     `);
     isInitialized = true;
   } finally {
