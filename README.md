@@ -179,6 +179,20 @@ The reference challenge scenario coordinates 4 independent microservices with de
 
 ---
 
+## Real-World Integration: FileFlow
+
+MCPx is also integrated with **FileFlow**, a distributed file-processing platform extended during the WebMCP Challenge with an AI Operations Agent.
+
+The agent monitors the processing pipeline and uses [`@mcpxx/sdk`](https://www.npmjs.com/package/@mcpxx/sdk) to delegate consequential multi-service workflows to MCPx, where execution, reconciliation, and human-approved compensation are handled reliably.
+
+- **Live FileFlow Operator**: [https://file-flow-test.vercel.app/operator](https://file-flow-test.vercel.app/operator)
+- **Live MCPx Control Plane**: [https://mcpx-mcpx-web.vercel.app/app](https://mcpx-mcpx-web.vercel.app/app)
+
+> [!NOTE]
+> FileFlow existed before the challenge and was meaningfully extended during the WebMCP Challenge with the AI Operations Agent and `@mcpxx/sdk` workflow integration. MCPx itself is 100% newly created for the challenge.
+
+---
+
 ## WebMCP Challenge Work
 
 - **MCPx (New Project Built for Challenge)**:
@@ -186,9 +200,9 @@ The reference challenge scenario coordinates 4 independent microservices with de
   - WebMCP Browser Runner executing native `document.modelContext` tools
   - PostgreSQL-backed durable WAL and sequenced event stream
   - Published TypeScript SDK: [`@mcpxx/sdk`](https://www.npmjs.com/package/@mcpxx/sdk)
-  - 4 reference WebMCP services with real PostgreSQL schemas and containers (`database-app`, `compute-app`, `routing-app`, `frontend-app`)
+  - 4 reference WebMCP services with isolated tenant schemas and workloads (`database-app`, `compute-app`, `routing-app`, `frontend-app`)
 - **FileFlow (Existing Project Used as Reference Consumer)**:
-  - FileFlow is a pre-existing open-source distributed file processing platform.
+  - Pre-existing distributed file processing platform.
   - **Extended for WebMCP Challenge with**:
     - Natural language AI Operations Agent
     - `@mcpxx/sdk` workflow integration
@@ -199,15 +213,15 @@ The reference challenge scenario coordinates 4 independent microservices with de
 
 ---
 
-## Live Demo
+## Live Demo & Evaluator Guide
 
-- **FileFlow AI Operator**: `<FILEFLOW_PUBLIC_URL>` (or `http://localhost:3005/operator` locally)
-- **MCPx Control Plane**: `<MCPX_PUBLIC_URL>` (or `http://localhost:3000/app` locally)
+- **MCPx Control Plane**: [https://mcpx-mcpx-web.vercel.app/app](https://mcpx-mcpx-web.vercel.app/app)
+- **FileFlow AI Operator**: [https://file-flow-test.vercel.app/operator](https://file-flow-test.vercel.app/operator)
 
 ### Quick Evaluation Steps:
-1. MCPx uses the standard browser WebMCP APIs and is designed for WebMCP-capable browsers. Chrome with the WebMCP testing flag (`chrome://flags/#enable-webmcp-testing`) is currently verified; ChatGPT in-app browser compatibility should be verified against the deployed application.
-2. Open the MCPx Dashboard at `<MCPX_PUBLIC_URL>/app` and confirm the **WebMCP Runner** shows green **ACTIVE**.
-3. Open FileFlow Operator and paste:
+1. Open Chrome 149+ with `chrome://flags/#enable-webmcp-testing` enabled (or ChatGPT WebMCP-capable browser).
+2. Open the MCPx Dashboard at [https://mcpx-mcpx-web.vercel.app/app](https://mcpx-mcpx-web.vercel.app/app) and confirm the **WebMCP Runner** shows green **ACTIVE**.
+3. Open FileFlow Operator at [https://file-flow-test.vercel.app/operator](https://file-flow-test.vercel.app/operator) and paste:
    ```text
    Provision a production processing workspace called invoices-prod with four workers.
    ```
