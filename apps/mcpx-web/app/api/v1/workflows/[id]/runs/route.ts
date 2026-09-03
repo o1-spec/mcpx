@@ -55,7 +55,7 @@ export async function POST(
       id === "workspace-provisioning" ||
       id === "default";
 
-    if (isChallengeWorkflow) {
+    if (isChallengeWorkflow || !workflow) {
       enrichedNodes = [
         {
           id: "database:create",
@@ -150,6 +150,9 @@ export async function POST(
       }
     }
 
+    const workflowName = workflow?.name || (id === "challenge-workflow" ? "Challenge Workflow" : "Deploy Infrastructure");
+    const workflowId = workflow?.id || id;
+
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -159,9 +162,6 @@ export async function POST(
         `SELECT COUNT(*)::int as count FROM runner_workers WHERE last_heartbeat_at > NOW() - INTERVAL '20 seconds'`
       );
       const activeRunners = runnerRes.rows[0]?.count ?? 0;
-
-      const workflowName = workflow?.name || (id === "challenge-workflow" ? "Challenge Workflow" : "Deploy Infrastructure");
-      const workflowId = workflow?.id || id;
 
       await client.query(
         `INSERT INTO transactions (id, state, scenario, workflow_id, next_event_sequence, created_at, updated_at)
