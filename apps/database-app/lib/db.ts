@@ -50,6 +50,16 @@ export async function initDatabaseAppDb(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         deleted_at TIMESTAMPTZ
       );
+      ALTER TABLE database_resources ADD COLUMN IF NOT EXISTS operation_key VARCHAR(255);
+      ALTER TABLE database_resources ADD COLUMN IF NOT EXISTS schema_name VARCHAR(255);
+      ALTER TABLE database_resources ADD COLUMN IF NOT EXISTS name VARCHAR(255) DEFAULT 'default';
+      ALTER TABLE database_resources ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_database_op_key') THEN
+          ALTER TABLE database_resources ADD CONSTRAINT uq_database_op_key UNIQUE (operation_key);
+        END IF;
+      END $$;
     `);
     isInitialized = true;
   } finally {
